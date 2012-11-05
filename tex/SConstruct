@@ -21,8 +21,9 @@ Default([lcfit])
 #diff = env.PDF(target='diff.pdf',source='diff.tex')
 
 # Depends(Flatten([lcfit),
-#         Flatten([pdfs, 'lcfit.bib', 'alphaplainnat.bst', 'alpha_supp.tex', 'defs.tex']))
+#         Flatten([pdfs, 'lcfit.bib', 'alpha_supp.tex', 'defs.tex']))
 
-cont_build = env.Command('.continuous', ['lcfit.bib', 'lcfit.tex', 'alphaplainnat.bst'],
+cont_build = env.Command('.continuous', ['lcfit.tex'],
+#cont_build = env.Command('.continuous', ['lcfit.bib', 'lcfit.tex'],
     'while :; do inotifywait -e modify $SOURCES; scons -Q; done')
 Alias('continuous', cont_build)
