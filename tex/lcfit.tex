@@ -13,23 +13,55 @@
 
 Here is our log likelihood function:
 \[
-  \llf(c,m,r,t) = c \log\left(\frac{1}{2}(1+e^{-r t})\right) + m \log\left(\frac{1}{2}(1-e^{-r t})\right).
+  \llf(c,m,r,t) = c \log\left(\frac{1}{2}(1+e^{-rt})\right) + m \log\left(\frac{1}{2}(1-e^{-rt})\right).
 \]
 
 The first step is to divide through by $m$:
-\[
-  \llfs(\rho,r,t) := \llf(\rho,1,r,t) = \rho \log \left(\frac{1}{2}(1+e^{-r t})\right) + \log \left(\frac{1}{2}(1-e^{-r t})\right).
-\]
+\begin{equation}
+  \llfs(\rho,r,t) := \llf(\rho,1,r,t) = \rho \log \left(\frac{1}{2}(1+e^{-rt})\right) + \log \left(\frac{1}{2}(1-e^{-rt})\right).
+  \label{eq:llfs}
+\end{equation}
 where $\rho = c/m$.
 
-We can come up with a pseudo-Taylor series:
+We will develop a series expansion for \eqref{eq:llfs} by considering each term individually.
+One can use a standard Taylor series for the first term:
+\begin{equation}
+  \log \left(\frac{1}{2}(1+e^{-rt})\right) = - \frac{rt}{2} + \frac{r^2 t^2}{8} + O(x^4).
+\end{equation}
+The second term is first broken down into two components:
+\begin{equation}
+  \log \left(\frac{1}{2}(1-e^{-rt})\right) = \log \left(\frac{rt}{2} \right) + \log \left(\frac{1-e^{-rt}}{2 rt}\right).
+\end{equation}
 
+This second term can be expanded according to Taylor's theorem, most easily by expanding the expansion
 \[
-  \log(r/2) + \log(t) - \frac{1+\rho}{2} r t + \frac{1+3 \rho}{24} r^2 t^2
+  \log \left(\frac{1-e^{-rt}}{2 rt}\right) = \log \left(1 - \frac{rt}{2!} + \frac{r^2 t^2}{3!} - \frac{r^3 t^3}{4!} + O(t^4) \right)
+\]
+to get
+\[
+  \log \left(\frac{1-e^{-rt}}{2 rt}\right) = - \frac{rt}{2} + \frac{r^2 t^2}{24} + O(t^4).
 \]
 
-% In(5):= sd =Simplify((s/.{t->t1}) - (s/.{t->t2}))
-% Out(5)= 1/24 (r (t1-t2) (-12+r (t1+t2)+3 c (-4+r (t1+t2)))+24 \log(t1)-24 \log(t2))
+This means that \eqref{eq:llfs} becomes
+\[
+  \begin{split}
+    \llfs(\rho,r,t) & = \rho \cdot \left(-\frac{rt}{2} + \frac{r^2 t^2}{8} + O(x^4) \right) + \log \left(\frac{rt}{2} \right) - \frac{rt}{2} + \frac{r^2 t^2}{24} + O(t^4)\\
+    & = \log(r/2) + \log(t) - \frac{1+\rho}{2} r t + \frac{1+3 \rho}{24} r^2 t^2 + O(t^4).
+  \end{split}
+\]
+
+Define
+\begin{equation}
+  \llfs_3(\rho,r,t) := \log(r/2) + \log(t) - \frac{1+\rho}{2} r t + \frac{1+3 \rho}{24} r^2 t^2.
+  \label{eq:llfs3}
+\end{equation}
+
+Given a pair (branch lengths, likelihood value) pairs, we would like to fit \eqref{eq:llfs3}.
+
+We can eliminate the $\log(r/2)$ term by taking the difference at two $t$'s:
+\[
+  \llfs_3(\rho,r,t_1) - \llfs_3(\rho,r,t_2) = \log(t_1/t_2) - \frac{1+\rho}{2} r (t_1 - t_2) + \frac{1+3 \rho}{24} r^2 (t_1^2 - t_2^2).
+\]
 
 \end{document}
 
