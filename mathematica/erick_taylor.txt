@@ -1,0 +1,127 @@
+In[1]:= llf[c_,r_]:= c*Log[(1+Exp[-r*t])/2]+Log[(1-Exp[-r*t])/2];
+In[2]:= ll= c*Log[(1+Exp[-r*t])/2]+Log[(1-Exp[-r*t])/2];
+In[3]:= Plot[llf[1.5,1],{t,0,3}]
+In[4]:= s =Normal[Series[ll,{t,0,3}]]
+Out[4]= (-(r/2)-(c r)/2) t+1/24 (r^2+3 c r^2) t^2+Log[r/2]+Log[t]
+In[55]:= CForm[s]
+Out[55]//CForm=
+(-r/2. - (c*r)/2.)*t + ((Power(r,2) + 3*c*Power(r,2))*Power(t,2))/24. + Log(r/2.) + Log(t)
+In[5]:= sd =Simplify[(s/.{t->t1}) - (s/.{t->t2})]
+Out[5]= 1/24 (r (t1-t2) (-12+r (t1+t2)+3 c (-4+r (t1+t2)))+24 Log[t1]-24 Log[t2])
+In[6]:= rsol =Simplify[Solve[sd==d1-d2,r]][[1]]
+Out[6]= {r->(2 (3 t1+3 c t1-3 t2-3 c t2+1/4 Sqrt[144 (1+c)^2 (t1-t2)^2+96 (1+3 c) (t1^2-t2^2) (d1-d2-Log[t1]+Log[t2])]))/((1+3 c) (t1^2-t2^2))}
+In[45]:= forc =FullSimplify[s/.rsol]
+Out[45]= Log[t]-((1+c) t (3 (1+c) t1-3 (1+c) t2+Sqrt[3] Sqrt[(t1-t2) (3 (1+c)^2 (t1-t2)+2 (1+3 c) (t1+t2) (d1-d2-Log[t1]+Log[t2]))]))/((1+3 c) (t1-t2) (t1+t2))+(3 (1+c) t (t1-t2)+Sqrt[3] t Sqrt[(t1-t2) (3 (1+c)^2 (t1-t2)+2 (1+3 c) (t1+t2) (d1-d2-Log[t1]+Log[t2]))])^2/(6 (1+3 c) (t1^2-t2^2)^2)+Log[(3 (1+c) t1-3 (1+c) t2+Sqrt[3] Sqrt[(t1-t2) (3 (1+c)^2 (t1-t2)+2 (1+3 c) (t1+t2) (d1-d2-Log[t1]+Log[t2]))])/((1+3 c) (t1-t2) (t1+t2))]
+In[53]:= CForm[Experimental`OptimizeExpression[forc]]
+Out[53]//CForm=
+Experimental_OptimizedExpression(Block(List(Compile_$$18724,Compile_$$18728,Compile_$$18729,Compile_$$18725,Compile_$$18726,Compile_$$18731,Compile_$$18727,Compile_$$18735,
+     Compile_$$18736,Compile_$$18737,Compile_$$18738,Compile_$$18739,Compile_$$18740,Compile_$$18741,Compile_$$18742,Compile_$$18743,Compile_$$18744,Compile_$$18745,Compile_$$18746,
+     Compile_$$18730,Compile_$$18732,Compile_$$18733,Compile_$$18734,Compile_$$18747,Compile_$$18748),
+    (Compile_$$18724 = 1 + c,Compile_$$18728 = -t2,Compile_$$18729 = t1 + Compile_$$18728,Compile_$$18725 = 3*c,Compile_$$18726 = 1 + Compile_$$18725,Compile_$$18731 = t1 + t2,
+     Compile_$$18727 = 1/Compile_$$18726,Compile_$$18735 = Sqrt(3),Compile_$$18736 = Power(Compile_$$18724,2),Compile_$$18737 = 3*Compile_$$18736*Compile_$$18729,Compile_$$18738 = -d2,
+     Compile_$$18739 = Log(t1),Compile_$$18740 = -Compile_$$18739,Compile_$$18741 = Log(t2),Compile_$$18742 = d1 + Compile_$$18738 + Compile_$$18740 + Compile_$$18741,
+     Compile_$$18743 = 2*Compile_$$18726*Compile_$$18731*Compile_$$18742,Compile_$$18744 = Compile_$$18737 + Compile_$$18743,Compile_$$18745 = Compile_$$18729*Compile_$$18744,
+     Compile_$$18746 = Sqrt(Compile_$$18745),Compile_$$18730 = 1/Compile_$$18729,Compile_$$18732 = 1/Compile_$$18731,Compile_$$18733 = 3*Compile_$$18724*t1,
+     Compile_$$18734 = -3*Compile_$$18724*t2,Compile_$$18747 = Compile_$$18735*Compile_$$18746,Compile_$$18748 = Compile_$$18733 + Compile_$$18734 + Compile_$$18747,
+     Log(t) - Compile_$$18724*Compile_$$18727*t*Compile_$$18730*Compile_$$18732*Compile_$$18748 +
+      (Compile_$$18727*Power(3*Compile_$$18724*t*Compile_$$18729 + Compile_$$18735*t*Compile_$$18746,2))/(6.*Power(Power(t1,2) - Power(t2,2),2)) +
+      Log(Compile_$$18727*Compile_$$18730*Compile_$$18732*Compile_$$18748))))
+In[54]:= CForm[forc]
+Out[54]//CForm=
+Log(t) - ((1 + c)*t*(3*(1 + c)*t1 - 3*(1 + c)*t2 + Sqrt(3)*Sqrt((t1 - t2)*(3*Power(1 + c,2)*(t1 - t2) + 2*(1 + 3*c)*(t1 + t2)*(d1 - d2 - Log(t1) + Log(t2))))))/
+    ((1 + 3*c)*(t1 - t2)*(t1 + t2)) + Power(3*(1 + c)*t*(t1 - t2) + Sqrt(3)*t*Sqrt((t1 - t2)*(3*Power(1 + c,2)*(t1 - t2) + 2*(1 + 3*c)*(t1 + t2)*(d1 - d2 - Log(t1) + Log(t2)))),2)/
+    (6.*(1 + 3*c)*Power(Power(t1,2) - Power(t2,2),2)) + Log((3*(1 + c)*t1 - 3*(1 + c)*t2 +
+       Sqrt(3)*Sqrt((t1 - t2)*(3*Power(1 + c,2)*(t1 - t2) + 2*(1 + 3*c)*(t1 + t2)*(d1 - d2 - Log(t1) + Log(t2)))))/((1 + 3*c)*(t1 - t2)*(t1 + t2)))
+In[42]:= test=forc/.{t1->0.8,t2->1,d1->-2,d2->-3,t->0.25}
+Out[42]= -1.38629+(0.694444 (1+c) (-0.6-0.6 c+1/4 Sqrt[5.76 (1+c)^2-42.2718 (1+3 c)]))/(1+3 c)+(0.0803755 (-0.6-0.6 c+1/4 Sqrt[5.76 (1+c)^2-42.2718 (1+3 c)])^2)/(1+3 c)+Log[-((2.77778 (-0.6-0.6 c+1/4 Sqrt[5.76 (1+c)^2-42.2718 (1+3 c)]))/(1+3 c))]
+In[44]:= FullSimplify[test]
+Out[44]= (-1.95744+0.358796 Sqrt[(-20.3284+c) (0.311823+c)]+c (-5.51353-0.358796 c+0.358796 Sqrt[(-20.3284+c) (0.311823+c)])+(1+3. c) Log[(1.66667+1.66667 c-1.66667 Sqrt[(-20.3284+c) (0.311823+c)])/(1.+3. c)])/(1.+3. c)
+In[43]:= Plot[test,{c,0,100}]
+Out[43]= 
+GraphicsBox[{{}, {},
+{Hue[0.67, 0.6, 0.6], LineBox[CompressedData["
+1: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
+nycuLQv48vMnA3bdKWW2M2z8f1li/+A=
+"]]}},
+AspectRatio->NCache[GoldenRatio^(-1), 0.6180339887498948],
+Axes->True,
+AxesOrigin->{0, -5.6000000000000005`},
+PlotRange->{{0, 100}, {-5.740557440488904, -4.538508423466492}},
+PlotRangeClipping->True,
+PlotRangePadding->{Scaled[0.02], Scaled[0.02]}]
+In[46]:= (*traverses entire expression tree storing each node*)
+AllSubExpressions[x_,accum_]:=Module[{result,i,len},len=Length[x];
+result=Append[accum,x];
+If[LeafCount[x]>1,For[i=1,i<=len,i++,result=ToSubExpressions2[x[[i]],result];];];
+Return[Sort[result,LeafCount[#1]>LeafCount[#2]&]]]
+
+CommonSubExpressions[statements_]:=Module[{common,subexpressions},subexpressions=AllSubExpressions[statements,{}];
+(*get the unique set of sub expressions*)common=DeleteDuplicates[subexpressions];
+(*remove constants from the list*)common=Select[common,LeafCount[#]>1&];
+(*only keep subexpressions that occur more than once*)common=Select[common,Count[subexpressions,#]>1&];
+(*output the list of possible subexpressions to replace with the number of occurrences*)Return[common];]
+In[48]:= CommonSubExpressions[forc]
+During evaluation of In[48]:= DeleteDuplicates::list: List expected at position 1 in DeleteDuplicates[ToSubExpressions2[ToSubExpressions2[(3 Plus[<<2>>] t Plus[<<2>>]+Power[<<2>>] t Power[<<2>>])^2/(6 (1+3 c) (t1^2-Power[<<2>>])^2),ToSubExpressions2[-(((1+c) t (3 Plus[<<2>>] t1-3 Plus[<<2>>] t2+Power[<<2>>] Power[<<2>>]))/((1+Times[<<2>>]) (t1+Times[<<2>>]) (t1+t2))),ToSubExpressions2[Log[t],{Log[<<1>>]+Times[<<7>>]+Times[<<4>>]+Log[<<1>>]}]]],Log[(3 (1+c) t1-3 (1+c) t2+Sqrt[3] Sqrt[Times[<<2>>]])/((1+3 c) (t1-t2) (t1+t2))]]]. >>
+During evaluation of In[48]:= DeleteDuplicates::list: List expected at position 1 in DeleteDuplicates[ToSubExpressions2[ToSubExpressions2[(3 Plus[<<2>>] t Plus[<<2>>]+Power[<<2>>] t Power[<<2>>])^2/(6 (1+3 c) (t1^2-Power[<<2>>])^2),ToSubExpressions2[-(((1+c) t (3 Plus[<<2>>] t1-3 Plus[<<2>>] t2+Power[<<2>>] Power[<<2>>]))/((1+Times[<<2>>]) (t1+Times[<<2>>]) (t1+t2))),ToSubExpressions2[Log[t],{Log[<<1>>]+Times[<<7>>]+Times[<<4>>]+Log[<<1>>]}]]],Log[(3 (1+c) t1-3 (1+c) t2+Sqrt[3] Sqrt[Times[<<2>>]])/((1+3 c) (t1-t2) (t1+t2))]]]. >>
+During evaluation of In[48]:= DeleteDuplicates::argb: DeleteDuplicates called with 0 arguments; between 1 and 3 arguments are expected. >>
+Out[48]= DeleteDuplicates[]
+In[49]:= Experimental`OptimizeExpression[{x^2 Sin[x^2]}]
+Out[49]= Experimental`OptimizedExpression[Block[{Compile`$$18618},Compile`$$18618=x^2;{Compile`$$18618 Sin[Compile`$$18618]}]]
