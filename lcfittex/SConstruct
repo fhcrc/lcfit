@@ -14,16 +14,16 @@ svgs = [ ]
 pdfs = [env.Inkscape(target="_build/" + os.path.basename(svg).replace('.svg','.pdf'), source=svg)
         for svg in svgs]
 
-lcfit, = env.PDF(target='_build/lcfit.pdf',source='lcfit.tex')
-Default([lcfit])
+lcfittex, = env.PDF(target='_build/lcfittex.pdf',source='lcfittex.tex')
+Default([lcfittex])
 
-#env.Latexdiff(target='diff.tex',source=['stored_alpha.tex','lcfit.tex'])
+#env.Latexdiff(target='diff.tex',source=['stored_alpha.tex','lcfittex.tex'])
 #diff = env.PDF(target='diff.pdf',source='diff.tex')
 
-# Depends(Flatten([lcfit),
-#         Flatten([pdfs, 'lcfit.bib', 'alpha_supp.tex', 'defs.tex']))
+# Depends(Flatten([lcfittex),
+#         Flatten([pdfs, 'lcfittex.bib', 'alpha_supp.tex', 'defs.tex']))
 
-cont_build = env.Command('.continuous', ['lcfit.tex'],
-#cont_build = env.Command('.continuous', ['lcfit.bib', 'lcfit.tex'],
+cont_build = env.Command('.continuous', ['lcfittex.tex'],
+#cont_build = env.Command('.continuous', ['lcfittex.bib', 'lcfittex.tex'],
     'while :; do inotifywait -e modify $SOURCES; scons -Q; done')
 Alias('continuous', cont_build)
