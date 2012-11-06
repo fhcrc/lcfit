@@ -6,6 +6,10 @@ ll: c*log((1+exp(-r*t))/2)+m*log((1-exp(-r*t))/2);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
+tp: ll,c=5,m=1,r=1; plot2d(tp,[t,0,2]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
 llt: taylor(ll,t,0,2);
 /* [wxMaxima: input   end   ] */
 
