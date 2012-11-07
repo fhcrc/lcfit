@@ -11,8 +11,8 @@ all: run
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-test: test.o quintic_C.o
-	$(CC) -o $@ $< quintic_C.o -g $(LFLAGS) $(CFLAGS)
+test: test.o lcfit.o
+	$(CC) -o $@ $< lcfit.o -g $(LFLAGS) $(CFLAGS)
 
 run: test
 	./test
