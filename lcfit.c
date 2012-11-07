@@ -75,7 +75,7 @@ int print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
            gsl_blas_dnrm2(s->f));
 }
 
-int fit(size_t n, double* t, double* l, double* x_init)
+int fit(size_t n, double* t, double* l, double* x)
 {
     const gsl_multifit_fdfsolver_type *T;
     gsl_multifit_fdfsolver *s;
@@ -88,8 +88,9 @@ int fit(size_t n, double* t, double* l, double* x_init)
     struct data d = {n, t, l};
     gsl_multifit_function_fdf f;
 
-    /* http://www.gnu.org/software/gsl/manual/html_node/Vector-views.html */
-    gsl_vector_view x = gsl_vector_view_array(x_init, 3);
+    /* Storing the contents of x on the stack.
+     * http://www.gnu.org/software/gsl/manual/html_node/Vector-views.html */
+    gsl_vector_view x_view = gsl_vector_view_array(x, 3);
 
     f.f = &expb_f;
     f.df = &expb_df;
@@ -100,7 +101,7 @@ int fit(size_t n, double* t, double* l, double* x_init)
 
     T = gsl_multifit_fdfsolver_lmsder;
     s = gsl_multifit_fdfsolver_alloc(T, n, 3);
-    gsl_multifit_fdfsolver_set(s, &f, &x.vector);
+    gsl_multifit_fdfsolver_set(s, &f, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
     print_state(iter, s);
 
@@ -130,7 +131,10 @@ int fit(size_t n, double* t, double* l, double* x_init)
 
     printf("status = %s\n", gsl_strerror(status));
 
+    for(i=0; i < n; i++) {
+        x[i] = FIT(i);
+    }
+
     gsl_multifit_fdfsolver_free(s);
     return 0;
 }
-
