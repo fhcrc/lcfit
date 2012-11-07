@@ -159,34 +159,6 @@ solve(-20*X^4 + 5*X^3 + 17*X^2 - 29*X + 87, X),numer;
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-¦
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-jacobian ([sin (u - v), sin (u * v)], [u, v]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-f: m*x+b;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-d1: (f-2),x=1;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-d2: (f-3),x=2;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-minpack_lsquares([d1,d2],[m,b],[-1,0]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-t1: 
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
 f1: ll+2.787877533411486,t=0.25;
 /* [wxMaxima: input   end   ] */
 
