@@ -1,40 +1,74 @@
 /* http://www.gnu.org/software/gsl/manual/html_node/Nonlinear-Least_002dSquares-Fitting.html */
 
-#include "lcfit.h"
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_multifit_nlin.h>
+#include <gsl/gsl_roots.h>
 
-struct data {
+int fit(size_t n, double* t, double* l, double* x_init);
+
+/* First, the log likelihood function. */
+/* A struct to store the parameters. */
+struct ll_params {
+    double c, /* "number of constant sites" */
+           m, /* "number of mutations" */
+           r; /* "rate of mutation" */
+};
+
+/* The log likelihood for the CFN model with given parameters. */
+/* Model l[i] = c*log((1+exp(-r*t[i]))/2)+m*log((1-exp(-r*t[i]))/2) */
+double ll(double t, void * params) {
+    double c = ((struct ll_params *) params)->c;
+    double r = ((struct ll_params *) params)->r;
+    double m = ((struct ll_params *) params)->m;
+    double ert = exp(-r * t);
+    return (c * log((1 + ert) / 2) + m * log((1 - ert) / 2));
+}
+
+/* The derivative of the log likelihood function. */
+double ll_df(double t, void * params) {
+    double c = ((struct ll_params *) params)->c;
+    double r = ((struct ll_params *) params)->r;
+    double m = ((struct ll_params *) params)->m;
+    double inv_ert = exp(r * t); /* inverse of ert */
+    return (c / (1 + inv_ert) + m / (1 - inv_ert));
+}
+
+/* Performing ll and ll_df in one go. */
+void ll_fdf(double t, void * params, double * y, double * dy) {
+    *y = ll(t, params);
+    *dy = ll_df(t, params);
+}
+
+/* Next, the data to fit */
+struct data_to_fit {
     size_t n;
     double * t;
     double * l;
 };
 
-int expb_f(const gsl_vector * x, void *params, gsl_vector * f)
+int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
 {
-    size_t n = ((struct data *)params)->n;
-    double *t = ((struct data *)params)->t;
-    double *l = ((struct data *) params)->l;
+    size_t n = ((struct data_to_fit *) data)->n;
+    double *t = ((struct data_to_fit *) data)->t;
+    double *l = ((struct data_to_fit *) data)->l;
 
-    double c = gsl_vector_get(x, 0);
-    double m = gsl_vector_get(x, 1);
-    double r = gsl_vector_get(x, 2);
+    struct ll_params p = {gsl_vector_get(x, 0), gsl_vector_get(x, 1), gsl_vector_get(x, 2)};
 
     size_t i;
-    double ert;
 
     for(i = 0; i < n; i++) {
-        /* Model l[i] = c*log((1+exp(-r*t[i]))/2)+m*log((1-exp(-r*t[i]))/2) */
-        ert = exp(-r * t[i]);
-        gsl_vector_set(f, i, c * log((1 + ert) / 2) + m * log((1 - ert) / 2) - l[i]);
+        gsl_vector_set(f, i, ll(t[i], &p) - l[i]);
     }
 
     return GSL_SUCCESS;
 }
 
-int expb_df(const gsl_vector * x, void *params, gsl_matrix * J)
+int expb_df(const gsl_vector * x, void *data, gsl_matrix * J)
 {
-    size_t n = ((struct data *)params)->n;
-    double *t = ((struct data *)params)->t;
-    double *l = ((struct data *) params)->l;
+    size_t n = ((struct data_to_fit *) data)->n;
+    double *t = ((struct data_to_fit *) data)->t;
+    double *l = ((struct data_to_fit *) data)->l;
 
     double c = gsl_vector_get(x, 0);
     double m = gsl_vector_get(x, 1);
@@ -56,10 +90,10 @@ int expb_df(const gsl_vector * x, void *params, gsl_matrix * J)
     return GSL_SUCCESS;
 }
 
-int expb_fdf(const gsl_vector * x, void *params, gsl_vector * f, gsl_matrix * J)
+int expb_fdf(const gsl_vector * x, void *data, gsl_vector * f, gsl_matrix * J)
 {
-    expb_f(x, params, f);
-    expb_df(x, params, J);
+    expb_f(x, data, f);
+    expb_df(x, data, J);
 
     return GSL_SUCCESS;
 }
@@ -75,7 +109,7 @@ int print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
            gsl_blas_dnrm2(s->f));
 }
 
-int fit(size_t n, double* t, double* l, double* x)
+int fit_ll(size_t n, double* t, double* l, double* x)
 {
     const gsl_multifit_fdfsolver_type *T;
     gsl_multifit_fdfsolver *s;
@@ -85,23 +119,23 @@ int fit(size_t n, double* t, double* l, double* x)
     unsigned int iter = 0;
 
     gsl_matrix *covar = gsl_matrix_alloc(3, 3);
-    struct data d = {n, t, l};
-    gsl_multifit_function_fdf f;
+    struct data_to_fit d = {n, t, l};
+    gsl_multifit_function_fdf fdf;
 
     /* Storing the contents of x on the stack.
      * http://www.gnu.org/software/gsl/manual/html_node/Vector-views.html */
     gsl_vector_view x_view = gsl_vector_view_array(x, 3);
 
-    f.f = &expb_f;
-    f.df = &expb_df;
-    f.fdf = &expb_fdf;
-    f.n = n;
-    f.p = 3; /* 3 parameters */
-    f.params = &d;
+    fdf.f = &expb_f;
+    fdf.df = &expb_df;
+    fdf.fdf = &expb_fdf;
+    fdf.n = n;
+    fdf.p = 3; /* 3 parameters */
+    fdf.params = &d;
 
     T = gsl_multifit_fdfsolver_lmsder;
     s = gsl_multifit_fdfsolver_alloc(T, n, 3);
-    gsl_multifit_fdfsolver_set(s, &f, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
+    gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
     print_state(iter, s);
 
@@ -138,3 +172,39 @@ int fit(size_t n, double* t, double* l, double* x)
     gsl_multifit_fdfsolver_free(s);
     return 0;
 }
+
+/* assume that *t starts being a reasonable initial guess */
+int maximize_ll(double * t, struct ll_params * params)
+{
+  int status;
+  int iter = 0, max_iter = 100;
+  const gsl_root_fdfsolver_type *T;
+  gsl_root_fdfsolver *s;
+  double t_prev;
+  gsl_function_fdf fdf;
+
+  fdf.f = &ll;
+  fdf.df = &ll_df;
+  fdf.fdf = &ll_fdf;
+  fdf.params = &params;
+
+  T = gsl_root_fdfsolver_newton;
+  s = gsl_root_fdfsolver_alloc (T);
+  gsl_root_fdfsolver_set (s, &fdf, *t);
+
+  printf ("using %s method\n",
+          gsl_root_fdfsolver_name (s));
+
+  printf ("%-5s %10s %10s %10s\n",
+          "iter", "root", "err", "err(est)");
+  do {
+      iter++;
+      status = gsl_root_fdfsolver_iterate (s);
+      t_prev = *t;
+      *t = gsl_root_fdfsolver_root (s);
+      status = gsl_root_test_delta (*t, t_prev, 0, 1e-3);
+  }
+  while (status == GSL_CONTINUE && iter < max_iter);
+  return status;
+}
+
