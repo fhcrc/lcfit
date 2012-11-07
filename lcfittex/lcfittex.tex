@@ -25,7 +25,7 @@ That is, $\llf(c,m,r,t) = \lambda^{-1} \llf(\lambda c,\lambda m,r,t)$
 
 With that in mind, our first step is to divide through by $m$, and define $\rho = c/m$ so that
 \begin{equation}
-  \llfs(\rho,r,t) := \llf(\rho,1,r,t) = \rho \log \left(\frac{1}{2}(1+e^{-rt})\right) + \log \left(\frac{1}{2}(1-e^{-rt})\right).
+  \llfs(\rho,r,t) := \frac{1}{m} \llf(c,m,r,t) = \rho \log \left(\frac{1}{2}(1+e^{-rt})\right) + \log \left(\frac{1}{2}(1-e^{-rt})\right).
   \label{eq:llfs}
 \end{equation}
 
@@ -62,7 +62,7 @@ Define
   \label{eq:llfs3}
 \end{equation}
 
-\section{Fitting $\llfs_3$}
+\section{Solving for the coefficients of $\llfs_3$}
 
 Assume we are given three distinct $(t_i, \loglike_i)$ pairs, where $t_i$ is a branch length, and $\loglike_i$ is the corresponding phylogenetic log likelihood, we would like to find $c$, $m$, and $r$ such that \eqref{eq:llf} goes through those three points.
 Given a pair (branch lengths, likelihood value) pairs, we would like to fit \eqref{eq:llfs3}.
@@ -70,19 +70,23 @@ Given a pair (branch lengths, likelihood value) pairs, we would like to fit \eqr
 
 Taking the difference between two of these points gives.
 \begin{equation}
-  \loglike_1 - \loglike_2 = \frac{(1+3 \rho)(t_1^2 - t_2^2)}{24} r^2 - \frac{(1+\rho) (t_1 - t_2)}{2} r + \log t_1 - \log t_2.
+  \frac{\loglike_1 - \loglike_2}{c} = \frac{(1+3 \rho)(t_1^2 - t_2^2)}{24} r^2 - \frac{(1+\rho) (t_1 - t_2)}{2} r + \log t_1 - \log t_2.
   \label{eq:forc}
 \end{equation}
 
+We will take $C(c)$ to be the constant term with respect to $r$:
+\begin{equation}
+  C(c) := \log t_1 - \log t_2 - \frac{\loglike_1 - \loglike_2}{c}
+\end{equation}
 
 An application of the quadratic formula leads to these solutions for \eqref{eq:forc}:
 \begin{equation}
   \begin{split}
-  r & = \frac{\frac{(1+\rho) (t_1 - t_2)}{2} \pm \sqrt{\frac{(1+\rho)^2 (t_1 - t_2)^2}{4} - 4 \frac{(1+3 \rho)(t_1^2 - t_2^2)}{24} (\log t_1 - \log t_2)}}
+  r & = \frac{\frac{(1+\rho) (t_1 - t_2)}{2} \pm \sqrt{\frac{(1+\rho)^2 (t_1 - t_2)^2}{4} - 4 \frac{(1+3 \rho)(t_1^2 - t_2^2)}{24} C(c)}}
   {2 \frac{(1+3 \rho)(t_1^2 - t_2^2)}{24}} \\
-    & = 6 \ \frac{(1+\rho) (t_1 - t_2) \pm \sqrt{(1+\rho)^2 (t_1 - t_2)^2 - \frac{2}{3} (1+3 \rho)(t_1^2 - t_2^2) (\log t_1 - \log t_2)}}
+    & = 6 \ \frac{(1+\rho) (t_1 - t_2) \pm \sqrt{(1+\rho)^2 (t_1 - t_2)^2 - \frac{2}{3} (1+3 \rho)(t_1^2 - t_2^2) C(c)}}
 	  {(1+3 \rho)(t_1^2 - t_2^2)} \\
-    & = 6 \ \frac{(1+\rho) \pm \sqrt{(1+\rho)^2 - \frac{2}{3} (1+3 \rho)(t_1 + t_2) (\log t_1 - \log t_2) / (t_1 - t_2)}}
+    & = 6 \ \frac{(1+\rho) \pm \sqrt{(1+\rho)^2 - \frac{2}{3} (1+3 \rho)(t_1 + t_2) C(c) / (t_1 - t_2)}}
 	  {(1+3 \rho)(t_1 + t_2)}.
   \end{split}
   \label{eq:forc}
@@ -97,31 +101,37 @@ Then we can put this $r(\rho)$ back into \eqref{eq:llfs3} and solve for a $\rho$
 In order for this to evaluate to a real value, we need for $r(\rho)$ to evaluate to a positive real value.
 That translates to
 \begin{gather}
-  0 < (1+\rho)^2 - \frac{2}{3} (1+3 \rho)(t_1 + t_2) (\log t_1 - \log t_2) / (t_1 - t_2) \label{eq:torootpos} \\
-  0 < (1+\rho) + \sqrt{(1+\rho)^2 - \frac{2}{3} (1+3 \rho)(t_1 + t_2) (\log t_1 - \log t_2) / (t_1 - t_2)} \label{eq:rhopos}
+  0 < (1+\rho)^2 - \frac{2}{3} (1+3 \rho)(t_1 + t_2) C(c) / (t_1 - t_2) \label{eq:torootpos} \\
+  0 < (1+\rho) + \sqrt{(1+\rho)^2 - \frac{2}{3} (1+3 \rho)(t_1 + t_2) C(c) / (t_1 - t_2)} \label{eq:rhopos}
 \end{gather}
 
 Note that \eqref{eq:rhopos} is always satisfied if \eqref{eq:torootpos} is.
 Now, \eqref{eq:torootpos} is equivalent to
 \begin{gather}
-  \frac{2}{3} (1+3 \rho)(t_1 + t_2) (\log t_1 - \log t_2) / (t_1 - t_2) < (1+\rho)^2 \\
-  \frac{2}{3} (1+3 \rho)(t_1 + t_2) (\log t_1 - \log t_2) < (t_1 - t_2) (1+\rho)^2 \\
-  \frac{2 (1+3 \rho)}{3 (1+\rho)^2} < \frac{t_1 - t_2}{(t_1 + t_2) (\log t_1 - \log t_2)}
+  \frac{2}{3} (1+3 \rho)(t_1 + t_2) C(c) / (t_1 - t_2) < (1+\rho)^2 \\
+  \frac{2}{3} (1+3 \rho)(t_1 + t_2) C(c) < (t_1 - t_2) (1+\rho)^2 \\
+  \frac{2 (1+3 \rho)}{3 (1+\rho)^2} < \frac{t_1 - t_2}{(t_1 + t_2) C(c)}
 \end{gather}
 
-Note that the RHS is positive because $t_1 > t_2$ is equivalent to $\log t_1 > \log t_2$.
+% Note that the RHS is positive because $t_1 > t_2$ is equivalent to $\log t_1 > \log t_2$.
+
+
+\section{Fitting}
+
+We could also minimize
+
+\[
+  \sum_i \left( c \llfs_3(\rho,r,t_i) - \loglike_i \right)^2
+\]
+
+But could also do
+
+\[
+  \sum_i \left(\llf(c,m,r,t_i) - \loglike_i \right)^2
+\]
+
+% := \log(r/2) + \log(t) - \frac{1+\rho}{2} r t + \frac{1+3 \rho}{24} r^2 t^2.
+
 
 \end{document}
-
-
-\noindent\(\pmb{\text{forc} =\text{FullSimplify}[s\text{/.}\text{rsol}]}\)
-
-\noindent\(\log(t)-\frac{(1+c) t \left(3 (1+c) t_1-3 (1+c) t_2+\sqrt{3} \sqrt{(t_1-t_2) \left(3 (1+c)^2 (t_1-t_2)+2
-(1+3 c) (t_1+t_2) (\loglike_1-\loglike_2-\log(t_1)+\log(t_2))\right)}\right)}{(1+3 c) (t_1-t_2) (t_1+t_2)}+\frac{\left(3
-(1+c) t (t_1-t_2)+\sqrt{3} t \sqrt{(t_1-t_2) \left(3 (1+c)^2 (t_1-t_2)+2 (1+3 c) (t_1+t_2) (\loglike_1-\loglike_2-\log(t_1)+\log(t_2))\right)}\right)^2}{6
-(1+3 c) \left(t_1^2-t_2^2\right)^2}+\text{Log}\left[\frac{3 (1+c) t_1-3 (1+c) t_2+\sqrt{3} \sqrt{(t_1-t_2) \left(3
-(1+c)^2 (t_1-t_2)+2 (1+3 c) (t_1+t_2) (\loglike_1-\loglike_2-\log(t_1)+\log(t_2))\right)}}{(1+3 c)
-yt_1-t_2) (t_1+t_2)}\right]\)
-
-
 
