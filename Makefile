@@ -4,7 +4,7 @@ CC ?= gcc
 CXX ?= g++
 
 CFLAGS := -g -I. $(CFLAGS)
-LFLAGS := $(LFLAGS) -lm
+LFLAGS := $(LFLAGS) -lm -lgsl -lgslcblas
 
 all: run
 

@@ -8,8 +8,8 @@
 
 struct data {
   size_t n;
-  double * t;
-  double * l;
+  double * y;
+  double * sigma;
 };
 
 int
@@ -17,12 +17,12 @@ expb_f (const gsl_vector * x, void *params,
         gsl_vector * f)
 {
   size_t n = ((struct data *)params)->n;
-  double *t = ((struct data *)params)->t;
-  double *l = ((struct data *) params)->l;
+  double *y = ((struct data *)params)->y;
+  double *sigma = ((struct data *) params)->sigma;
 
-  double c = gsl_vector_get (x, 0);
-  double m = gsl_vector_get (x, 1);
-  double r = gsl_vector_get (x, 2);
+  double A = gsl_vector_get (x, 0);
+  double lambda = gsl_vector_get (x, 1);
+  double b = gsl_vector_get (x, 2);
 
   size_t i;
 
