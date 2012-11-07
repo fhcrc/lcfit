@@ -6,8 +6,41 @@ ll: c*log((1+exp(-r*t))/2)+m*log((1-exp(-r*t))/2);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
+?minimize;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+?minpack_lsquares;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+?jacobian;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+load("minpack");
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+load("linearalgebra");
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
 tp: ll,c=5,m=1,r=1; plot2d(tp,[t,0,2]);
 /* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ll,c=5,m=1,r=1,t=0.5;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ll,c=5,m=1,r=1,t=0.25;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ll,c=5,m=1,r=1,t=1.0;
+/* [wxMaxima: input   end   ] */
+
 
 /* [wxMaxima: input   start ] */
 llt: taylor(ll,t,0,2);
@@ -88,7 +121,6 @@ dlt: diff(ratllt,r);
 2880*dlt*r,simp;
 /* [wxMaxima: input   end   ] */
 
-/* [wxMaxima: hide output   ] */
 /* [wxMaxima: input   start ] */
 solve(dlt,r);
 /* [wxMaxima: input   end   ] */
@@ -139,6 +171,141 @@ solve(-20*X^4 + 5*X^3 + 17*X^2 - 29*X + 87, X),numer;
 
 /* [wxMaxima: input   start ] */
 ¦
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+jacobian ([sin (u - v), sin (u * v)], [u, v]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f: m*x+b;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+d1: (f-2),x=1;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+d2: (f-3),x=2;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+minpack_lsquares([d1,d2],[m,b],[-1,0]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+t1: 
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f1: ll+2.787877533411486,t=0.25;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f2: ll+2.721250292026327,t=0.5;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+f3: ll+3.05124979115564,t=1.0;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+[f1,f2,f3];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+minpack_lsquares([f1,f2,f3],[c,m,r],[2,2,2]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+fllf(3,4);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+j: jacobian([f1,f2,f3],[c,m,r]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+printdecl(vars) := (
+        sprint("double", first(vars)),
+        for v in rest(vars) do sprint(",", v),
+        sprint(";"))$
+
+printdef(expr) := sprint(first(expr), "=", second(expr), ";")$
+
+block2c(expr) :=
+        if ?equal(op(expr), block) then (
+                printdecl(first(expr)),
+                for d in reverse(rest(reverse(rest(expr)))) do printdef(d),
+                sprint("return", string(last(expr)), ";"))
+        else
+                sprint("return", string(expr), ";")$
+
+expr2c(funcname, argstr, expr) := (
+        sprint("double", funcname, "(", argstr, ") {"),
+        block2c(subst(pow, "^", optimize(expr))),
+        sprint("}", "
+"))$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+printdecl(vars) := (
+        sprint("double", first(vars)),
+        for v in rest(vars) do sprint(",", v),
+        sprint(";"))$
+
+printdef(expr) := sprint(first(expr), "=", second(expr), ";")$
+
+block2c(expr) :=
+        if ?equal(op(expr), block) then (
+                printdecl(first(expr)),
+                for d in reverse(rest(reverse(rest(expr)))) do printdef(d),
+                sprint("return", string(last(expr)), ";"))
+        else
+                sprint("return", string(expr), ";")$
+
+expr2c(funcname, argstr, expr) := (
+        sprint("double", funcname, "(", argstr, ") {"),
+        block2c(subst(pow, "^", expr)),
+        sprint("}", "
+"))$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ssubst ("FF", "l", expr2c("jac", r, j));
+/* [wxMaxima: input   end   ] */
+
+
+/* [wxMaxima: input   start ] */
+?ssubst;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ssubst ("pct", "%",  expr2c("jac", r, j));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+load(stringproc);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+subst(, r, j);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+expr2c("jac", r, optimize(j));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+expr2c("jac", r, j);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+j;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+load(gentran);
 /* [wxMaxima: input   end   ] */
 
 /* Maxima can't load/batch files which end with a comment! */
