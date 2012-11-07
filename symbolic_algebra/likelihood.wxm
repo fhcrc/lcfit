@@ -5,22 +5,12 @@
 ll: c*log((1+exp(-r*t))/2)+m*log((1-exp(-r*t))/2);
 /* [wxMaxima: input   end   ] */
 
-/* [wxMaxima: input   start ] */
-?minimize;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-?minpack_lsquares;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-?jacobian;
-/* [wxMaxima: input   end   ] */
-
+/* [wxMaxima: hide output   ] */
 /* [wxMaxima: input   start ] */
 load("minpack");
 /* [wxMaxima: input   end   ] */
 
+/* [wxMaxima: hide output   ] */
 /* [wxMaxima: input   start ] */
 load("linearalgebra");
 /* [wxMaxima: input   end   ] */
@@ -40,7 +30,6 @@ ll,c=5,m=1,r=1,t=0.25;
 /* [wxMaxima: input   start ] */
 ll,c=5,m=1,r=1,t=1.0;
 /* [wxMaxima: input   end   ] */
-
 
 /* [wxMaxima: input   start ] */
 llt: taylor(ll,t,0,2);
@@ -210,15 +199,7 @@ f3: ll+3.05124979115564,t=1.0;
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-[f1,f2,f3];
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
 minpack_lsquares([f1,f2,f3],[c,m,r],[2,2,2]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-fllf(3,4);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
@@ -269,43 +250,6 @@ expr2c(funcname, argstr, expr) := (
         block2c(subst(pow, "^", expr)),
         sprint("}", "
 "))$
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ssubst ("FF", "l", expr2c("jac", r, j));
-/* [wxMaxima: input   end   ] */
-
-
-/* [wxMaxima: input   start ] */
-?ssubst;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ssubst ("pct", "%",  expr2c("jac", r, j));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-load(stringproc);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-subst(, r, j);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-expr2c("jac", r, optimize(j));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-expr2c("jac", r, j);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-j;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-load(gentran);
 /* [wxMaxima: input   end   ] */
 
 /* Maxima can't load/batch files which end with a comment! */
