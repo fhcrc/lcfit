@@ -15,14 +15,16 @@ struct ll_params {
 
 /* The log likelihood for the CFN model with given parameters. */
 /* Model l[i] = c*log((1+exp(-r*t[i]))/2)+m*log((1-exp(-r*t[i]))/2) */
-double ll(double t, double c, double m, double r) {
+double ll(double t, double c, double m, double r)
+{
     double ert = exp(-r * t);
     return (c * log((1 + ert) / 2) + m * log((1 - ert) / 2));
 }
 
 /* The ML branch length for c, m, r */
-double ml_t(double c, double m, double r) {
-    return((log((c-m)/(c+m)))/(-r));
+double ml_t(double c, double m, double r)
+{
+    return((log((c - m) / (c + m))) / (-r));
 }
 
 /* Next, the data to fit such a log likelihood function. */
@@ -127,10 +129,10 @@ int fit_ll(size_t n, double* t, double* l, double* x)
         iter++;
         status = gsl_multifit_fdfsolver_iterate(s);
 
-        #ifdef VERBOSE
+#ifdef VERBOSE
         printf("status = %s\n", gsl_strerror(status));
         print_state(iter, s);
-        #endif /* VERBOSE */
+#endif /* VERBOSE */
 
         if(status)
             break;
@@ -138,9 +140,9 @@ int fit_ll(size_t n, double* t, double* l, double* x)
         status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
     } while(status == GSL_CONTINUE && iter < 500);
 
-    #define FIT(i) gsl_vector_get(s->x, i)
-    #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
-    #ifdef VERBOSE
+#define FIT(i) gsl_vector_get(s->x, i)
+#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
+#ifdef VERBOSE
     gsl_matrix *covar = gsl_matrix_alloc(3, 3);
     gsl_multifit_covar(s->J, 0.0, covar);
     gsl_matrix_fprintf(stdout, covar, "%g");
@@ -151,9 +153,9 @@ int fit_ll(size_t n, double* t, double* l, double* x)
     printf("r = %.5f +/- %.5f\n", FIT(2), ERR(2));
 
     printf("status = %s\n", gsl_strerror(status));
-    #endif /* VERBOSE */
+#endif /* VERBOSE */
 
-    for(i=0; i < n; i++) {
+    for(i = 0; i < n; i++) {
         x[i] = FIT(i);
     }
 

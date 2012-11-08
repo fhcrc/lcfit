@@ -23,8 +23,8 @@ int main(void)
 
     int i;
     printf("fit values: ");
-    for(i=0;i<3;i++)
-      printf("%g\t", x[i]);
+    for(i = 0; i < 3; i++)
+        printf("%g\t", x[i]);
     printf("\n");
 
     double t_hat = ml_t(c, m, r);
