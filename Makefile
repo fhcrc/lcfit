@@ -8,11 +8,11 @@ LFLAGS := $(LFLAGS) -lm -lgsl -lgslcblas
 
 all: run
 
-%.o: %.c
+%.o: %.c lcfit.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-test: test.o lcfit.o
-	$(CC) -o $@ $< lcfit.o -g $(LFLAGS) $(CFLAGS)
+test: test.o
+	$(CC) -o $@ $< -g $(LFLAGS) $(CFLAGS)
 
 run: test
 	./test

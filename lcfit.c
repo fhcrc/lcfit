@@ -5,8 +5,6 @@
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
 
-int fit(size_t n, double* t, double* l, double* x_init);
-
 /* First, the log likelihood function. */
 /* A struct to store the parameters. */
 struct ll_params {
@@ -17,27 +15,14 @@ struct ll_params {
 
 /* The log likelihood for the CFN model with given parameters. */
 /* Model l[i] = c*log((1+exp(-r*t[i]))/2)+m*log((1-exp(-r*t[i]))/2) */
-double ll(double t, void * params) {
-    double c = ((struct ll_params *) params)->c;
-    double r = ((struct ll_params *) params)->r;
-    double m = ((struct ll_params *) params)->m;
+double ll(double t, double c, double m, double r) {
     double ert = exp(-r * t);
     return (c * log((1 + ert) / 2) + m * log((1 - ert) / 2));
 }
 
-/* The derivative of the log likelihood function. */
-double ll_df(double t, void * params) {
-    double c = ((struct ll_params *) params)->c;
-    double r = ((struct ll_params *) params)->r;
-    double m = ((struct ll_params *) params)->m;
-    double inv_ert = exp(r * t); /* inverse of ert */
-    return (c / (1 + inv_ert) + m / (1 - inv_ert));
-}
-
-/* Performing ll and ll_df in one go. */
-void ll_fdf(double t, void * params, double * y, double * dy) {
-    *y = ll(t, params);
-    *dy = ll_df(t, params);
+/* The ML branch length for c, m, r */
+double ml_t(double t, double c, double m, double r) {
+    return((log((c-m)/(c+m)))/(-r));
 }
 
 /* Next, the data to fit */
@@ -53,12 +38,14 @@ int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
     double *t = ((struct data_to_fit *) data)->t;
     double *l = ((struct data_to_fit *) data)->l;
 
-    struct ll_params p = {gsl_vector_get(x, 0), gsl_vector_get(x, 1), gsl_vector_get(x, 2)};
+    double c = gsl_vector_get(x, 0);
+    double m = gsl_vector_get(x, 1);
+    double r = gsl_vector_get(x, 2);
 
     size_t i;
 
     for(i = 0; i < n; i++) {
-        gsl_vector_set(f, i, ll(t[i], &p) - l[i]);
+        gsl_vector_set(f, i, ll(t[i], c, m, r) - l[i]);
     }
 
     return GSL_SUCCESS;
@@ -171,40 +158,5 @@ int fit_ll(size_t n, double* t, double* l, double* x)
 
     gsl_multifit_fdfsolver_free(s);
     return 0;
-}
-
-/* assume that *t starts being a reasonable initial guess */
-int maximize_ll(double * t, struct ll_params * params)
-{
-  int status;
-  int iter = 0, max_iter = 100;
-  const gsl_root_fdfsolver_type *T;
-  gsl_root_fdfsolver *s;
-  double t_prev;
-  gsl_function_fdf fdf;
-
-  fdf.f = &ll;
-  fdf.df = &ll_df;
-  fdf.fdf = &ll_fdf;
-  fdf.params = &params;
-
-  T = gsl_root_fdfsolver_newton;
-  s = gsl_root_fdfsolver_alloc (T);
-  gsl_root_fdfsolver_set (s, &fdf, *t);
-
-  printf ("using %s method\n",
-          gsl_root_fdfsolver_name (s));
-
-  printf ("%-5s %10s %10s %10s\n",
-          "iter", "root", "err", "err(est)");
-  do {
-      iter++;
-      status = gsl_root_fdfsolver_iterate (s);
-      t_prev = *t;
-      *t = gsl_root_fdfsolver_root (s);
-      status = gsl_root_test_delta (*t, t_prev, 0, 1e-3);
-  }
-  while (status == GSL_CONTINUE && iter < max_iter);
-  return status;
 }
 
