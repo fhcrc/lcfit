@@ -20,6 +20,10 @@ tp: ll,c=5,m=1,r=1; plot2d(tp,[t,0,2]);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
+tp: ll,c=1263,m=1486,r=23; plot2d(tp,[t,0,2]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
 ll,c=5,m=1,r=1,t=0.5;
 /* [wxMaxima: input   end   ] */
 
@@ -171,7 +175,7 @@ f3: ll+3.05124979115564,t=1.0;
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-minpack_lsquares([f1,f2,f3],[c,m,r],[2,2,2]);
+minpack_lsquares([f1,f2,f3],[c,m,r],[10,2,2]);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
