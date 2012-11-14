@@ -8,10 +8,10 @@ LFLAGS := $(LFLAGS) -lm -lgsl -lgslcblas
 
 all: run
 
-%.o: %.c lcfit.h
+_build/%.o: src/%.c src/lcfit.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-test: test.o
+test: _build/test.o
 	$(CC) -o $@ $< -g $(LFLAGS) $(CFLAGS)
 
 run: test
