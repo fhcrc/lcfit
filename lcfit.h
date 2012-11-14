@@ -29,11 +29,12 @@ double ml_t(double c, double m, double r)
 
 /* Next, the data to fit such a log likelihood function. */
 struct data_to_fit {
-    size_t n;
-    double * t;
-    double * l;
+    size_t n;   /* Number of observations */
+    double * t; /* Branch lengths */
+    double * l; /* Corresponding likelihoods */
 };
 
+/* Evaluate the likelihood curve described in data at the point x. */
 int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
 {
     size_t n = ((struct data_to_fit *) data)->n;
@@ -53,6 +54,7 @@ int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
     return GSL_SUCCESS;
 }
 
+/* The corresponding Jacobian. */
 int expb_df(const gsl_vector * x, void *data, gsl_matrix * J)
 {
     size_t n = ((struct data_to_fit *) data)->n;
@@ -98,6 +100,7 @@ int print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
            gsl_blas_dnrm2(s->f));
 }
 
+/* x is stored in the order c, m, r. */
 int fit_ll(size_t n, double* t, double* l, double* x)
 {
     const gsl_multifit_fdfsolver_type *T;
