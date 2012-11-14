@@ -24,7 +24,9 @@ double ll(double t, double c, double m, double r)
 /* The ML branch length for c, m, r */
 double ml_t(double c, double m, double r)
 {
-    return((log((c - m) / (c + m))) / (-r));
+    double t = ((log((c - m) / (c + m))) / (-r));
+    /* std::cout << "lcfit:" << ll(t, c, m, r) << "\n"; */
+    return t;
 }
 
 /* Next, the data to fit such a log likelihood function. */
@@ -59,7 +61,7 @@ int expb_df(const gsl_vector * x, void *data, gsl_matrix * J)
 {
     size_t n = ((struct data_to_fit *) data)->n;
     double *t = ((struct data_to_fit *) data)->t;
-    double *l = ((struct data_to_fit *) data)->l;
+    /* double *l = ((struct data_to_fit *) data)->l; */
 
     double c = gsl_vector_get(x, 0);
     double m = gsl_vector_get(x, 1);
@@ -89,7 +91,7 @@ int expb_fdf(const gsl_vector * x, void *data, gsl_vector * f, gsl_matrix * J)
     return GSL_SUCCESS;
 }
 
-int print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
+void print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
 {
     printf("iter: %3u x = % 15.8f % 15.8f % 15.8f "
            "|f(x)| = %g\n",
@@ -100,7 +102,11 @@ int print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
            gsl_blas_dnrm2(s->f));
 }
 
-/* x is stored in the order c, m, r. */
+/*
+     c = x[0];
+     r = x[1];
+     m = x[2];
+*/
 int fit_ll(size_t n, double* t, double* l, double* x)
 {
     const gsl_multifit_fdfsolver_type *T;
