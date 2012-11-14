@@ -8,14 +8,20 @@ LFLAGS := $(LFLAGS) -lm -lgsl -lgslcblas
 
 all: run
 
-_build/%.o: src/%.c src/lcfit.h
-	$(CC) -c -o $@ $< $(CFLAGS)
+_build:
+	mkdir -p _build
 
-test: _build/test.o
-	$(CC) -o $@ $< -g $(LFLAGS) $(CFLAGS)
+_build/%.o: src/%.cc src/lcfit.h _build
+	$(CXX) -c -o $@ $< $(CFLAGS)
 
-run: test
-	./test
+compare test: _build/test.o _build/compare.o
+	$(CXX) -o $@ $< -g $(LFLAGS) $(CFLAGS)
+
+run: compare
+	./compare
+
+clean:
+	rm -rf _build compare test
 
 style:
 	astyle  -A3 \
