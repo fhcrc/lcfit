@@ -22,6 +22,7 @@ test: _build/test.o
 
 run: compare
 	./compare
+	graph -T svg < data.dat > data.svg
 
 clean:
 	rm -rf _build compare test

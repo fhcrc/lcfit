@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
+#include <Bpp/Phyl/Io/Newick.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Model/GTR.h>
 #include <Bpp/Phyl/Model/HKY85.h>
@@ -11,6 +12,7 @@
 #include <Bpp/Phyl/Model/JTT92.h>
 #include <Bpp/Phyl/Model/TN93.h>
 #include <Bpp/Phyl/Model/WAG01.h>
+#include <Bpp/Phyl/Model/AbstractSubstitutionModel.h>
 #include <Bpp/Phyl/PatternTools.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 #include <Bpp/Seq/Alphabet/ProteicAlphabet.h>
@@ -62,13 +64,18 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
     return sequences;
 }
 
+double get_ll(bpp::RHomogeneousTreeLikelihood like) {
+    like.initialize();
+    like.computeTreeLikelihood();
+    return like.getLogLikelihood();
+}
+
 
 int main(void)
 {
-    const size_t n = 3;
-    double t[n] = {0.25, 0.5, 1}; // Branch lengths at which to sample.
+    vector<double> t = {0.001, 0.01, 0.05, 0.1, 1, 10}; // Branch lengths at which to sample.
     vector<double> l;
-    double x[n] = { 100.0, 2.0, 1.0 }; // These are the starting values.
+    vector<double> x = {1e20, 1e10, 1.0}; // These are the starting values.
     std::string aln_fname = "sts/data/test.fasta";
 
     // Setting up output.
@@ -87,6 +94,8 @@ int main(void)
     std::string tree_str = "(F:0.18861,(D:0.19026,E:0.14671)0.999:0.29165,(H:0.29607,(G:0.13891,(C:0.15128,(A:0.21353,B:0.20443)0.998:0.29027)0.936:0.17926)1.000:0.50775)0.837:0.10589);";
     std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(tree_str));
 
+    bpp::Newick newick;
+
     // Making the model.
     shared_ptr<bpp::SubstitutionModel> model;
     model = make_shared<bpp::JCnuc>(&DNA);
@@ -100,32 +109,59 @@ int main(void)
         return 1;
     }
 
-    // Initializing the likelihood computation engine.
-    bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
-    like.initialize();
+    auto sons = tree->getRootNode()->getSonsId();
+    int to_change = sons.back();
 
     // Computing the tree likelihoods to be fit.
-    for(int i = 0; i < n; i++) {
-        like.computeTreeLikelihood();
-        l.push_back(like.getLogLikelihood());
+    for(int i = 0; i < t.size(); i++) {
+        tree->setDistanceToFather(sons[1], t[i]);
+        tree->setDistanceToFather(sons[2], t[i]);
+        //newick.write(*tree, cout);
+        bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
+        l.push_back(get_ll(like));
     }
 
-    print_vector(l);
+    int status = fit_ll(t.size(), t.data(), l.data(), x.data());
 
-    int status = fit_ll(n, t, l.data(), x);
-
-    printf("fit values: ");
-    for(int i = 0; i < n; i++)
-        printf("%g\t", x[i]);
-    printf("\n");
+    cout << "fit values: ";
+    print_vector(x);
 
     double c = x[0];
-    double r = x[1];
-    double m = x[2];
+    double m = x[1];
+    double r = x[2];
     double t_hat = ml_t(c, m, r);
 
     printf("t_hat: %g\n", t_hat);
 
+    ofstream file;
+
+    file.open ("data.dat");
+    double delta = 0.01;
+
+    file << "#m=0,S=2" << endl;
+    for(double t = delta; t <= 1.; t += delta) {
+        tree->setDistanceToFather(to_change, t);
+        //newick.write(*tree, cout);
+        bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
+        file << t << " " << get_ll(like) << endl;
+    }
+
+    //file << "#m=1,S=0" << endl;
+    //for(double t = delta; t <= 1.; t += delta) {
+    //    file << t << " " << ll(t, c, m, 5) << endl;
+    //}
+
+// Computing the tree likelihoods to be fit.
+    vector<double> lfit;
+    for(int i = 0; i < t.size(); i++) {
+        lfit.push_back(ll(t[i], c, m, r));
+    }
+
+    cout << "fit evaluations: " << endl;
+    print_vector(l);
+    print_vector(lfit);
+
+    file.close();
+
     return status;
 }
-

@@ -164,7 +164,7 @@ int fit_ll(size_t n, double* t, double* l, double* x)
     printf("status = %s\n", gsl_strerror(status));
 #endif /* VERBOSE */
 
-    for(i = 0; i < n; i++) {
+    for(i = 0; i < 3; i++) {
         x[i] = FIT(i);
     }
 
