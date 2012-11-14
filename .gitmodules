@@ -1,0 +1,3 @@
+[submodule "sts"]
+	path = sts
+	url = git@github.com:metatangle/sts.git

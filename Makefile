@@ -3,8 +3,8 @@ LIBS =
 CC ?= gcc
 CXX ?= g++
 
-CFLAGS := -g -I. $(CFLAGS)
-LFLAGS := $(LFLAGS) -lm -lgsl -lgslcblas
+CFLAGS := -g -I. $(CFLAGS) -std=c++0x
+LFLAGS := $(LFLAGS) -lm -lgsl -lgslcblas -lbpp-core -lbpp-seq -lbpp-phyl
 
 all: run
 
@@ -14,7 +14,10 @@ _build:
 _build/%.o: src/%.cc src/lcfit.h _build
 	$(CXX) -c -o $@ $< $(CFLAGS)
 
-compare test: _build/test.o _build/compare.o
+compare: _build/compare.o
+	$(CXX) -o $@ $< -g $(LFLAGS) $(CFLAGS)
+
+test: _build/test.o
 	$(CXX) -o $@ $< -g $(LFLAGS) $(CFLAGS)
 
 run: compare
