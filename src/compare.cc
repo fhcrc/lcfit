@@ -73,22 +73,10 @@ double get_ll(bpp::RHomogeneousTreeLikelihood like) {
 
 int main(void)
 {
-    vector<double> t = {0.001, 0.01, 0.05, 0.1, 1, 10}; // Branch lengths at which to sample.
+    vector<double> t = {0.01, 0.1, 0.2, 0.5, 1.}; // Branch lengths at which to sample.
     vector<double> l;
-    vector<double> x = {1e3, 1e2, 1.0, 0.1}; // These are the starting values.
+    vector<double> x = {1500, 1000, 2.0, 0.5}; // These are the starting values.
     std::string aln_fname = "sts/data/test.fasta";
-
-    // Setting up output.
-    //string output_filename = output_path.getValue();
-    ostream *output_stream;
-    //ofstream output_ofstream;
-    //if(output_filename == "-") {
-        output_stream = &cout;
-    //} else {
-    //    output_ofstream.open(output_filename);
-    //    output_stream = &output_ofstream;
-    //}
-
 
     // Reading the tree.
     std::string tree_str = "(F:0.18861,(D:0.19026,E:0.14671)0.999:0.29165,(H:0.29607,(G:0.13891,(C:0.15128,(A:0.21353,B:0.20443)0.998:0.29027)0.936:0.17926)1.000:0.50775)0.837:0.10589);";
@@ -110,11 +98,12 @@ int main(void)
     }
 
     auto sons = tree->getRootNode()->getSonsId();
-    int to_change = sons.back();
+    //int to_change = sons.back();
+    int to_change = 11;
 
     // Computing the tree likelihoods to be fit.
     for(int i = 0; i < t.size(); i++) {
-        tree->setDistanceToFather(sons[2], t[i]);
+        tree->setDistanceToFather(to_change, t[i]);
         //newick.write(*tree, cout);
         bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
         l.push_back(get_ll(like));
@@ -151,7 +140,7 @@ int main(void)
         file << t << " " << ll(t, c, m, r, b) << endl;
     }
 
-// Computing the tree likelihoods to be fit.
+    // The fit of the JC model.
     vector<double> lfit;
     for(int i = 0; i < t.size(); i++) {
         lfit.push_back(ll(t[i], c, m, r, b));
