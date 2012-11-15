@@ -75,7 +75,7 @@ int main(void)
 {
     vector<double> t = {0.001, 0.01, 0.05, 0.1, 1, 10}; // Branch lengths at which to sample.
     vector<double> l;
-    vector<double> x = {1e20, 1e10, 1.0}; // These are the starting values.
+    vector<double> x = {1e3, 1e2, 1.0, 0.1}; // These are the starting values.
     std::string aln_fname = "sts/data/test.fasta";
 
     // Setting up output.
@@ -114,7 +114,6 @@ int main(void)
 
     // Computing the tree likelihoods to be fit.
     for(int i = 0; i < t.size(); i++) {
-        tree->setDistanceToFather(sons[1], t[i]);
         tree->setDistanceToFather(sons[2], t[i]);
         //newick.write(*tree, cout);
         bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
@@ -129,7 +128,8 @@ int main(void)
     double c = x[0];
     double m = x[1];
     double r = x[2];
-    double t_hat = ml_t(c, m, r);
+    double b = x[3];
+    double t_hat = ml_t(c, m, r, b);
 
     printf("t_hat: %g\n", t_hat);
 
@@ -146,15 +146,15 @@ int main(void)
         file << t << " " << get_ll(like) << endl;
     }
 
-    //file << "#m=1,S=0" << endl;
-    //for(double t = delta; t <= 1.; t += delta) {
-    //    file << t << " " << ll(t, c, m, 5) << endl;
-    //}
+    file << "#m=1,S=0" << endl;
+    for(double t = delta; t <= 1.; t += delta) {
+        file << t << " " << ll(t, c, m, r, b) << endl;
+    }
 
 // Computing the tree likelihoods to be fit.
     vector<double> lfit;
     for(int i = 0; i < t.size(); i++) {
-        lfit.push_back(ll(t[i], c, m, r));
+        lfit.push_back(ll(t[i], c, m, r, b));
     }
 
     cout << "fit evaluations: " << endl;
