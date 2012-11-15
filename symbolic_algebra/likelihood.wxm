@@ -2,25 +2,23 @@
 /* [ Created with wxMaxima version 11.08.0 ] */
 
 /* [wxMaxima: input   start ] */
-ll: c*log((1+exp(-r*t))/2)+m*log((1-exp(-r*t))/2);
+ll: c*log((1+exp(-r*(t+b)))/2)+m*log((1-exp(-r*(t+b)))/2);
 /* [wxMaxima: input   end   ] */
 
-/* [wxMaxima: hide output   ] */
 /* [wxMaxima: input   start ] */
 load("minpack");
 /* [wxMaxima: input   end   ] */
 
-/* [wxMaxima: hide output   ] */
 /* [wxMaxima: input   start ] */
 load("linearalgebra");
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-tp: ll,c=5,m=1,r=1; plot2d(tp,[t,0,2]);
+tp: ll,c=5,m=1,r=1,b=0.2; plot2d(tp,[t,0,2]);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-tp: ll,c=1263,m=1486,r=23; plot2d(tp,[t,0,2]);
+tp: ll,c=1263,m=1486,r=23,b=0.3; plot2d(tp,[t,0,2]);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
@@ -33,133 +31,6 @@ ll,c=5,m=1,r=1,t=0.25;
 
 /* [wxMaxima: input   start ] */
 ll,c=5,m=1,r=1,t=1.0;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-llt: taylor(ll,t,0,2);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-taylor(log((1+exp(-x))/2),x,0,2);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-taylor(log((1-exp(-x))/2),x,0,3);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-gbarser:ratsimp(taylor((1-exp(-x))/x,x,0,4));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-taylor(log(gbarser),x,0,4);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ratsimp(diff(log(gbarser),x,3));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-f:[ll,llt],r=1,c=20;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d(f,[t,0,3]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ratllt: ratsimp(llt);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ratllt1:ratllt,t=t1;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-ratllt2:ratllt,t=t2;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-difft1t2:ratsimp(ratllt1-ratllt2);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-rval: solve(difft1t2,r);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-sry:(difft1t2,rval[2]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-srysimp: ratsimp(-(2*sqrt(3)*sqrt(((-6*c-2)*t2^2+(6*c+2)*t1^2)*log(t2)+
-((6*c+2)*log(t1)+3*c^2+6*c+3)*t2^2+(-6*c^2-12*c-6)*t1*t2+
-(-6*c-2)*t1^2*log(t1)+(3*c^2+6*c+3)*t1^2)+(-6*c-6)*t2+(6*c+6)*t1
-)/((3*c+1)*t2^2+(-3*c-1)*t1^2));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-tp: srysimp,t1=2,t2=1;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d(tp,[c,2,4]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-dlt: diff(ratllt,r);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-2880*dlt*r,simp;
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-solve(dlt,r);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d (ls, [t, 0, 10]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-lst: taylor(ls,t,0,4);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d ([ls,lst], [t, 0, 2]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-pospt:log(1+exp(-t));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-negpt:log(1-exp(-t));
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-taylor(pospt,t,0,4);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-taylor(negpt,t,0,1);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d([pospt,taylor(pospt,t,0,4)],[t,0,1]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-plot2d([negpt,taylor(negpt,t,0,1),log(t)],[t,0,10]);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-solve(3*X^4 + 6*X^3 - 123*X^2 - 126*X + 1080, X);
-/* [wxMaxima: input   end   ] */
-
-/* [wxMaxima: input   start ] */
-solve(-20*X^4 + 5*X^3 + 17*X^2 - 29*X + 87, X),numer;
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
@@ -179,7 +50,7 @@ minpack_lsquares([f1,f2,f3],[c,m,r],[10,2,2]);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-j: jacobian([f1,f2,f3],[c,m,r]);
+j: jacobian([f1,f2,f3],[c,m,r,b]);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
