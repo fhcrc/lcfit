@@ -36,8 +36,9 @@ const bpp::RNA RNA;
 const bpp::ProteicAlphabet AA;
 
 template<typename T>
-void print_vector(std::vector<T> v, const char delim='\t', ostream& out=std::cout) {
-    for(auto &i : v) {
+void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std::cout)
+{
+    for(auto & i : v) {
         out << i << delim;
     }
     out << endl;
@@ -50,15 +51,15 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
 {
     // Holy boilerplate - Bio++ won't allow reading FASTA files as alignments
     bpp::IOSequenceFactory fac;
-    std::unique_ptr<bpp::ISequence> reader = std::unique_ptr<bpp::ISequence>(
-                fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
-    std::unique_ptr<bpp::SequenceContainer> seqs = std::unique_ptr<bpp::SequenceContainer>(reader->read(in, alphabet));
+    std::unique_ptr<bpp::ISequence> reader(
+        fac.createReader(bpp::IOSequenceFactory::FASTA_FORMAT));
+    std::unique_ptr<bpp::SequenceContainer> seqs(reader->read(in, alphabet));
 
     // Have to look up by name
     std::vector<std::string> names = seqs->getSequencesNames();
     bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
 
-    for(auto &name : names) {
+    for(auto & name : names) {
         sequences->addSequence(seqs->getSequence(name), true);
     }
 
@@ -74,8 +75,7 @@ bpp::TreeTemplate<bpp::Node>* tree_of_newick_path(const std::string& path)
     return newick.read(path);
 }
 
-struct Options
-{
+struct Options {
     string newick_path;
     string alignment_path;
     string output_path;
@@ -86,11 +86,11 @@ Options parse_command_line(const int argc, const char **argv)
     TCLAP::CmdLine cmd("LCFIT", ' ', "probably not working");
 
     TCLAP::UnlabeledValueArg<string> newick_path(
-            "newick_path", "Path to newick tree", true, "", "newick tree", cmd);
+        "newick_path", "Path to newick tree", true, "", "newick tree", cmd);
     TCLAP::UnlabeledValueArg<string> alignment_path(
-            "alignment_path", "Path to alignment [fasta]", true, "", "fasta file", cmd);
+        "alignment_path", "Path to alignment [fasta]", true, "", "fasta file", cmd);
     TCLAP::ValueArg<string> output_path(
-            "o", "out", "Filename to write output values", false, "data.dat", "data file", cmd);
+        "o", "out", "Filename to write output values", false, "data.dat", "data file", cmd);
 
     cmd.parse(argc, argv);
 
@@ -127,7 +127,7 @@ int main(const int argc, const char **argv)
 
     // Reading in alignment.
     ifstream in(options.alignment_path);
-    unique_ptr<bpp::SiteContainer> input_aln (read_alignment(in, model->getAlphabet()));
+    unique_ptr<bpp::SiteContainer> input_aln(read_alignment(in, model->getAlphabet()));
     if(in.bad()) {
         cerr << "Cannot read from " << options.alignment_path << endl;
         return 1;
@@ -165,9 +165,8 @@ int main(const int argc, const char **argv)
 
     printf("t_hat: %g\n", t_hat);
 
-    ofstream file;
+    ofstream file(options.output_path);
 
-    file.open (options.output_path);
     double delta = 0.01;
 
     file << "#m=0,S=2" << endl;
