@@ -1,39 +1,30 @@
-LIBS =
+.PHONY: all lcfit-compare lcfit-test setup-cmake clean run
 
-CC ?= gcc
-CXX ?= g++
+BUILD := _build
 
-CFLAGS := -g -I. $(CFLAGS) -std=c++0x
-LFLAGS := $(LFLAGS) -lm -lgsl -lgslcblas -lbpp-core -lbpp-seq -lbpp-phyl
-
-all: run
-
-_build:
-	mkdir -p _build
-
-_build/%.o: src/%.cc src/lcfit.h _build
-	$(CXX) -c -o $@ $< $(CFLAGS)
-
-compare: _build/compare.o
-	$(CXX) -o $@ $< -g $(LFLAGS) $(CFLAGS)
-
-test: _build/test.o
-	$(CXX) -o $@ $< -g $(LFLAGS) $(CFLAGS)
-
-run: compare
-	./compare
+run: lcfit-compare
+	$(BUILD)/lcfit-compare
 	graph -T svg < data.dat > data.svg
 
+all: lcfit-compare
+
+lcfit-compare: setup-cmake
+	+make -C$(BUILD) $@
+
+setup-cmake:
+	mkdir -p $(BUILD)
+	cd $(BUILD) && cmake -DCMAKE_BUILD_TYPE=Debug ..
+
 clean:
-	rm -rf _build compare test
+	rm -rf $(BUILD)
 
 style:
 	astyle  -A3 \
-		--pad-oper \
-		--unpad-paren \
-		--keep-one-line-blocks \
-		--keep-one-line-statements \
-		--suffix=none \
-		--formatted \
-		--lineend=linux \
-		`find . -regextype posix-extended -regex ".*\.(c|h)$$"`
+	        --pad-oper \
+	        --unpad-paren \
+	        --keep-one-line-blocks \
+	        --keep-one-line-statements \
+	        --suffix=none \
+	        --formatted \
+	        --lineend=linux \
+	        `find src -regextype posix-extended -regex ".*\.(cc|h|hpp)$$"`
