@@ -67,11 +67,6 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
     return sequences;
 }
 
-double get_ll(bpp::RHomogeneousTreeLikelihood like) {
-    like.initialize();
-    like.computeTreeLikelihood();
-    return like.getLogLikelihood();
-}
 
 bpp::TreeTemplate<bpp::Node>* tree_of_newick_path(const std::string& path)
 {
@@ -142,12 +137,19 @@ int main(const int argc, const char **argv)
     //int to_change = sons.back();
     int to_change = 3;
 
+    // Calculate the log-likelihood of the tree in its current state
+    auto get_ll = [&tree, &input_aln, &model, &rate_dist]() {
+        bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
+        like.initialize();
+        like.computeTreeLikelihood();
+        return like.getLogLikelihood();
+    };
+
     // Computing the tree likelihoods to be fit.
     for(int i = 0; i < t.size(); i++) {
         tree->setDistanceToFather(to_change, t[i]);
         //newick.write(*tree, cout);
-        bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
-        l.push_back(get_ll(like));
+        l.push_back(get_ll());
     }
 
     int status = fit_ll(t.size(), t.data(), l.data(), x.data());
@@ -172,8 +174,7 @@ int main(const int argc, const char **argv)
     for(double t = delta; t <= 1.; t += delta) {
         tree->setDistanceToFather(to_change, t);
         //newick.write(*tree, cout);
-        bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
-        file << t << " " << get_ll(like) << endl;
+        file << t << " " << get_ll() << endl;
     }
 
     file << "#m=1,S=0" << endl;
