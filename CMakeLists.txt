@@ -15,5 +15,5 @@ include_directories(sts/lib/include)
 # LCFIT
 add_executable(lcfit-compare ${LCFIT_COMPARE_CPP})
 add_executable(lcfit-test ${LCFIT_TEST_CPP})
-target_link_libraries(lcfit-test sts-static ${STS_PHYLO_LIBS})
-target_link_libraries(lcfit-compare sts-static ${STS_PHYLO_LIBS})
+target_link_libraries(lcfit-test ${STS_PHYLO_LIBS})
+target_link_libraries(lcfit-compare ${STS_PHYLO_LIBS})
