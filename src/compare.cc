@@ -73,7 +73,7 @@ double get_ll(bpp::RHomogeneousTreeLikelihood like) {
 
 int main(void)
 {
-    vector<double> t = {0.01, 0.1, 0.2, 0.5, 1.}; // Branch lengths at which to sample.
+    vector<double> t = {0.1, 0.2, 0.5, 1.}; // Branch lengths at which to sample.
     vector<double> l;
     vector<double> x = {1500, 1000, 2.0, 0.5}; // These are the starting values.
     std::string aln_fname = "sts/data/test.fasta";
@@ -99,7 +99,7 @@ int main(void)
 
     auto sons = tree->getRootNode()->getSonsId();
     //int to_change = sons.back();
-    int to_change = 11;
+    int to_change = 3;
 
     // Computing the tree likelihoods to be fit.
     for(int i = 0; i < t.size(); i++) {
