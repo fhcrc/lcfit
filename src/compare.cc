@@ -25,6 +25,8 @@
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/SiteTools.h>
 
+#include "tclap/CmdLine.h"
+
 #include "lcfit.h"
 
 using namespace std;
@@ -33,11 +35,12 @@ const bpp::DNA DNA;
 const bpp::RNA RNA;
 const bpp::ProteicAlphabet AA;
 
-template<typename T> void print_vector(std::vector<T> v) {
-    for(auto it = v.begin(); it != v.end(); ++it) {
-        std::cout << *it << "\t";
+template<typename T>
+void print_vector(std::vector<T> v, const char delim='\t', ostream& out=std::cout) {
+    for(auto &i : v) {
+        out << i << delim;
     }
-    std::cout << endl;
+    out << endl;
 }
 
 /// Read an alignment from a stream
@@ -55,7 +58,7 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
     std::vector<std::string> names = seqs->getSequencesNames();
     bpp::SiteContainer *sequences = new bpp::VectorSiteContainer(alphabet);
 
-    for(auto name : names) {
+    for(auto &name : names) {
         sequences->addSequence(seqs->getSequence(name), true);
     }
 
@@ -70,30 +73,68 @@ double get_ll(bpp::RHomogeneousTreeLikelihood like) {
     return like.getLogLikelihood();
 }
 
-
-int main(void)
+bpp::TreeTemplate<bpp::Node>* tree_of_newick_path(const std::string& path)
 {
+    bpp::Newick newick;
+    return newick.read(path);
+}
+
+struct Options
+{
+    string newick_path;
+    string alignment_path;
+    string output_path;
+};
+
+Options parse_command_line(const int argc, const char **argv)
+{
+    TCLAP::CmdLine cmd("LCFIT", ' ', "probably not working");
+
+    TCLAP::UnlabeledValueArg<string> newick_path(
+            "newick_path", "Path to newick tree", true, "", "newick tree", cmd);
+    TCLAP::UnlabeledValueArg<string> alignment_path(
+            "alignment_path", "Path to alignment [fasta]", true, "", "fasta file", cmd);
+    TCLAP::ValueArg<string> output_path(
+            "o", "out", "Filename to write output values", false, "data.dat", "data file", cmd);
+
+    cmd.parse(argc, argv);
+
+    Options options;
+    options.newick_path = newick_path.getValue();
+    options.alignment_path = alignment_path.getValue();
+    options.output_path = output_path.getValue();
+
+    return options;
+}
+
+int main(const int argc, const char **argv)
+{
+    Options options;
+    try {
+        options = parse_command_line(argc, argv);
+    } catch(TCLAP::ArgException &e) {
+        cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
+        return 1;
+    }
+
     vector<double> t = {0.1, 0.2, 0.5, 1.}; // Branch lengths at which to sample.
     vector<double> l;
     vector<double> x = {1500, 1000, 2.0, 0.5}; // These are the starting values.
-    std::string aln_fname = "sts/data/test.fasta";
 
     // Reading the tree.
-    std::string tree_str = "(F:0.18861,(D:0.19026,E:0.14671)0.999:0.29165,(H:0.29607,(G:0.13891,(C:0.15128,(A:0.21353,B:0.20443)0.998:0.29027)0.936:0.17926)1.000:0.50775)0.837:0.10589);";
-    std::unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(bpp::TreeTemplateTools::parenthesisToTree(tree_str));
+    unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(tree_of_newick_path(options.newick_path));
 
     bpp::Newick newick;
 
     // Making the model.
-    shared_ptr<bpp::SubstitutionModel> model;
-    model = make_shared<bpp::JCnuc>(&DNA);
+    unique_ptr<bpp::SubstitutionModel> model(new bpp::JCnuc(&DNA));
     bpp::ConstantDistribution rate_dist(1.0, true);
 
     // Reading in alignment.
-    ifstream in(aln_fname);
+    ifstream in(options.alignment_path);
     unique_ptr<bpp::SiteContainer> input_aln (read_alignment(in, model->getAlphabet()));
     if(in.bad()) {
-        cerr << "Cannot read from " << aln_fname << endl;
+        cerr << "Cannot read from " << options.alignment_path << endl;
         return 1;
     }
 
@@ -124,7 +165,7 @@ int main(void)
 
     ofstream file;
 
-    file.open ("data.dat");
+    file.open (options.output_path);
     double delta = 0.01;
 
     file << "#m=0,S=2" << endl;
