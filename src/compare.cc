@@ -2,6 +2,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <functional>
+#include <stdexcept>
+#include <vector>
 
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Phyl/Io/Newick.h>
@@ -30,6 +33,7 @@
 #include "lcfit.h"
 
 using namespace std;
+using Tree = bpp::TreeTemplate<bpp::Node>;
 
 const bpp::DNA DNA;
 const bpp::RNA RNA;
@@ -69,12 +73,13 @@ bpp::SiteContainer* read_alignment(std::istream &in, const bpp::Alphabet *alphab
 }
 
 
-bpp::TreeTemplate<bpp::Node>* tree_of_newick_path(const std::string& path)
+Tree* tree_of_newick_path(const std::string& path)
 {
     bpp::Newick newick;
     return newick.read(path);
 }
 
+/// Command-line flags
 struct Options {
     string newick_path;
     string alignment_path;
@@ -102,6 +107,24 @@ Options parse_command_line(const int argc, const char **argv)
     return options;
 }
 
+struct Evaluation {
+    Evaluation(int node_id, double branch_length, double ll, double pred_ll) :
+        node_id(node_id),
+        branch_length(branch_length),
+        ll(ll),
+        pred_ll(pred_ll) {};
+    int node_id;
+    double branch_length, ll, pred_ll;
+};
+
+void to_csv(ostream& out, const Evaluation &e)
+{
+    out << e.node_id << ","
+        << e.branch_length << ","
+        << e.ll << ","
+        << e.pred_ll << endl;
+}
+
 int main(const int argc, const char **argv)
 {
     Options options;
@@ -112,14 +135,13 @@ int main(const int argc, const char **argv)
         return 1;
     }
 
-    vector<double> t = {0.1, 0.2, 0.5, 1.}; // Branch lengths at which to sample.
-    vector<double> l;
-    vector<double> x = {1500, 1000, 2.0, 0.5}; // These are the starting values.
+    const vector<double> t = {0.1, 0.2, 0.5, 1.}; // Branch lengths at which to sample.
+    const vector<double> start = {1500, 1000, 2.0, 0.5}; // These are the starting values.
 
     // Reading the tree.
-    unique_ptr<bpp::TreeTemplate<bpp::Node>> tree(tree_of_newick_path(options.newick_path));
+    unique_ptr<Tree> tree(tree_of_newick_path(options.newick_path));
 
-    bpp::Newick newick;
+    //bpp::Newick newick;
 
     // Making the model.
     unique_ptr<bpp::SubstitutionModel> model(new bpp::JCnuc(&DNA));
@@ -133,10 +155,6 @@ int main(const int argc, const char **argv)
         return 1;
     }
 
-    auto sons = tree->getRootNode()->getSonsId();
-    //int to_change = sons.back();
-    int to_change = 3;
-
     // Calculate the log-likelihood of the tree in its current state
     auto get_ll = [&tree, &input_aln, &model, &rate_dist]() {
         bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
@@ -145,53 +163,52 @@ int main(const int argc, const char **argv)
         return like.getLogLikelihood();
     };
 
-    // Computing the tree likelihoods to be fit.
-    for(int i = 0; i < t.size(); i++) {
-        tree->setDistanceToFather(to_change, t[i]);
-        //newick.write(*tree, cout);
-        l.push_back(get_ll());
+    auto fit_model = [&](const int node_id) {
+        vector<double> l;
+        vector<double> x = start;
+        vector<double> bls = t;
+        l.reserve(x.size());
+        const double original_dist = tree->getDistanceToFather(node_id);
+        for(const double &d : t) {
+            tree->setDistanceToFather(node_id, d);
+            //newick.write(*tree, cout);
+            l.push_back(get_ll());
+        }
+        tree->setDistanceToFather(node_id, original_dist);
+        const int status = fit_ll(t.size(), bls.data(), l.data(), x.data());
+        if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
+        return x;
+    };
+
+    auto evaluate_fit = [&](const int node_id, const vector<double>& x, const double delta) {
+        vector<Evaluation> evaluations;
+        const double c = x[0];
+        const double m = x[1];
+        const double r = x[2];
+        const double b = x[3];
+        const double t_hat = ml_t(c, m, r, b);
+        cerr << node_id << " t_hat: " << t_hat << endl;
+        const double original_dist = tree->getDistanceToFather(node_id);
+        for(double t = delta; t <= 1.; t += delta) {
+            tree->setDistanceToFather(node_id, t);
+            double actual_ll = get_ll();
+            double fit_ll = ll(t, c, m, r, b);
+            evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
+        }
+        tree->setDistanceToFather(node_id, original_dist);
+        return evaluations;
+    };
+
+    ofstream out(options.output_path);
+    out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
+    for(const int& node_id : tree->getNodesId()) {
+        if(!tree->hasDistanceToFather(node_id)) continue;
+        vector<double> x = fit_model(node_id);
+        vector<Evaluation> evals = evaluate_fit(node_id, x, 0.01);
+        // Write to CSV
+        std::for_each(begin(evals), end(evals),
+                [&out](const Evaluation& e) { to_csv(out, e); });
     }
 
-    int status = fit_ll(t.size(), t.data(), l.data(), x.data());
-
-    cout << "fit values: ";
-    print_vector(x);
-
-    double c = x[0];
-    double m = x[1];
-    double r = x[2];
-    double b = x[3];
-    double t_hat = ml_t(c, m, r, b);
-
-    printf("t_hat: %g\n", t_hat);
-
-    ofstream file(options.output_path);
-
-    double delta = 0.01;
-
-    file << "#m=0,S=2" << endl;
-    for(double t = delta; t <= 1.; t += delta) {
-        tree->setDistanceToFather(to_change, t);
-        //newick.write(*tree, cout);
-        file << t << " " << get_ll() << endl;
-    }
-
-    file << "#m=1,S=0" << endl;
-    for(double t = delta; t <= 1.; t += delta) {
-        file << t << " " << ll(t, c, m, r, b) << endl;
-    }
-
-    // The fit of the JC model.
-    vector<double> lfit;
-    for(int i = 0; i < t.size(); i++) {
-        lfit.push_back(ll(t[i], c, m, r, b));
-    }
-
-    cout << "fit evaluations: " << endl;
-    print_vector(l);
-    print_vector(lfit);
-
-    file.close();
-
-    return status;
+    return 0;
 }

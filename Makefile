@@ -4,7 +4,8 @@ BUILD := _build
 
 run: lcfit-compare
 	$(BUILD)/lcfit-compare data/test.tre data/test.fasta
-	graph -T svg < data.dat > data.svg
+	Rscript plot_fits.R data.dat data.pdf
+	#graph -T svg < data.dat > data.svg
 
 all: lcfit-compare
 
