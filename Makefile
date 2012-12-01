@@ -2,10 +2,14 @@
 
 BUILD := _build
 
-run: lcfit-compare
+
+run: lcfit-compare data.pdf data.csv
+
+data.pdf: plot_fits.R data.csv
+	Rscript plot_fits.R data.csv data.pdf
+
+data.csv: lcfit-compare
 	$(BUILD)/lcfit-compare data/test.tre data/test.fasta
-	Rscript plot_fits.R data.dat data.pdf
-	#graph -T svg < data.dat > data.svg
 
 all: lcfit-compare
 

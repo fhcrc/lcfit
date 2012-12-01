@@ -33,7 +33,8 @@
 #include "lcfit.h"
 
 using namespace std;
-using Tree = bpp::TreeTemplate<bpp::Node>;
+//using Tree = bpp::TreeTemplate<bpp::Node>;
+typedef bpp::TreeTemplate<bpp::Node> Tree;
 
 const bpp::DNA DNA;
 const bpp::RNA RNA;
@@ -95,7 +96,7 @@ Options parse_command_line(const int argc, const char **argv)
     TCLAP::UnlabeledValueArg<string> alignment_path(
         "alignment_path", "Path to alignment [fasta]", true, "", "fasta file", cmd);
     TCLAP::ValueArg<string> output_path(
-        "o", "out", "Filename to write output values", false, "data.dat", "data file", cmd);
+        "o", "out", "Filename to write output values", false, "data.csv", "data file", cmd);
 
     cmd.parse(argc, argv);
 
@@ -156,14 +157,14 @@ int main(const int argc, const char **argv)
     }
 
     // Calculate the log-likelihood of the tree in its current state
-    auto get_ll = [&tree, &input_aln, &model, &rate_dist]() {
+    auto get_ll = [&tree, &input_aln, &model, &rate_dist]() -> double {
         bpp::RHomogeneousTreeLikelihood like(*tree, *input_aln, model.get(), &rate_dist, false, false, false);
         like.initialize();
         like.computeTreeLikelihood();
         return like.getLogLikelihood();
     };
 
-    auto fit_model = [&](const int node_id) {
+    auto fit_model = [&](const int node_id) -> vector<double> {
         vector<double> l;
         vector<double> x = start;
         vector<double> bls = t;
@@ -180,7 +181,7 @@ int main(const int argc, const char **argv)
         return x;
     };
 
-    auto evaluate_fit = [&](const int node_id, const vector<double>& x, const double delta) {
+    auto evaluate_fit = [&](const int node_id, const vector<double>& x, const double delta) -> vector<Evaluation> {
         vector<Evaluation> evaluations;
         const double c = x[0];
         const double m = x[1];
