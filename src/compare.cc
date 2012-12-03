@@ -90,6 +90,7 @@ int run_main(int argc, char** argv)
     all_sites.reset();
     // Tree
     unique_ptr<bpp::Tree> in_tree(bpp::PhylogeneticsApplicationTools::getTree(params));
+    bpp::TreeTemplate<bpp::Node> tree(*in_tree);
     // Model
     unique_ptr<bpp::SubstitutionModel> model(bpp::PhylogeneticsApplicationTools::getSubstitutionModel(alphabet.get(), sites.get(), params));
     bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sites);
@@ -108,9 +109,8 @@ int run_main(int argc, char** argv)
     const vector<double> start = bpp::ApplicationTools::getVectorParameter<double>("lcfit.starting.values",
             params, ',', "1500,1000,2.0,0.5");
 
-    // Reading the tree.
-    bpp::TreeTemplate<bpp::Node> tree(*in_tree);
 
+    // Some functions to run LCfit, evaluate results
     // Calculate the log-likelihood of the tree in its current state
     auto get_ll = [&tree, &sites, &model, &rate_dist]() -> double {
         bpp::RHomogeneousTreeLikelihood like(tree, *sites, model.get(), rate_dist.get(), false, false, false);

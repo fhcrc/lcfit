@@ -22,15 +22,16 @@ main <- function(input_bls, input_maxima, outfile) {
     m <- melt(maximum, id.vars=1)
     m <- transform(m, name=level_names[match(variable, max_translate)])
 
+    rss <- with(dcast(piece, node_id+branch_length~variable), sum((fit_ll - bpp_ll)^2))
+
     p <- ggplot(piece, aes(color=name, linetype=name)) +
         geom_line(aes(x=branch_length,
                       y=value), data=piece) +
-        opts(title=sprintf("Node #%s", piece$node_id[1])) +
+        opts(title=sprintf("Node #%s\nRSS=%f", piece$node_id[1], rss)) +
         geom_vline(aes(xintercept=value, color=name, linetype=name), data=m)
     print(p)
   })
   dev.off()
-  warnings()
 
   ## Norms
   #norms <- ddply(d, .(node_id), function(piece) {
