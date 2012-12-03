@@ -9,5 +9,5 @@ dir.create('trees')
 
 set.seed(1)
 for(i in 1:N_TREES) {
-  write.tree(rtree(N_LEAVES), sprintf('trees/tree%04d.tre', i))
+  write.tree(rtree(N_LEAVES, br=runif, min=1e-4, max=0.2), sprintf('trees/tree%04d.tre', i))
 }

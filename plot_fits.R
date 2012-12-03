@@ -19,7 +19,7 @@ main <- function(input_bls, input_maxima, outfile) {
   d_ply(m, .(node_id), function(piece) {
     node_id <- piece$node_id[1]
     maximum <- maxima[maxima$node_id == node_id,]
-    m <- melt(maximum, id.vars=1)
+    m <- melt(maximum, id.vars=1, measure.vars=2:3)
     m <- transform(m, name=level_names[match(variable, max_translate)])
 
     rss <- with(dcast(piece, node_id+branch_length~variable), sum((fit_ll - bpp_ll)^2))
@@ -27,8 +27,10 @@ main <- function(input_bls, input_maxima, outfile) {
     p <- ggplot(piece, aes(color=name, linetype=name)) +
         geom_line(aes(x=branch_length,
                       y=value), data=piece) +
-        opts(title=sprintf("Node #%s\nRSS=%f", piece$node_id[1], rss)) +
-        geom_vline(aes(xintercept=value, color=name, linetype=name), data=m)
+        opts(title=sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
+                           maximum$c, maximum$m, maximum$r, maximum$b)) +
+        geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
+        xlim(0, 1)
     print(p)
   })
   dev.off()

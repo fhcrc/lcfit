@@ -179,7 +179,6 @@ int run_main(int argc, char** argv)
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
         vector<double> x = fit_model(node_id);
-        cout << "Node " << node_id << ": fit=";
         print_vector(x);
         const vector<Evaluation> evals = evaluate_fit(node_id, x, 0.01);
         // Write to CSV
