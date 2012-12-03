@@ -100,7 +100,7 @@ int run_main(int argc, char** argv)
     // Output
     string csv_like_path = bpp::ApplicationTools::getAFilePath("lcfit.output.likelihoods.file", params, true, false);
     ofstream csv_like_out(csv_like_path);
-    string csv_ml_path = bpp::ApplicationTools::getAFilePath("lcfit.output.ml.file", params, true, false);
+    string csv_ml_path = bpp::ApplicationTools::getAFilePath("lcfit.output.maxima.file", params, true, false);
     ofstream csv_ml_out(csv_ml_path);
 
     const vector<double> t = bpp::ApplicationTools::getVectorParameter<double>("lcfit.sample.branch.lengths",

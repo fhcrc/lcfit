@@ -5,14 +5,14 @@ BUILD := _build
 all: lcfit-compare data.csv data.pdf
 
 data.pdf: data.csv
-	Rscript plot_fits.R data.csv data.pdf
+	Rscript plot_fits.R data.csv data.maxima.csv data.pdf
 
 data.csv: lcfit-compare
 	$(BUILD)/lcfit-compare \
 		input.tree.file=data/test.tre \
 		input.sequence.file=data/test.fasta \
 		lcfit.output.likelihoods.file=data.csv \
-		lcfit.output.ml.file=data.ml.csv
+		lcfit.output.maxima.file=data.maxima.csv
 
 lcfit-compare: setup-cmake
 	+make -C$(BUILD) $@
