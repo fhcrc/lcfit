@@ -2,11 +2,17 @@
 
 BUILD := _build
 
-run: lcfit-compare
-	$(BUILD)/lcfit-compare data/test.tre data/test.fasta
-	graph -T svg < data.dat > data.svg
+all: lcfit-compare data.csv data.pdf
 
-all: lcfit-compare
+data.pdf: data.csv
+	Rscript plot_fits.R data.csv data.maxima.csv data.pdf
+
+data.csv: lcfit-compare
+	$(BUILD)/lcfit-compare \
+		input.tree.file=data/test.tre \
+		input.sequence.file=data/test.fasta \
+		lcfit.output.likelihoods.file=data.csv \
+		lcfit.output.maxima.file=data.maxima.csv
 
 lcfit-compare: setup-cmake
 	+make -C$(BUILD) $@
