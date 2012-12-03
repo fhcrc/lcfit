@@ -11,7 +11,8 @@ data.csv: lcfit-compare
 	$(BUILD)/lcfit-compare \
 		input.tree.file=data/test.tre \
 		input.sequence.file=data/test.fasta \
-		output.likelihood.file=data.csv
+		lcfit.output.likelihoods.file=data.csv \
+		lcfit.output.ml.file=data.ml.csv
 
 lcfit-compare: setup-cmake
 	+make -C$(BUILD) $@
