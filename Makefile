@@ -2,16 +2,16 @@
 
 BUILD := _build
 
+all: lcfit-compare data.csv data.pdf
 
-run: lcfit-compare data.pdf data.csv
-
-data.pdf: plot_fits.R data.csv
+data.pdf: data.csv
 	Rscript plot_fits.R data.csv data.pdf
 
 data.csv: lcfit-compare
-	$(BUILD)/lcfit-compare data/test.tre data/test.fasta
-
-all: lcfit-compare
+	$(BUILD)/lcfit-compare \
+		input.tree.file=data/test.tre \
+		input.sequence.file=data/test.fasta \
+		output.likelihood.file=data.csv
 
 lcfit-compare: setup-cmake
 	+make -C$(BUILD) $@
