@@ -13,8 +13,8 @@ main <- function(infile, outfile) {
                            y=value,
                            color=variable,
                            linetype=variable)) +
-      geom_line() +
-        opts(title=piece$node_id[1])
+        geom_line() +
+        opts(title=sprintf("Node #%s", piece$node_id[1]))
     print(p)
   })
   dev.off()
