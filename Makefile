@@ -2,7 +2,7 @@
 
 BUILD := _build
 
-all: lcfit-compare data.csv data.pdf
+all: lcfit-compare
 
 data.pdf: data.csv
 	Rscript plot_fits.R data.csv data.maxima.csv data.pdf
