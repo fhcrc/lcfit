@@ -22,8 +22,6 @@
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/SiteTools.h>
 
-#include "tclap/CmdLine.h"
-
 #include "lcfit.h"
 
 using namespace std;
@@ -48,14 +46,22 @@ struct Evaluation {
     double branch_length, ll, pred_ll;
 };
 
-struct Branch_length_comparison {
-    Branch_length_comparison(int node_id, double t, double t_hat) :
+struct Fit {
+    Fit(int node_id, double t, double t_hat, double c, double m, double r, double b) :
         node_id(node_id),
         t(t),
-        t_hat(t_hat) {};
+        t_hat(t_hat),
+        c(c),
+        m(m),
+        r(r),
+        b(b) {};
     int node_id;
     double t,     // Branch length
-           t_hat; // Fit branch length
+           t_hat, // Fit branch length
+           c,
+           m,
+           r,
+           b;
 };
 
 void to_csv(ostream& out, const Evaluation& e)
@@ -66,10 +72,14 @@ void to_csv(ostream& out, const Evaluation& e)
         << e.pred_ll << endl;
 }
 
-void to_csv(ostream& out, const Branch_length_comparison& b) {
-    out << b.node_id << ","
-        << b.t << ","
-        << b.t_hat << endl;
+void to_csv(ostream& out, const Fit& f) {
+    out << f.node_id << ","
+        << f.t << ","
+        << f.t_hat << ","
+        << f.c << ","
+        << f.m << ","
+        << f.r << ","
+        << f.b << endl;
 }
 
 int run_main(int argc, char** argv)
@@ -153,27 +163,30 @@ int run_main(int argc, char** argv)
         return evaluations;
     };
 
-    auto compare_ml_values = [&tree](const int node_id, const vector<double>& x) -> Branch_length_comparison {
+    auto compare_ml_values = [&tree](const int node_id, const vector<double>& x) -> Fit {
         const double c = x[0];
         const double m = x[1];
         const double r = x[2];
         const double b = x[3];
         const double t_hat = ml_t(c, m, r, b);
         const double t = tree.getDistanceToFather(node_id);
-        return Branch_length_comparison(node_id, t, t_hat);
+        return Fit(node_id, t, t_hat, c, m, r, b);
     };
 
     csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
-    csv_ml_out << "node_id,t,t_hat" << endl;
+    csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
     for(const int& node_id : tree.getNodesId()) {
+        cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
         vector<double> x = fit_model(node_id);
+        cout << "Node " << node_id << ": fit=";
+        print_vector(x);
         const vector<Evaluation> evals = evaluate_fit(node_id, x, 0.01);
         // Write to CSV
         std::for_each(begin(evals), end(evals),
                 [&csv_like_out](const Evaluation& e) { to_csv(csv_like_out, e); });
-        const Branch_length_comparison comp = compare_ml_values(node_id, x);
-        to_csv(csv_ml_out, comp);
+        const Fit fit = compare_ml_values(node_id, x);
+        to_csv(csv_ml_out, fit);
     }
 
     return 0;

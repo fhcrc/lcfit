@@ -5,15 +5,20 @@ project(lcfit CXX)
 set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
 
 # STS
-add_subdirectory(sts)
+#add_subdirectory(sts)
+#include_directories(sts/lib/include)
 
 set(LCFIT_COMPARE_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/compare.cc)
-set(LCFIT_TEST_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cc)
+#set(LCFIT_TEST_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cc)
 include_directories(src)
-include_directories(sts/lib/include)
+
+set(LCFIT_LIBS
+  bpp-core
+  bpp-seq
+  bpp-phyl
+  gsl
+  gslcblas)
 
 # LCFIT
 add_executable(lcfit-compare ${LCFIT_COMPARE_CPP})
-add_executable(lcfit-test ${LCFIT_TEST_CPP})
-target_link_libraries(lcfit-test ${STS_PHYLO_LIBS})
-target_link_libraries(lcfit-compare ${STS_PHYLO_LIBS})
+target_link_libraries(lcfit-compare ${LCFIT_LIBS})
