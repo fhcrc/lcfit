@@ -17,6 +17,11 @@ w = SConsWrap(n, 'runs')
 models = {
         'JC': 'JC69',
 }
+
+initial_values = ['1500,1000,2.0,0.5',
+                  '1500,1000,0.5,0.5',
+                  '2000,500,0.5,0.25']
+
 rdist = {
         'uniform': 'Uniform()',
 #        'gamma4-1.0': 'Gamma(n=4, alpha=1.0)',
@@ -30,6 +35,7 @@ n.add('model_name', models)
 n.add('model', lambda c: [models[c['model_name']]], create_dir=False)
 n.add('rdist_name', rdist)
 n.add('rdist', lambda c: [rdist[c['rdist_name']]], create_dir=False)
+n.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'))
 
 @w.add_target()
 def model_file(outdir, c):
@@ -117,6 +123,7 @@ def lcfit(outdir, c):
             'param=${SOURCES[2]} '
             'input.tree.file=${SOURCES[1]} '
             'input.sequence.file=${SOURCES[0]} '
+            'lcfit.starting.values=' + c['initial'] + ' ' +
             'lcfit.output.likelihoods.file=${TARGETS[0]} '
             'lcfit.output.maxima.file=${TARGETS[1]}')
 
