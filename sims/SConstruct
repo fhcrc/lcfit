@@ -19,8 +19,10 @@ models = {
 }
 
 initial_values = ['1500,1000,2.0,0.5',
-                  '1500,1000,0.5,0.5',
-                  '2000,500,0.5,0.25']
+        '2500,800,1.5,0.1',
+        '1500,200,2.0,1.0']
+sample_values  = ['0.1,0.2,0.5,1.0',]
+
 
 rdist = {
         'uniform': 'Uniform()',
@@ -36,6 +38,7 @@ n.add('model', lambda c: [models[c['model_name']]], create_dir=False)
 n.add('rdist_name', rdist)
 n.add('rdist', lambda c: [rdist[c['rdist_name']]], create_dir=False)
 n.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'))
+n.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'))
 
 @w.add_target()
 def model_file(outdir, c):
@@ -124,6 +127,7 @@ def lcfit(outdir, c):
             'input.tree.file=${SOURCES[1]} '
             'input.sequence.file=${SOURCES[0]} '
             'lcfit.starting.values=' + c['initial'] + ' ' +
+            'lcfit.sample.branch.lengths=' + c['sample'] + ' ' +
             'lcfit.output.likelihoods.file=${TARGETS[0]} '
             'lcfit.output.maxima.file=${TARGETS[1]}')
 
@@ -132,3 +136,5 @@ def lcfit_plots(outdir, c):
     return env.Command(os.path.join(outdir, 'lcfit_plots.pdf'),
             c['lcfit'],
             'plot_fits.R $SOURCES $TARGET')
+
+w.add_controls(env)

@@ -115,7 +115,7 @@ int run_main(int argc, char** argv)
     ofstream csv_ml_out(csv_ml_path);
 
     const vector<double> t = bpp::ApplicationTools::getVectorParameter<double>("lcfit.sample.branch.lengths",
-            params, ',', "0.1,0.2,0.5,1.0");
+            params, ',', "0.05,0.2,0.5,1.0");
     const vector<double> start = bpp::ApplicationTools::getVectorParameter<double>("lcfit.starting.values",
             params, ',', "1500,1000,2.0,0.5");
 
@@ -179,7 +179,6 @@ int run_main(int argc, char** argv)
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
         vector<double> x = fit_model(node_id);
-        print_vector(x);
         const vector<Evaluation> evals = evaluate_fit(node_id, x, 0.01);
         // Write to CSV
         std::for_each(begin(evals), end(evals),

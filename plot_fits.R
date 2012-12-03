@@ -16,7 +16,7 @@ main <- function(input_bls, input_maxima, outfile) {
   m <- transform(m, name=level_names[match(variable, bl_translate)])
 
   pdf(output)
-  d_ply(m, .(node_id), function(piece) {
+  rss <- ddply(m, .(node_id), function(piece) {
     node_id <- piece$node_id[1]
     maximum <- maxima[maxima$node_id == node_id,]
     m <- melt(maximum, id.vars=1, measure.vars=2:3)
@@ -32,8 +32,11 @@ main <- function(input_bls, input_maxima, outfile) {
         geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
         xlim(0, 1)
     print(p)
+    transform(maximum, rss=rss)
   })
   dev.off()
+
+  write.table(rss, sub('\\.pdf$', '\\.txt', output), sep='\t', row.names=FALSE)
 
   ## Norms
   #norms <- ddply(d, .(node_id), function(piece) {
