@@ -32,17 +32,17 @@ double ml_t(double c, double m, double r, double b)
 
 /* Next, the data to fit such a log likelihood function. */
 struct data_to_fit {
-    size_t n;   /* Number of observations */
-    double * t; /* Branch lengths */
-    double * l; /* Corresponding likelihoods */
+    const size_t n;   /* Number of observations */
+    const double * t; /* Branch lengths */
+    const double * l; /* Corresponding likelihoods */
 };
 
 /* Evaluate the likelihood curve described in data at the point x. */
 int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
 {
-    size_t n = ((struct data_to_fit *) data)->n;
-    double *t = ((struct data_to_fit *) data)->t;
-    double *l = ((struct data_to_fit *) data)->l;
+    const size_t n = ((struct data_to_fit *) data)->n;
+    const double *t = ((struct data_to_fit *) data)->t;
+    const double *l = ((struct data_to_fit *) data)->l;
 
     double c = gsl_vector_get(x, 0);
     double m = gsl_vector_get(x, 1);
@@ -61,8 +61,8 @@ int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
 /* The corresponding Jacobian. */
 int expb_df(const gsl_vector * x, void *data, gsl_matrix * J)
 {
-    size_t n = ((struct data_to_fit *) data)->n;
-    double *t = ((struct data_to_fit *) data)->t;
+    const size_t n = ((struct data_to_fit *) data)->n;
+    const double *t = ((struct data_to_fit *) data)->t;
     /* double *l = ((struct data_to_fit *) data)->l; */
 
     double c = gsl_vector_get(x, 0);
@@ -117,7 +117,7 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
      m = x[2];
      b = x[3];
 */
-int fit_ll(size_t n, double* t, double* l, double* x)
+int fit_ll(const size_t n, const double* t, const double* l, double* x)
 {
     const gsl_multifit_fdfsolver_type *T;
     gsl_multifit_fdfsolver *s;
@@ -131,7 +131,7 @@ int fit_ll(size_t n, double* t, double* l, double* x)
 
     /* Storing the contents of x on the stack.
      * http://www.gnu.org/software/gsl/manual/html_node/Vector-views.html */
-    gsl_vector_view x_view = gsl_vector_view_array(x, 4);
+    gsl_vector_const_view x_view = gsl_vector_const_view_array(x, 4);
 
     fdf.f = &expb_f;
     fdf.df = &expb_df;

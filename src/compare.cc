@@ -120,7 +120,9 @@ int run_main(int argc, char** argv)
             params, ',', "1500,1000,2.0,0.5");
 
 
-    // Some functions to run LCfit, evaluate results
+    /*
+     * Functions to run lcfit, evaluate results
+     */
     // Calculate the log-likelihood of the tree in its current state
     auto get_ll = [&tree, &sites, &model, &rate_dist]() -> double {
         bpp::RHomogeneousTreeLikelihood like(tree, *sites, model.get(), rate_dist.get(), false, false, false);
@@ -129,10 +131,10 @@ int run_main(int argc, char** argv)
         return like.getLogLikelihood();
     };
 
-    auto fit_model = [&](const int node_id) -> vector<double> {
+    // Run lcfit, return coefficients of the model
+    auto fit_model = [&tree,&start,&t,&get_ll](const int node_id) -> vector<double> {
         vector<double> l;
         vector<double> x = start;
-        vector<double> bls = t;
         l.reserve(x.size());
         const double original_dist = tree.getDistanceToFather(node_id);
         for(const double &d : t) {
@@ -141,12 +143,13 @@ int run_main(int argc, char** argv)
             l.push_back(get_ll());
         }
         tree.setDistanceToFather(node_id, original_dist);
-        const int status = fit_ll(t.size(), bls.data(), l.data(), x.data());
+        const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
         return x;
     };
 
-    auto evaluate_fit = [&](const int node_id, const vector<double>& x, const double delta) -> vector<Evaluation> {
+    // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
+    auto evaluate_fit = [&tree,&get_ll](const int node_id, const vector<double>& x, const double delta) -> vector<Evaluation> {
         vector<Evaluation> evaluations;
         const double c = x[0];
         const double m = x[1];
@@ -163,6 +166,7 @@ int run_main(int argc, char** argv)
         return evaluations;
     };
 
+    // Compare ML branch length estimate from lcfit to original branch length (presumed to be ML value)
     auto compare_ml_values = [&tree](const int node_id, const vector<double>& x) -> Fit {
         const double c = x[0];
         const double m = x[1];
@@ -173,6 +177,9 @@ int run_main(int argc, char** argv)
         return Fit(node_id, t, t_hat, c, m, r, b);
     };
 
+    /*
+     * Run evaluations on each node, write output
+     */
     csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
     csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
     for(const int& node_id : tree.getNodesId()) {
