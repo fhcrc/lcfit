@@ -4,7 +4,7 @@ library(ggplot2)
 library(plyr)
 library(reshape2)
 
-main <- function(input_bls, input_maxima, outfile) {
+main <- function(input_bls, input_maxima, input_fit, outfile) {
   d <- read.csv(input_bls, as.is=TRUE)
   maxima <- read.csv(input_maxima, as.is=TRUE)
   m <- melt(d, id.vars=1:2)
@@ -14,10 +14,13 @@ main <- function(input_bls, input_maxima, outfile) {
   max_translate <- c('t', 't_hat')
 
   m <- transform(m, name=level_names[match(variable, bl_translate)])
+  fit <- read.csv(input_fit, as.is=TRUE)
 
   pdf(output)
   rss <- ddply(m, .(node_id), function(piece) {
     node_id <- piece$node_id[1]
+    f <- subset(fit, node_id == piece$node_id[1])
+    f$name <- 'Bio++'
     maximum <- maxima[maxima$node_id == node_id,]
     m <- melt(maximum, id.vars=1, measure.vars=2:3)
     m <- transform(m, name=level_names[match(variable, max_translate)])
@@ -30,6 +33,7 @@ main <- function(input_bls, input_maxima, outfile) {
         opts(title=sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
                            maximum$c, maximum$m, maximum$r, maximum$b)) +
         geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
+        geom_point(aes(x=branch_length, y=ll), data=f) +
         xlim(0, 1)
     print(p)
     transform(maximum, rss=rss)
@@ -51,11 +55,12 @@ main <- function(input_bls, input_maxima, outfile) {
 
 if(!interactive()) {
   args <- commandArgs(TRUE)
-  if(length(args) != 3) {
-    stop("usage: plot_fits.R <input_bls> <input_maxima> <outfile>")
+  if(length(args) != 4) {
+    stop("usage: plot_fits.R <input_bls> <input_maxima> <input_fit> <outfile>")
   }
   input_bls <- args[1]
   input_maxima <- args[2]
-  output <- args[3]
-  main(input_bls, input_maxima, output)
+  input_fit <- args[3]
+  output <- args[4]
+  main(input_bls, input_maxima, input_fit, output)
 }

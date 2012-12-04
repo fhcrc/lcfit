@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -36,6 +39,7 @@ void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std:
     out << endl;
 }
 
+/// Evaluation of the fit for a node at a given branch length
 struct Evaluation {
     Evaluation(int node_id, double branch_length, double ll, double pred_ll) :
         node_id(node_id),
@@ -46,8 +50,9 @@ struct Evaluation {
     double branch_length, ll, pred_ll;
 };
 
-struct Fit {
-    Fit(int node_id, double t, double t_hat, double c, double m, double r, double b) :
+/// Model fit
+struct ModelFit {
+    ModelFit(int node_id, double t, double t_hat, double c, double m, double r, double b) :
         node_id(node_id),
         t(t),
         t_hat(t_hat),
@@ -72,7 +77,7 @@ void to_csv(ostream& out, const Evaluation& e)
         << e.pred_ll << endl;
 }
 
-void to_csv(ostream& out, const Fit& f) {
+void to_csv(ostream& out, const ModelFit& f) {
     out << f.node_id << ","
         << f.t << ","
         << f.t_hat << ","
@@ -109,16 +114,19 @@ int run_main(int argc, char** argv)
 
     // lcfit-specific
     // Output
-    string csv_like_path = bpp::ApplicationTools::getAFilePath("lcfit.output.likelihoods.file", params, true, false);
+    string csv_like_path = bpp::ApplicationTools::getAFilePath("lcfit.output.likelihoods_file", params, true, false);
     ofstream csv_like_out(csv_like_path);
-    string csv_ml_path = bpp::ApplicationTools::getAFilePath("lcfit.output.maxima.file", params, true, false);
+    string csv_ml_path = bpp::ApplicationTools::getAFilePath("lcfit.output.maxima_file", params, true, false);
     ofstream csv_ml_out(csv_ml_path);
+    string csv_fit_path = bpp::ApplicationTools::getAFilePath("lcfit.output.fit_file", params, true, false);
+    ofstream csv_fit_out(csv_fit_path);
+    csv_fit_out << "node_id,branch_length,ll" << endl;;
 
-    const vector<double> t = bpp::ApplicationTools::getVectorParameter<double>("lcfit.sample.branch.lengths",
-            params, ',', "0.05,0.2,0.5,1.0");
+    const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
+            "lcfit.sample.branch.lengths",
+            params, ',', "0.1,0.15,0.5");
     const vector<double> start = bpp::ApplicationTools::getVectorParameter<double>("lcfit.starting.values",
             params, ',', "1500,1000,2.0,0.5");
-
 
     /*
      * Functions to run lcfit, evaluate results
@@ -132,16 +140,47 @@ int run_main(int argc, char** argv)
     };
 
     // Run lcfit, return coefficients of the model
-    auto fit_model = [&tree,&start,&t,&get_ll](const int node_id) -> vector<double> {
+    auto fit_model = [&tree,&start,&sample_points,&get_ll,&csv_fit_out](const int node_id) -> vector<double> {
         vector<double> l;
         vector<double> x = start;
-        l.reserve(x.size());
+        vector<double> t = sample_points;
+        assert(is_sorted(sample_points.begin(), sample_points.end()));
+        l.reserve(sample_points.size()+1);
+
+        // Try starting points
         const double original_dist = tree.getDistanceToFather(node_id);
         for(const double &d : t) {
             tree.setDistanceToFather(node_id, d);
-            //newick.write(*tree, cout);
             l.push_back(get_ll());
         }
+
+        // Add a fourth point based on the three sampled so far
+        size_t offset; // Position
+        double d;      // Branch length
+
+        // Monotonically decreasing - add a point to the left
+        if(l[0] > l[1] && l[1] > l[2]) {
+            d = t[0] / 10.0; // TODO: What to choose?
+            offset = 0;
+        } else if (l[0] < l[1] && l[1] > l[2]) {
+            // Maxima enclosed by (l[0], l[1])
+            d = (t[1] + t[2]) / 2.0; // TODO: What to choose?
+            offset = 2;
+        } else {
+            // Monotonically increasing
+            d = (t[1] + t[2]) / 2.0; // TODO: What to choose?
+            offset = 2;
+        }
+        t.insert(t.begin() + offset, d);
+        tree.setDistanceToFather(node_id, d);
+        l.insert(l.begin() + offset, get_ll());
+
+        for(int i = 0; i < t.size(); ++i) {
+            csv_fit_out << node_id << "," << t[i] << "," << l[i] << endl;
+        }
+
+        assert(is_sorted(sample_points.begin(), sample_points.end()));
+
         tree.setDistanceToFather(node_id, original_dist);
         const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
@@ -167,14 +206,14 @@ int run_main(int argc, char** argv)
     };
 
     // Compare ML branch length estimate from lcfit to original branch length (presumed to be ML value)
-    auto compare_ml_values = [&tree](const int node_id, const vector<double>& x) -> Fit {
+    auto compare_ml_values = [&tree](const int node_id, const vector<double>& x) -> ModelFit {
         const double c = x[0];
         const double m = x[1];
         const double r = x[2];
         const double b = x[3];
         const double t_hat = ml_t(c, m, r, b);
         const double t = tree.getDistanceToFather(node_id);
-        return Fit(node_id, t, t_hat, c, m, r, b);
+        return ModelFit(node_id, t, t_hat, c, m, r, b);
     };
 
     /*
@@ -190,7 +229,7 @@ int run_main(int argc, char** argv)
         // Write to CSV
         std::for_each(begin(evals), end(evals),
                 [&csv_like_out](const Evaluation& e) { to_csv(csv_like_out, e); });
-        const Fit fit = compare_ml_values(node_id, x);
+        const ModelFit fit = compare_ml_values(node_id, x);
         to_csv(csv_ml_out, fit);
     }
 

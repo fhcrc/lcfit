@@ -118,7 +118,7 @@ def ml_tree(outdir, c):
 
 @w.add_target()
 def lcfit(outdir, c):
-    targets = [os.path.join(outdir, i) for i in ('lcfit_bls.csv', 'lcfit_maxima.csv')]
+    targets = [os.path.join(outdir, i) for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv')]
     return env.Command(targets,
             [c['alignment'], c['ml_tree'], c['model_file']],
             'lcfit-compare '
@@ -127,8 +127,9 @@ def lcfit(outdir, c):
             'input.sequence.file=${SOURCES[0]} '
             'lcfit.starting.values=' + c['initial'] + ' ' +
             'lcfit.sample.branch.lengths=' + c['sample'] + ' ' +
-            'lcfit.output.likelihoods.file=${TARGETS[0]} '
-            'lcfit.output.maxima.file=${TARGETS[1]}')
+            'lcfit.output.likelihoods_file=${TARGETS[0]} '
+            'lcfit.output.maxima_file=${TARGETS[1]}'
+            'lcfit.output.fit_file=${TARGETS[2]}')
 
 @w.add_target()
 def lcfit_plots(outdir, c):

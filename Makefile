@@ -7,14 +7,15 @@ BUILD_DIR := $(BUILD)/$(CMAKE_BUILD_TYPE)
 all: lcfit-compare
 
 data.pdf: data.csv
-	Rscript plot_fits.R data.csv data.maxima.csv data.pdf
+	Rscript plot_fits.R data.csv data.maxima.csv data.fit.csv data.pdf
 
 data.csv: lcfit-compare
 	$(BUILD_DIR)/lcfit-compare \
 		input.tree.file=data/test.tre \
 		input.sequence.file=data/test.fasta \
-		lcfit.output.likelihoods.file=data.csv \
-		lcfit.output.maxima.file=data.maxima.csv
+		lcfit.output.likelihoods_file=data.csv \
+		lcfit.output.maxima_file=data.maxima.csv \
+		lcfit.output.fit_file=data.fit.csv
 
 lcfit-compare: setup-cmake
 	+make -C$(BUILD_DIR) $@
