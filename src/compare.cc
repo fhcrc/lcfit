@@ -123,7 +123,6 @@ int run_main(int argc, char** argv)
     auto fit_model = [&tree,&start,&t,&get_ll](const int node_id) -> vector<double> {
         vector<double> l;
         vector<double> x = start;
-        vector<double> bls = t;
         l.reserve(x.size());
         const double original_dist = tree.getDistanceToFather(node_id);
         for(const double &d : t) {
@@ -132,7 +131,7 @@ int run_main(int argc, char** argv)
             l.push_back(get_ll());
         }
         tree.setDistanceToFather(node_id, original_dist);
-        const int status = fit_ll(t.size(), bls.data(), l.data(), x.data());
+        const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
         return x;
     };
