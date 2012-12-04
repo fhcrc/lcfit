@@ -22,8 +22,6 @@
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
 #include <Bpp/Seq/SiteTools.h>
 
-#include "tclap/CmdLine.h"
-
 #include "lcfit.h"
 
 using namespace std;
@@ -110,7 +108,9 @@ int run_main(int argc, char** argv)
             params, ',', "1500,1000,2.0,0.5");
 
 
-    // Some functions to run LCfit, evaluate results
+    /*
+     * Functions to run lcfit, evaluate results
+     */
     // Calculate the log-likelihood of the tree in its current state
     auto get_ll = [&tree, &sites, &model, &rate_dist]() -> double {
         bpp::RHomogeneousTreeLikelihood like(tree, *sites, model.get(), rate_dist.get(), false, false, false);
@@ -119,7 +119,8 @@ int run_main(int argc, char** argv)
         return like.getLogLikelihood();
     };
 
-    auto fit_model = [&](const int node_id) -> vector<double> {
+    // Run lcfit, return coefficients of the model
+    auto fit_model = [&tree,&start,&t,&get_ll](const int node_id) -> vector<double> {
         vector<double> l;
         vector<double> x = start;
         vector<double> bls = t;
@@ -136,7 +137,8 @@ int run_main(int argc, char** argv)
         return x;
     };
 
-    auto evaluate_fit = [&](const int node_id, const vector<double>& x, const double delta) -> vector<Evaluation> {
+    // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
+    auto evaluate_fit = [&tree,&get_ll](const int node_id, const vector<double>& x, const double delta) -> vector<Evaluation> {
         vector<Evaluation> evaluations;
         const double c = x[0];
         const double m = x[1];
@@ -153,6 +155,7 @@ int run_main(int argc, char** argv)
         return evaluations;
     };
 
+    // Compare ML branch length estimate from lcfit to original branch length (presumed to be ML value)
     auto compare_ml_values = [&tree](const int node_id, const vector<double>& x) -> Branch_length_comparison {
         const double c = x[0];
         const double m = x[1];
@@ -163,6 +166,9 @@ int run_main(int argc, char** argv)
         return Branch_length_comparison(node_id, t, t_hat);
     };
 
+    /*
+     * Run evaluations on each node, write output
+     */
     csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
     csv_ml_out << "node_id,t,t_hat" << endl;
     for(const int& node_id : tree.getNodesId()) {
