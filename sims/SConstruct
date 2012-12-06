@@ -35,8 +35,8 @@ n.add('model_name', models)
 n.add('model', lambda c: [models[c['model_name']]], create_dir=False)
 n.add('rdist_name', rdist)
 n.add('rdist', lambda c: [rdist[c['rdist_name']]], create_dir=False)
-n.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'))
-n.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'))
+n.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'), create_dir=False)
+n.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'), create_dir=False)
 
 @w.add_target()
 def model_file(outdir, c):
