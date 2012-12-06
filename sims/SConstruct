@@ -15,12 +15,19 @@ n = Nest(base_dict={'n_sites': 1000})
 w = SConsWrap(n, 'runs')
 
 models = {
-        'JC': 'JC69',
+        # Nucleotide models
+        'JC': {'name': 'JC69', 'alphabet': 'DNA'},
+        'HKY85-2.0': {'name': 'HKY85(kappa=2.0,initFreqs=observed)', 'alphabet': 'DNA'},
+
+        # Protein models
+        'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
+        'WAG01': {'name': 'WAG01', 'alphabet':'Protein'},
+        'LG08': {'name': 'LG08', 'alphabet':'Protein'},
 }
 
 initial_values = ['1100,800,2.0,0.5',]
 
-sample_values  = ['0.1,0.2,0.5,1.0',]
+sample_values  = ['0.1,0.2,0.5',]
 
 
 rdist = {
@@ -42,7 +49,9 @@ n.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'), create_
 def model_file(outdir, c):
     def write_model_action(target, source, env):
         with open(str(target[0]), 'w') as fp:
-            print >> fp, 'model={model}\nrate_distribution={rdist}'.format(**c)
+            print >> fp, """alphabet={model[alphabet]}
+model={model[name]}
+rate_distribution={rdist}""".format(**c)
     target = os.path.join(outdir, 'model.bpp')
     return env.Command(target, [], write_model_action)[0]
 
@@ -84,7 +93,6 @@ init.tree=user
 input.tree.file={source_tree}
 input.tree.format=Newick
 init.brlen.method=Input
-alphabet=DNA
 
 output.tree.file={target_base}.tre
 output.tree.format=Newick
