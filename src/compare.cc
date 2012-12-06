@@ -87,6 +87,35 @@ void to_csv(ostream& out, const ModelFit& f) {
         << f.b << endl;
 }
 
+enum class Monotonicity {
+    UNKNOWN = 0,
+    MONO_INC,
+    MONO_DEC,
+    NON_MONOTONIC
+};
+
+template<typename T>
+inline Monotonicity monotonicity(const vector<T>& v) {
+    assert(v.size() > 0);
+    auto i = begin(v);
+    auto e = end(v);
+    bool maybe_inc = true, maybe_dec = true;
+
+    T last = *i++;
+    for(;i != e; i++) {
+        T current = *i;
+        if (current > last) maybe_dec = false;
+        else if (current < last) maybe_inc = false;
+        last = current;
+    }
+    assert(!(maybe_inc && maybe_dec));
+
+    if(!maybe_inc && !maybe_dec) return Monotonicity::NON_MONOTONIC;
+    else if(maybe_inc) return Monotonicity::MONO_INC;
+    else if(maybe_dec) return Monotonicity::MONO_DEC;
+    assert(false);
+}
+
 int run_main(int argc, char** argv)
 {
     bpp::BppApplication lcfit_compare(argc, argv, "lcfit-compare");
@@ -158,28 +187,38 @@ int run_main(int argc, char** argv)
         size_t offset; // Position
         double d;      // Branch length
 
-        // Monotonically decreasing - add a point to the left
-        if(l[0] > l[1] && l[1] > l[2]) {
-            d = t[0] / 10.0; // TODO: What to choose?
-            offset = 0;
-        } else if (l[0] < l[1] && l[1] > l[2]) {
-            // Maxima enclosed by (l[0], l[1])
-            d = (t[1] + t[2]) / 2.0; // TODO: What to choose?
-            offset = 2;
-        } else {
-            // Monotonically increasing
-            d = (t[1] + t[2]) / 2.0; // TODO: What to choose?
-            offset = 2;
-        }
-        t.insert(t.begin() + offset, d);
-        tree.setDistanceToFather(node_id, d);
-        l.insert(l.begin() + offset, get_ll());
+        Monotonicity c = monotonicity(l);
+        do {
+            switch(c) {
+                case Monotonicity::NON_MONOTONIC:
+                    d = (t[1] + t[2]) / 2.0; // Add a point between the first and second try
+                    offset = 2;
+                    break;
+                case Monotonicity::MONO_INC:
+                    d = t.back() * 2.0; // Double largest value
+                    offset = t.size();
+                    break;
+                case Monotonicity::MONO_DEC:
+                    d = t[0] / 10.0; // Add new smallest value
+                    offset = 0;
+                    break;
+                default:
+                    assert(false);
+            }
 
+            t.insert(t.begin() + offset, d);
+            tree.setDistanceToFather(node_id, d);
+            l.insert(l.begin() + offset, get_ll());
+
+            c = monotonicity(l);
+
+            assert(is_sorted(t.begin(), t.end()));
+        } while(t.size() < 8 && c != Monotonicity::NON_MONOTONIC);
+
+        // Log fit
         for(int i = 0; i < t.size(); ++i) {
             csv_fit_out << node_id << "," << t[i] << "," << l[i] << endl;
         }
-
-        assert(is_sorted(sample_points.begin(), sample_points.end()));
 
         tree.setDistanceToFather(node_id, original_dist);
         const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
