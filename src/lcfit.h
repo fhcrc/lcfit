@@ -23,11 +23,21 @@ double ll(double t, double c, double m, double r, double b)
 }
 
 /* The ML branch length for c, m, r, b */
-double ml_t(double c, double m, double r, double b)
+double ml_t(const double c, const double m, const double r, const double b)
 {
     double t = ((log((c - m) / (c + m))) / (-r)) - b;
     /* std::cout << "lcfit:" << ll(t, c, m, r) << "\n"; */
     return t;
+}
+
+/*
+ * The scaling parameter for c and m to obtain log-likelihood value `l` at branch length `t`, 
+ * keeping `r` and `b` fixed. 
+ */
+double cm_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b)
+{
+    double result = l / ll(t, c, m, r, b);
+    return result;
 }
 
 /* Next, the data to fit such a log likelihood function. */

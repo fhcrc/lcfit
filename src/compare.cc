@@ -94,6 +94,7 @@ enum class Monotonicity {
     NON_MONOTONIC
 };
 
+/// Find the monotonicity of a set of (sorted) points
 template<typename T>
 inline Monotonicity monotonicity(const vector<T>& v) {
     assert(v.size() > 0);
@@ -114,6 +115,22 @@ inline Monotonicity monotonicity(const vector<T>& v) {
     else if(maybe_inc) return Monotonicity::MONO_INC;
     else if(maybe_dec) return Monotonicity::MONO_DEC;
     assert(false);
+}
+
+template<typename T>
+inline size_t max_index(const vector<T> v)
+{
+    size_t size = v.size();
+    assert(size > 0);
+    size_t max_idx = 0;
+    T max_val = v[0];
+    for(size_t i = 1; i < v.size(); ++i) {
+        if(v[i] > max_val) {
+            max_val = v[i];
+            max_idx = i;
+        }
+    }
+    return max_idx;
 }
 
 int run_main(int argc, char** argv)
@@ -170,8 +187,8 @@ int run_main(int argc, char** argv)
 
     // Run lcfit, return coefficients of the model
     auto fit_model = [&tree,&start,&sample_points,&get_ll,&csv_fit_out](const int node_id) -> vector<double> {
-        vector<double> l;
-        vector<double> x = start;
+        vector<double> l; // Log-likelihood
+        vector<double> x = start; // Initial conditions for [c,m,r,b]
         vector<double> t = sample_points;
         assert(is_sorted(sample_points.begin(), sample_points.end()));
         l.reserve(sample_points.size()+1);
@@ -213,12 +230,18 @@ int run_main(int argc, char** argv)
             c = monotonicity(l);
 
             assert(is_sorted(t.begin(), t.end()));
-        } while(t.size() < 8 && c != Monotonicity::NON_MONOTONIC);
+        } while(t.size() < 8 && c != Monotonicity::NON_MONOTONIC); // TODO: fix magic number 8
 
         // Log fit
         for(int i = 0; i < t.size(); ++i) {
             csv_fit_out << node_id << "," << t[i] << "," << l[i] << endl;
         }
+
+        // Scale initial conditions to intersect with maximum likelihood point
+        size_t max_idx = max_index(l);
+        double scale_factor = cm_scale_factor(t[max_idx], l[max_idx], x[0], x[1], x[2], x[3]);
+        x[0] *= scale_factor;
+        x[1] *= scale_factor;
 
         tree.setDistanceToFather(node_id, original_dist);
         const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
