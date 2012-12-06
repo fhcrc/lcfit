@@ -34,7 +34,7 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
                            maximum$c, maximum$m, maximum$r, maximum$b)) +
         geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
         geom_point(aes(x=branch_length, y=ll), data=f) +
-        xlim(0, 1)
+        xlim(0, max(c(max(f$branch_length), 1)))
     print(p)
     transform(maximum, rss=rss)
   })

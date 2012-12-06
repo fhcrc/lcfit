@@ -11,11 +11,7 @@ data.pdf: data.csv
 
 data.csv: lcfit-compare
 	$(BUILD_DIR)/lcfit-compare \
-		input.tree.file=data/test.tre \
-		input.sequence.file=data/test.fasta \
-		lcfit.output.likelihoods_file=data.csv \
-		lcfit.output.maxima_file=data.maxima.csv \
-		lcfit.output.fit_file=data.fit.csv
+		param=data/test.params.bpp
 
 lcfit-compare: setup-cmake
 	+make -C$(BUILD_DIR) $@
