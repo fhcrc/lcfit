@@ -6,6 +6,14 @@ ll: c*log((1+exp(-r*(t+b)))/2)+m*log((1-exp(-r*(t+b)))/2);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
+ratsimp(diff(ll,t,1));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+ratsimp(diff(ll,t,2));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
 load("minpack");
 /* [wxMaxima: input   end   ] */
 
