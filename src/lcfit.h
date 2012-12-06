@@ -31,8 +31,8 @@ double ml_t(const double c, const double m, const double r, const double b)
 }
 
 /*
- * The scaling parameter for c and m to obtain log-likelihood value `l` at branch length `t`, 
- * keeping `r` and `b` fixed. 
+ * The scaling parameter for c and m to obtain log-likelihood value `l` at branch length `t`,
+ * keeping `r` and `b` fixed.
  */
 double cm_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b)
 {
@@ -43,16 +43,16 @@ double cm_scale_factor(const double t, const double l, const double c, const dou
 /* Next, the data to fit such a log likelihood function. */
 struct data_to_fit {
     const size_t n;   /* Number of observations */
-    const double * t; /* Branch lengths */
-    const double * l; /* Corresponding likelihoods */
+    const double* t;  /* Branch lengths */
+    const double* l;  /* Corresponding likelihoods */
 };
 
 /* Evaluate the likelihood curve described in data at the point x. */
-int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
+int expb_f(const gsl_vector* x, void* data, gsl_vector* f)
 {
-    const size_t n = ((struct data_to_fit *) data)->n;
-    const double *t = ((struct data_to_fit *) data)->t;
-    const double *l = ((struct data_to_fit *) data)->l;
+    const size_t n = ((struct data_to_fit*) data)->n;
+    const double* t = ((struct data_to_fit*) data)->t;
+    const double* l = ((struct data_to_fit*) data)->l;
 
     double c = gsl_vector_get(x, 0);
     double m = gsl_vector_get(x, 1);
@@ -69,10 +69,10 @@ int expb_f(const gsl_vector * x, void *data, gsl_vector * f)
 }
 
 /* The corresponding Jacobian. */
-int expb_df(const gsl_vector * x, void *data, gsl_matrix * J)
+int expb_df(const gsl_vector* x, void* data, gsl_matrix* J)
 {
-    const size_t n = ((struct data_to_fit *) data)->n;
-    const double *t = ((struct data_to_fit *) data)->t;
+    const size_t n = ((struct data_to_fit*) data)->n;
+    const double* t = ((struct data_to_fit*) data)->t;
     /* double *l = ((struct data_to_fit *) data)->l; */
 
     double c = gsl_vector_get(x, 0);
@@ -101,7 +101,7 @@ int expb_df(const gsl_vector * x, void *data, gsl_matrix * J)
     return GSL_SUCCESS;
 }
 
-int expb_fdf(const gsl_vector * x, void *data, gsl_vector * f, gsl_matrix * J)
+int expb_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J)
 {
     expb_f(x, data, f);
     expb_df(x, data, J);
@@ -109,7 +109,7 @@ int expb_fdf(const gsl_vector * x, void *data, gsl_vector * f, gsl_matrix * J)
     return GSL_SUCCESS;
 }
 
-void print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
+void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
 {
     printf("iter: %3u x = % 15.8f % 15.8f % 15.8f % 15.8f "
            "|f(x)| = %g\n",
@@ -129,8 +129,8 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver * s)
 */
 int fit_ll(const size_t n, const double* t, const double* l, double* x)
 {
-    const gsl_multifit_fdfsolver_type *T;
-    gsl_multifit_fdfsolver *s;
+    const gsl_multifit_fdfsolver_type* T;
+    gsl_multifit_fdfsolver* s;
 
     int status;
     size_t i;
@@ -172,7 +172,7 @@ int fit_ll(const size_t n, const double* t, const double* l, double* x)
 #define FIT(i) gsl_vector_get(s->x, i)
 #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
 #ifdef VERBOSE
-    gsl_matrix *covar = gsl_matrix_alloc(4, 4);
+    gsl_matrix* covar = gsl_matrix_alloc(4, 4);
     gsl_multifit_covar(s->J, 0.0, covar);
     gsl_matrix_fprintf(stdout, covar, "%g");
     gsl_matrix_free(covar);

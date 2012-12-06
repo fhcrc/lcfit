@@ -32,4 +32,5 @@ style:
 	        --suffix=none \
 	        --formatted \
 	        --lineend=linux \
+					--align-pointer=type \
 	        `find src -regextype posix-extended -regex ".*\.(cc|h|hpp)$$"`
