@@ -1,15 +1,16 @@
 cmake_minimum_required (VERSION 2.8.1)
 
-project(lcfit CXX)
+# Build the LCFIT C library
+project(libclfit C)
+set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
+set(LCFIT_LIB_C_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/lcfit.c)
+add_library(lcfit-static STATIC ${LCFIT_LIB_C_FILES})
 
+# Comparison
+project(lcfit CXX)
 set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
 
-# STS
-#add_subdirectory(sts)
-#include_directories(sts/lib/include)
-
 set(LCFIT_COMPARE_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/compare.cc)
-#set(LCFIT_TEST_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/test.cc)
 include_directories(src)
 
 set(LCFIT_LIBS
@@ -21,4 +22,4 @@ set(LCFIT_LIBS
 
 # LCFIT
 add_executable(lcfit-compare ${LCFIT_COMPARE_CPP})
-target_link_libraries(lcfit-compare ${LCFIT_LIBS})
+target_link_libraries(lcfit-compare lcfit-static ${LCFIT_LIBS})
