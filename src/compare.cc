@@ -28,6 +28,7 @@
 #include "lcfit.h"
 
 using namespace std;
+
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
 template<typename T>
@@ -120,20 +121,36 @@ inline Monotonicity monotonicity(const vector<T>& v)
     assert(false);
 }
 
-template<typename T>
-inline size_t max_index(const vector<T> v)
+template<typename ForwardIterator>
+inline size_t max_index(ForwardIterator first, const ForwardIterator last)
 {
-    size_t size = v.size();
-    assert(size > 0);
+    assert(first != last);
+    ForwardIterator max_iter = first++;
     size_t max_idx = 0;
-    T max_val = v[0];
-    for(size_t i = 1; i < v.size(); ++i) {
-        if(v[i] > max_val) {
-            max_val = v[i];
-            max_idx = i;
+    for(size_t idx = 0; first != last; ++first, ++idx) {
+        if(*first > *max_iter) {
+            max_iter = first;
+            max_idx = idx;
         }
     }
+
     return max_idx;
+}
+
+template<typename ForwardIterator>
+inline size_t min_index(ForwardIterator first, const ForwardIterator last)
+{
+    assert(first != last);
+    ForwardIterator min_iter = first++;
+    size_t min_idx = 0;
+    for(size_t idx = 0; first != last; ++first, ++idx) {
+        if(*first < *min_iter) {
+            min_iter = first;
+            min_idx = idx;
+        }
+    }
+
+    return min_idx;
 }
 
 int run_main(int argc, char** argv)
@@ -235,13 +252,15 @@ int run_main(int argc, char** argv)
             assert(is_sorted(t.begin(), t.end()));
         } while(t.size() < 8 && c != Monotonicity::NON_MONOTONIC); // TODO: fix magic number 8
 
+        cout << min_index(t.begin(), t.end()) << endl;
+
         // Log fit
         for(int i = 0; i < t.size(); ++i) {
             csv_fit_out << node_id << "," << t[i] << "," << l[i] << endl;
         }
 
         // Scale initial conditions to intersect with maximum likelihood point
-        size_t max_idx = max_index(l);
+        size_t max_idx = max_index(begin(l), end(l));
         double scale_factor = cm_scale_factor(t[max_idx], l[max_idx], x[0], x[1], x[2], x[3]);
         x[0] *= scale_factor;
         x[1] *= scale_factor;
