@@ -10,7 +10,7 @@ add_library(lcfit-static STATIC ${LCFIT_LIB_C_FILES})
 project(lcfit CXX)
 set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
 
-set(LCFIT_COMPARE_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/compare.cc)
+set(LCFIT_COMPARE_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/compare.cc ${CMAKE_CURRENT_SOURCE_DIR}/src/gsl.cc)
 include_directories(src)
 
 set(LCFIT_LIBS

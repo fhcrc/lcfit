@@ -17,7 +17,8 @@ w = SConsWrap(n, 'runs')
 models = {
         # Nucleotide models
         'JC': {'name': 'JC69', 'alphabet': 'DNA'},
-        'HKY85-2.0': {'name': 'HKY85(kappa=2.0,initFreqs=observed)', 'alphabet': 'DNA'},
+        #'HKY85-2.0': {'name': 'HKY85(kappa=2.0,initFreqs=observed)',
+                      #'alphabet': 'DNA'},
 
         # Protein models
         'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},

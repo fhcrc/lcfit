@@ -17,30 +17,38 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
   fit <- read.csv(input_fit, as.is=TRUE)
 
   pdf(output)
-  rss <- ddply(m, .(node_id), function(piece) {
+  p <- ggplot(maxima, aes(x=brent_t, y=lcfit_t)) +
+    geom_abline(intercept=0, slope=1, linetype='dashed') +
+    geom_point() +
+    ggtitle("ML branch length: lcfit vs. Brent") +
+    xlab(expression(t[brent])) +
+    ylab(expression(t[lcfit]))
+  print(p)
+  p <- ggplot(melt(maxima, id.vars='node_id', measure.vars=c('brent_n', 'lcfit_n')),
+              aes(x=variable, y=value, fill=variable)) +
+    geom_boxplot() +
+    ggtitle('Number of peeling recursions to fit ML branch length') +
+    xlab('') +
+    ylab('# of peeling recursions')
+  print(p)
+
+
+  d_ply(m, .(node_id), function(piece) {
     node_id <- piece$node_id[1]
     f <- subset(fit, node_id == piece$node_id[1])
     f$name <- 'Bio++'
-    maximum <- maxima[maxima$node_id == node_id,]
-    m <- melt(maximum, id.vars=1, measure.vars=2:3)
-    m <- transform(m, name=level_names[match(variable, max_translate)])
 
     rss <- with(dcast(piece, node_id+branch_length~variable), sum((fit_ll - bpp_ll)^2))
 
     p <- ggplot(piece, aes(color=name, linetype=name)) +
         geom_line(aes(x=branch_length,
                       y=value), data=piece) +
-        opts(title=sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
-                           maximum$c, maximum$m, maximum$r, maximum$b)) +
-        geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
+        ggtitle(sprintf("Node #%s\nRSS=%f", piece$node_id[1], rss)) +
         geom_point(aes(x=branch_length, y=ll), data=f) +
         xlim(0, max(c(max(f$branch_length), 1)))
     print(p)
-    transform(maximum, rss=rss)
   })
   dev.off()
-
-  write.table(rss, sub('\\.pdf$', '\\.txt', output), sep='\t', row.names=FALSE)
 
   ## Norms
   #norms <- ddply(d, .(node_id), function(piece) {

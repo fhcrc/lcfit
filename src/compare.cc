@@ -27,6 +27,7 @@
 #include <Bpp/Seq/SiteTools.h>
 
 #include "lcfit.h"
+#include "gsl.h"
 
 using namespace std;
 
@@ -184,7 +185,7 @@ public:
         rate_dist(rate_dist) {};
 
     /// Calculate log-likelihood
-    double calculate_log_likelihood(const Tree& tree)
+    double calculate_log_likelihood(const Tree& tree) const
     {
         bpp::RHomogeneousTreeLikelihood like(tree, *sites, model, rate_dist, false, false, false);
         like.initialize();
@@ -197,6 +198,11 @@ private:
     bpp::DiscreteDistribution* rate_dist;
 };
 
+struct LCFitResult
+{
+    vector<double> coef;
+    size_t ll_eval_count;
+};
 
 /// Runs lcfit, generating parameters for the CFN model
 class LCFitter
@@ -208,14 +214,12 @@ public:
         calc(calc),
         csv_fit_out(csv_fit_out) {};
 
-
     /// Run lcfit, returning coefficients of the model
     ///
     /// Given a set of starting points, attempts to add (branch_length, ll) points until the function is non-monotonic,
     /// then fits the CFN model using these sampled points.
-    vector<double> fit_model(const Tree& tree, const int node_id)
+    LCFitResult fit_model(const Tree& tree, const int node_id)
     {
-        const double original_dist = tree.getDistanceToFather(node_id);
         vector<double> x = start; // Initial conditions for [c,m,r,b]
         const vector<Point> points = this->select_points(tree, node_id);
 
@@ -227,13 +231,7 @@ public:
         }
 
         // Scale initial conditions to intersect with maximum likelihood point
-        const Point p = *std::max_element(begin(points), end(points),
-                [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
-        double scale_factor = cm_scale_factor(p.x, p.y, x[0], x[1], x[2], x[3]);
-        x[0] *= scale_factor;
-        x[1] *= scale_factor;
-
-        assert(tree.getDistanceToFather(node_id) == original_dist);
+        scale_coefs(x, points);
 
         // Extract x, y
         vector<double> t, l;
@@ -244,13 +242,53 @@ public:
 
         const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
-        return x;
+        return {x, points.size()};
     }
+
+    pair<double, size_t> estimate_ml_branch_length(Tree tree, const int node_id, const double tol=1e-5)
+    {
+        vector<double> x = start; // Initial conditions for [c,m,r,b]
+        const vector<Point> points = this->select_points(tree, node_id);
+        scale_coefs(x, points);
+
+        // Extract x, y
+        vector<double> t, l;
+        t.reserve(points.size());
+        std::transform(begin(points), end(points), std::back_inserter(t), [](const Point& p) ->double { return p.x; });
+        l.reserve(points.size());
+        std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
+        double last = std::numeric_limits<double>::max();
+        while(true) {
+            const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
+            if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
+            double ml_bl = ml_t(x[0], x[1], x[2], x[3]);
+
+            // Close enough?
+            if(std::abs(ml_bl - last) < tol) return {ml_bl, t.size()};
+
+            // Add current ML distance to fit
+            t.push_back(ml_bl);
+            tree.setDistanceToFather(node_id, ml_bl);
+            l.push_back(calc->calculate_log_likelihood(tree));
+            last = ml_bl;
+        }
+    };
+
 private:
     const vector<double> start;
     const vector<double> sample_points;
     TreeLikelihoodCalculator* calc;
     ostream* csv_fit_out;
+
+    // Scale initial conditions to intersect with maximum likelihood point
+    void scale_coefs(vector<double>& x, const vector<Point>& points)
+    {
+        auto p = std::max_element(begin(points), end(points),
+                [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
+        double scale_factor = cm_scale_factor(p->x, p->y, x[0], x[1], x[2], x[3]);
+        x[0] *= scale_factor;
+        x[1] *= scale_factor;
+    };
 
     /// Choose the input (branch_length, ll) samples for running lcfit
     vector<Point> select_points(Tree tree, const int node_id, const size_t max_points=8) // TODO: Fix magic number 8
@@ -264,7 +302,7 @@ private:
         }
 
         // Add additional samples until the evaluated branch lengths enclose a maximum.
-        size_t offset; // Position
+        size_t offset; // Position - points kept sorted by x-value
         double d;      // Branch length
 
         Monotonicity c = monotonicity(points);
@@ -297,6 +335,7 @@ private:
 
         return points;
     };
+
 };
 
 // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
@@ -326,6 +365,51 @@ ModelFit compare_ml_values(const Tree& tree, const int node_id, const vector<dou
     const double t_hat = ml_t(c, m, r, b);
     const double t = tree.getDistanceToFather(node_id);
     return ModelFit(node_id, t, t_hat, c, m, r, b);
+}
+
+pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalculator& calc,
+        Tree tree,
+        const size_t node_id,
+        double left,
+        double right,
+        double raw_start,
+        double tolerance=1e-5) {
+    size_t n_eval=0;
+
+    std::function<double(double)> f = [&node_id, &calc, &tree, &n_eval](double d)->double {
+        n_eval++;
+        tree.setDistanceToFather(node_id, d);
+
+        // Minimize -ll
+        return -calc.calculate_log_likelihood(tree);
+    };
+
+    double lefty = f(left), righty = f(right);
+    double miny = std::min(lefty, righty);
+    double smaller = lefty < righty ? left : right;
+
+    double prev_start = raw_start;
+    for(size_t iteration = 0; ; iteration++) {
+
+        if(std::abs(prev_start - smaller) < tolerance)
+            return {smaller, n_eval}; // Abutting `left`
+
+        double prev_val = f(prev_start);
+        if(prev_val < miny) {
+            break; /* Appropriate starting point */
+        } else if(iteration > 100) {
+            throw std::runtime_error("Minimization_brent exceeded max iters");
+        } else {
+            prev_start = (prev_start + smaller) / 2;
+        }
+    }
+
+    double ml_bl = gsl::minimize(f, prev_start, left, right);
+
+    // gsl::minimize calls f(left), f(right), and f(prev_start)
+    // If we were smarter, could cache those.
+    // To make it fair, correct for double counting.
+    return {ml_bl, n_eval - 3};
 }
 
 int run_main(int argc, char** argv)
@@ -377,17 +461,31 @@ int run_main(int argc, char** argv)
      * Run evaluations on each node, write output
      */
     csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
-    csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
+    //csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
+    csv_ml_out << "node_id,lcfit_t,lcfit_n,brent_t,brent_n" << endl;
     for(const int & node_id : tree.getNodesId()) {
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
-        vector<double> x = fit.fit_model(tree, node_id);
-        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, x, 0.01);
-        // Write to CSV
-        std::for_each(begin(evals), end(evals),
-            [&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
-        const ModelFit fit = compare_ml_values(tree, node_id, x);
-        to_csv(csv_ml_out, fit);
+        LCFitResult r = fit.fit_model(tree, node_id);
+        //const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, r.coef, 0.01);
+        //// Write to CSV
+        //std::for_each(begin(evals), end(evals),
+            //[&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
+        //const ModelFit mfit = compare_ml_values(tree, node_id, r.coef);
+        //to_csv(csv_ml_out, mfit);
+
+        auto lcfit_ml_result = fit.estimate_ml_branch_length(tree, node_id);
+        auto brent_ml_result = estimate_ml_branch_length_brent(likelihood_calc,
+                tree,
+                node_id,
+                1e-6,
+                3.,
+                0.5);
+        csv_ml_out << node_id << ","
+            << lcfit_ml_result.first << ","
+            << lcfit_ml_result.second << ","
+            << brent_ml_result.first << ","
+            << brent_ml_result.second << endl;
     }
 
     return 0;
