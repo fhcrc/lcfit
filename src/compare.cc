@@ -31,6 +31,7 @@
 
 using namespace std;
 
+const double TOLERANCE = 1e-4;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
 template<typename T>
@@ -245,7 +246,7 @@ public:
         return {x, points.size()};
     }
 
-    pair<double, size_t> estimate_ml_branch_length(Tree tree, const int node_id, const double tol=1e-5)
+    pair<double, size_t> estimate_ml_branch_length(Tree tree, const int node_id, const double tol=TOLERANCE)
     {
         vector<double> x = start; // Initial conditions for [c,m,r,b]
         const vector<Point> points = this->select_points(tree, node_id);
@@ -265,6 +266,8 @@ public:
 
             // Close enough?
             if(std::abs(ml_bl - last) < tol) return {ml_bl, t.size()};
+
+            //cerr << node_id << ": " << ml_bl << endl;
 
             // Add current ML distance to fit
             t.push_back(ml_bl);
@@ -373,7 +376,7 @@ pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalcula
         double left,
         double right,
         double raw_start,
-        double tolerance=1e-5) {
+        double tolerance=TOLERANCE) {
     size_t n_eval=0;
 
     std::function<double(double)> f = [&node_id, &calc, &tree, &n_eval](double d)->double {
