@@ -21,6 +21,14 @@ p <- ggplot(m, aes(x=variable, y=value, fill=variable)) +
   geom_boxplot() +
   labs(x='Fit method', y='# of LL calls') +
   theme(legend.position='none') +
-  facet_wrap(~model_name)
-ggsave('ml_lcfit_comparison.svg')
+  facet_wrap(~model_name) +
+ggsave('ml_lcfit_nsteps.svg')
 
+p <- ggplot(maxima, aes(x=lcfit_t, y=brent_t, color=model_name)) +
+  geom_abline(slope=1, intercept=0) +
+  geom_point() +
+  ggtitle("ML branch length estimates") +
+  facet_wrap(~model_name) +
+  theme(legend.position='none')
+
+ggsave('ml_lcfit_comparison.svg')
