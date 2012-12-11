@@ -7,6 +7,7 @@
 #include <fstream>
 #include <functional>
 #include <map>
+#include <set>
 #include <stdexcept>
 #include <vector>
 
@@ -38,6 +39,23 @@ void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std:
         out << i << delim;
     }
     out << endl;
+}
+
+struct Point
+{
+    Point(const double x, const double y) :
+        x(x),
+        y(y) {};
+    double x, y;
+};
+
+namespace std {
+    template <> struct hash<Point> {
+        size_t operator()(const Point & p) const
+        {
+            return std::hash<double>()(p.x) ^ std::hash<double>()(p.y);
+        };
+    };
 }
 
 /// Evaluation of the fit for a node at a given branch length
@@ -98,19 +116,18 @@ enum class Monotonicity
 };
 
 /// Find the monotonicity of a set of (sorted) points
-template<typename T>
-inline Monotonicity monotonicity(const vector<T>& v)
+inline Monotonicity monotonicity(const vector<Point>& points)
 {
-    assert(v.size() > 0);
-    auto i = begin(v);
-    auto e = end(v);
+    assert(points.size() > 0);
+    auto i = begin(points);
+    auto e = end(points);
     bool maybe_inc = true, maybe_dec = true;
 
-    T last = *i++;
+    Point last = *i++;
     for(; i != e; i++) {
-        T current = *i;
-        if(current > last) maybe_dec = false;
-        else if(current < last) maybe_inc = false;
+        Point current = *i;
+        if(current.y > last.y) maybe_dec = false;
+        else if(current.y < last.y) maybe_inc = false;
         last = current;
     }
     assert(!(maybe_inc && maybe_dec));
@@ -152,6 +169,7 @@ inline size_t min_index(ForwardIterator first, const ForwardIterator last)
 
     return min_idx;
 }
+
 
 int run_main(int argc, char** argv)
 {
@@ -207,65 +225,70 @@ int run_main(int argc, char** argv)
 
     // Run lcfit, return coefficients of the model
     auto fit_model = [&tree, &start, &sample_points, &get_ll, &csv_fit_out](const int node_id) -> vector<double> {
-        vector<double> l; // Log-likelihood
         vector<double> x = start; // Initial conditions for [c,m,r,b]
-        vector<double> t = sample_points;
+        vector<Point> points;
         assert(is_sorted(sample_points.begin(), sample_points.end()));
-        l.reserve(sample_points.size() + 1);
 
         // Try starting points
         const double original_dist = tree.getDistanceToFather(node_id);
-        for(const double & d : t) {
+        for(const double & d : sample_points) {
             tree.setDistanceToFather(node_id, d);
-            l.push_back(get_ll());
+            points.emplace_back(d, get_ll());
         }
 
         // Add a fourth point based on the three sampled so far
         size_t offset; // Position
         double d;      // Branch length
 
-        Monotonicity c = monotonicity(l);
+        Monotonicity c = monotonicity(points);
         do {
             switch(c) {
             case Monotonicity::NON_MONOTONIC:
-                d = (t[1] + t[2]) / 2.0; // Add a point between the first and second try
+                d = (points[1].x + points[2].x) / 2.0; // Add a point between the first and second try
                 offset = 2;
                 break;
             case Monotonicity::MONO_INC:
-                d = t.back() * 2.0; // Double largest value
-                offset = t.size();
+                d = points.back().x * 2.0; // Double largest value
+                offset = points.size();
                 break;
             case Monotonicity::MONO_DEC:
-                d = t[0] / 10.0; // Add new smallest value
+                d = points[0].x / 10.0; // Add new smallest value - order of magnitude lower
                 offset = 0;
                 break;
             default:
                 assert(false);
             }
 
-            t.insert(t.begin() + offset, d);
             tree.setDistanceToFather(node_id, d);
-            l.insert(l.begin() + offset, get_ll());
+            points.emplace(points.begin() + offset, d, get_ll());
 
-            c = monotonicity(l);
+            c = monotonicity(points);
 
-            assert(is_sorted(t.begin(), t.end()));
-        } while(t.size() < 8 && c != Monotonicity::NON_MONOTONIC); // TODO: fix magic number 8
-
-        cout << min_index(t.begin(), t.end()) << endl;
+            assert(is_sorted(points.begin(), points.end(),
+                        [](const Point& p1, const Point& p2) -> bool { return p1.x < p1.y; }));
+        } while(points.size() < 8 && c != Monotonicity::NON_MONOTONIC); // TODO: fix magic number 8
 
         // Log fit
-        for(int i = 0; i < t.size(); ++i) {
-            csv_fit_out << node_id << "," << t[i] << "," << l[i] << endl;
+        for(const Point& p : points) {
+            csv_fit_out << node_id << "," << p.x << "," << p.y << endl;
         }
 
         // Scale initial conditions to intersect with maximum likelihood point
-        size_t max_idx = max_index(begin(l), end(l));
-        double scale_factor = cm_scale_factor(t[max_idx], l[max_idx], x[0], x[1], x[2], x[3]);
+        const Point p = *std::max_element(begin(points), end(points),
+                [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
+        double scale_factor = cm_scale_factor(p.x, p.y, x[0], x[1], x[2], x[3]);
         x[0] *= scale_factor;
         x[1] *= scale_factor;
 
         tree.setDistanceToFather(node_id, original_dist);
+
+        // Extract x, y
+        vector<double> t, l;
+        t.reserve(points.size());
+        std::transform(begin(points), end(points), std::back_inserter(t), [](const Point& p) ->double { return p.x; });
+        l.reserve(points.size());
+        std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
+
         const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
         return x;
