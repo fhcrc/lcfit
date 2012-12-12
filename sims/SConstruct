@@ -24,6 +24,10 @@ models = {
         'MG94-2.0': {'name': 'MG94(genetic_code=StandardGeneticCode,rho=2.0)',
                      'alphabet': 'Codon(letter=DNA)'},
 
+        # Mixture
+        'TN93-mix': {'name': 'MixedModel(model=TN93(kappa1=Gamma(n=4,alpha=3,beta=1),kappa2=Exponential(lambda=2),theta=0.5,theta1=0.2,theta2=0.1))',
+                     'alphabet': 'DNA'},
+
         # Protein models
         'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
         'WAG01': {'name': 'WAG01', 'alphabet':'Protein'},
