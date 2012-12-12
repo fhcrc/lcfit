@@ -267,6 +267,9 @@ public:
             if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
             double ml_bl = ml_t(x[0], x[1], x[2], x[3]);
 
+            // Return minimum branch length
+            if(ml_bl < 0) return {1e-7, eval_count};
+
             // Close enough?
             if(std::abs(ml_bl - last) < tol) return {ml_bl, eval_count};
 
@@ -325,6 +328,7 @@ private:
 
         // Try starting points
         for(const double & d : sample_points) {
+            assert(d >= 0);
             tree.setDistanceToFather(node_id, d);
             points.emplace_back(d, calc->calculate_log_likelihood(tree));
         }
@@ -352,6 +356,7 @@ private:
                 assert(false);
             }
 
+            assert(d >= 0);
             tree.setDistanceToFather(node_id, d);
             points.emplace(points.begin() + offset, d, calc->calculate_log_likelihood(tree));
 
@@ -394,6 +399,7 @@ pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalcula
 
     std::function<double(double)> f = [&node_id, &calc, &tree, &n_eval](double d)->double {
         n_eval++;
+        assert(d >= 0);
         tree.setDistanceToFather(node_id, d);
 
         // Minimize -ll
@@ -404,8 +410,12 @@ pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalcula
     double miny = std::min(lefty, righty);
     double smaller = lefty < righty ? left : right;
 
+    assert(left >= 0);
+    assert(right >= 0);
+
     double prev_start = raw_start;
     for(size_t iteration = 0; ; iteration++) {
+        assert(prev_start >= 0);
         if(std::abs(prev_start - smaller) < tolerance)
             return {smaller, n_eval}; // Abutting `left`
 
