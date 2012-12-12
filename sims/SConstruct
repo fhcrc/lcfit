@@ -20,6 +20,10 @@ models = {
         'HKY85-2.0': {'name': 'HKY85(kappa=2.0,theta=0.4,theta1=0.6,theta2=0.5)',
                       'alphabet': 'DNA'},
 
+        # Codon models
+        'MG94-2.0': {'name': 'MG94(genetic_code=StandardGeneticCode,rho=2.0)',
+                     'alphabet': 'Codon(letter=DNA)'},
+
         # Protein models
         'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
         'WAG01': {'name': 'WAG01', 'alphabet':'Protein'},
