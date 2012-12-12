@@ -18,15 +18,23 @@ models = {
         # Nucleotide models
         'JC': {'name': 'JC69', 'alphabet': 'DNA'},
         'HKY85-2.0': {'name': 'HKY85(kappa=2.0,theta=0.4,theta1=0.6,theta2=0.5)',
-                      'alphabet': 'DNA'},
+                      'alphabet': 'DNA',
+                      'ignore': 'HKY85.kappa,HKY85.theta,HKY85.theta1,HKY85.theta2',},
 
         # Codon models
         'MG94-2.0': {'name': 'MG94(genetic_code=StandardGeneticCode,rho=2.0)',
-                     'alphabet': 'Codon(letter=DNA)'},
+                     'alphabet': 'Codon(letter=DNA)',
+                     'ignore': 'MG94.rho'},
+
+        # Covarion
+        #'TS98-JC': {'name': 'TS98(model=JC69,s1=2.0,s2=0.4)',
+                    #'alphabet': 'DNA',
+                    #'ignore': 'TS98.s1,TS98.s2'},
 
         # Mixture
-        'TN93-mix': {'name': 'MixedModel(model=TN93(kappa1=Gamma(n=4,alpha=3,beta=1),kappa2=Exponential(lambda=2),theta=0.5,theta1=0.2,theta2=0.1))',
-                     'alphabet': 'DNA'},
+        #'TN93-mix': {'name': 'MixedModel(model=TN93(kappa1=Gamma(n=4,alpha=3,beta=1),kappa2=Exponential(n=2,lambda=2),theta=0.5,theta1=0.2,theta2=0.1))',
+                     #'alphabet': 'DNA',
+                     #'ignore': """TN93.kappa1_Gamma.alpha,TN93.kappa1_Gamma.beta,TN93.kappa2_Exponential.lambda,TN93.theta,TN93.theta1,TN93.theta2""",},
 
         # Protein models
         'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
@@ -88,6 +96,9 @@ def alignment(outdir, c):
 @w.add_target()
 def bppml_file(outdir, c):
     def write_bppml_file_action(target, source, env):
+        d = c.copy()
+        if 'ignore' not in d['model']:
+            d['model']['ignore'] = ''
         target_base = os.path.join(outdir, 'ml_tree')
         with open(str(target[0]), 'w') as fp:
             print >> fp, """
@@ -110,16 +121,16 @@ output.infos={target_base}.infos
 output.estimates={target_base}.params.txt
 
 optimization.verbose=0
+optimization.ignore_parameter={model[ignore]}
 optimization.method=DB
 optimization.reparametrization=no
-optimization.ignore_parameter=alpha
 optimization.max_number_f_eval=10000
 optimization.tolerance=0.000001
 
 optimization.topology=no
 optimization.topology.algorithm=NNI
 optimization.topology.algorithm_nni.method=phyml
-""".format(target_base=target_base, **c)
+""".format(target_base=target_base, **d)
 
     target = os.path.join(outdir, 'bppml.bpp')
     return env.Command(target, [c['model_file'], c['source_tree'], c['alignment']], write_bppml_file_action)[0]
