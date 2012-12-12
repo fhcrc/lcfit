@@ -17,8 +17,8 @@ w = SConsWrap(n, 'runs')
 models = {
         # Nucleotide models
         'JC': {'name': 'JC69', 'alphabet': 'DNA'},
-        #'HKY85-2.0': {'name': 'HKY85(kappa=2.0,initFreqs=observed)',
-                      #'alphabet': 'DNA'},
+        'HKY85-2.0': {'name': 'HKY85(kappa=2.0,theta=0.4,theta1=0.6,theta2=0.5)',
+                      'alphabet': 'DNA'},
 
         # Protein models
         'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
@@ -29,7 +29,6 @@ models = {
 initial_values = ['1100,800,2.0,0.5',]
 
 sample_values  = ['0.1,0.2,0.5',]
-
 
 rdist = {
         'uniform': 'Uniform()',
@@ -84,16 +83,18 @@ def bppml_file(outdir, c):
         target_base = os.path.join(outdir, 'ml_tree')
         with open(str(target[0]), 'w') as fp:
             print >> fp, """
-param={model_file}
-
 input.sequence.file={alignment}
 input.sequence.format=Fasta()
 input.sequence.sites_to_use=all
 input.sequence.max_gap_allowed=100%
+
+param={model_file}
+
 init.tree=user
 input.tree.file={source_tree}
 input.tree.format=Newick
 init.brlen.method=Input
+
 
 output.tree.file={target_base}.tre
 output.tree.format=Newick
