@@ -32,6 +32,7 @@
 using namespace std;
 
 const double TOLERANCE = 1e-4;
+const int MAX_EVAL_COUNT = 100;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
 template<typename T>
@@ -260,8 +261,8 @@ public:
         std::transform(begin(points), end(points), std::back_inserter(t), [](const Point& p) ->double { return p.x; });
         l.reserve(points.size());
         std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
-        double last = std::numeric_limits<double>::max();
-        while(true) {
+        double last = ml_t(x[0], x[1], x[2], x[3]);
+        while(eval_count <= MAX_EVAL_COUNT) { // TODO: Fix magic number 100?
             const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
             if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
             double ml_bl = ml_t(x[0], x[1], x[2], x[3]);
@@ -276,11 +277,12 @@ public:
             tree.setDistanceToFather(node_id, ml_bl);
             l.push_back(calc->calculate_log_likelihood(tree));
             eval_count++;
-            // Subset ot top 4 LL values
-            this->keep_top(t, l, 4);
+            // Subset to top 4 LL values
+            this->keep_top(t, l, 4); // TODO: Fix magic number 4?
             eval_count++;
             last = ml_bl;
         }
+        return {last, eval_count};
     };
 
 private:
@@ -381,17 +383,6 @@ vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const
     return evaluations;
 }
 
-// Compare ML branch length estimate from lcfit to original branch length (presumed to be ML value)
-ModelFit compare_ml_values(const Tree& tree, const int node_id, const vector<double>& x) {
-    const double c = x[0];
-    const double m = x[1];
-    const double r = x[2];
-    const double b = x[3];
-    const double t_hat = ml_t(c, m, r, b);
-    const double t = tree.getDistanceToFather(node_id);
-    return ModelFit(node_id, t, t_hat, c, m, r, b);
-}
-
 pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalculator& calc,
         Tree tree,
         const size_t node_id,
@@ -415,14 +406,13 @@ pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalcula
 
     double prev_start = raw_start;
     for(size_t iteration = 0; ; iteration++) {
-
         if(std::abs(prev_start - smaller) < tolerance)
             return {smaller, n_eval}; // Abutting `left`
 
         double prev_val = f(prev_start);
         if(prev_val < miny) {
             break; /* Appropriate starting point */
-        } else if(iteration > 100) {
+        } else if(iteration > MAX_EVAL_COUNT) {
             throw std::runtime_error("Minimization_brent exceeded max iters");
         } else {
             prev_start = (prev_start + smaller) / 2;
@@ -492,12 +482,10 @@ int run_main(int argc, char** argv)
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
         LCFitResult r = fit.fit_model(tree, node_id);
-        //const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, r.coef, 0.01);
-        //// Write to CSV
-        //std::for_each(begin(evals), end(evals),
-            //[&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
-        //const ModelFit mfit = compare_ml_values(tree, node_id, r.coef);
-        //to_csv(csv_ml_out, mfit);
+        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, r.coef, 0.01);
+        // Write to CSV
+        std::for_each(begin(evals), end(evals),
+            [&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
 
         auto lcfit_ml_result = fit.estimate_ml_branch_length(tree, node_id);
         auto brent_ml_result = estimate_ml_branch_length_brent(likelihood_calc,
