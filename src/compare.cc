@@ -251,6 +251,8 @@ public:
         vector<double> x = start; // Initial conditions for [c,m,r,b]
         const vector<Point> points = this->select_points(tree, node_id);
         scale_coefs(x, points);
+        size_t eval_count = points.size();
+
 
         // Extract x, y
         vector<double> t, l;
@@ -265,7 +267,7 @@ public:
             double ml_bl = ml_t(x[0], x[1], x[2], x[3]);
 
             // Close enough?
-            if(std::abs(ml_bl - last) < tol) return {ml_bl, t.size()};
+            if(std::abs(ml_bl - last) < tol) return {ml_bl, eval_count};
 
             //cerr << node_id << ": " << ml_bl << endl;
 
@@ -273,6 +275,10 @@ public:
             t.push_back(ml_bl);
             tree.setDistanceToFather(node_id, ml_bl);
             l.push_back(calc->calculate_log_likelihood(tree));
+            eval_count++;
+            // Subset ot top 4 LL values
+            this->keep_top(t, l, 4);
+            eval_count++;
             last = ml_bl;
         }
     };
@@ -282,6 +288,23 @@ private:
     const vector<double> sample_points;
     TreeLikelihoodCalculator* calc;
     ostream* csv_fit_out;
+
+    // Keep top `n` y values
+    void keep_top(vector<double>& x, vector<double>& y, const size_t n)
+    {
+        if(n >= y.size()) return;
+        auto xbeg = begin(x), xend = end(x);
+        auto ybeg = begin(y), yend = end(y);
+        vector<double> sorted_y = y;
+        std::sort(begin(sorted_y), end(sorted_y));
+        const double y_cutoff = sorted_y[sorted_y.size() - n];
+        for(; xbeg != xend && ybeg != yend; ++xbeg, ++ybeg) {
+            if(*ybeg < y_cutoff) {
+                y.erase(ybeg);
+                x.erase(xbeg);
+            }
+        }
+    };
 
     // Scale initial conditions to intersect with maximum likelihood point
     void scale_coefs(vector<double>& x, const vector<Point>& points)
@@ -338,7 +361,6 @@ private:
 
         return points;
     };
-
 };
 
 // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
