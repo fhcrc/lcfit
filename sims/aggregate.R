@@ -26,7 +26,7 @@ ggsave('ml_lcfit_nsteps.svg')
 
 p <- ggplot(maxima, aes(x=lcfit_t, y=brent_t, color=model_name)) +
   geom_abline(slope=1, intercept=0) +
-  geom_point() +
+  geom_point(size=1.2) +
   ggtitle("ML branch length estimates") +
   facet_wrap(~model_name) +
   theme(legend.position='none')

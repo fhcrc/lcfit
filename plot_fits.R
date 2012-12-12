@@ -16,7 +16,7 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
   m <- transform(m, name=level_names[match(variable, bl_translate)])
   fit <- read.csv(input_fit, as.is=TRUE)
 
-  pdf(output)
+  pdf(outfile)
   p <- ggplot(maxima, aes(x=brent_t, y=lcfit_t)) +
     geom_abline(intercept=0, slope=1, linetype='dashed') +
     geom_point() +
