@@ -18,6 +18,7 @@
 
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
+#include <Bpp/Phyl/Likelihood/RHomogeneousMixedTreeLikelihood.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
@@ -32,7 +33,7 @@
 using namespace std;
 
 const double TOLERANCE = 1e-4;
-const int MAX_EVAL_COUNT = 100;
+const size_t MAX_EVAL_COUNT = 100;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
 template<typename T>
@@ -189,10 +190,20 @@ public:
     /// Calculate log-likelihood
     double calculate_log_likelihood(const Tree& tree) const
     {
-        bpp::RHomogeneousTreeLikelihood like(tree, *sites, model, rate_dist, false, false, false);
-        like.initialize();
-        like.computeTreeLikelihood();
-        return like.getLogLikelihood();
+        // First, sort out the appropriate likelihood calculator
+        // Approximates bppml behavior
+        unique_ptr<bpp::DiscreteRatesAcrossSitesTreeLikelihood> calc;
+        if(dynamic_cast<bpp::MixedSubstitutionModel*>(model) == 0) {
+            calc.reset(
+                    new bpp::RHomogeneousTreeLikelihood(tree, *sites, model, rate_dist, false, false, false));
+        } else {
+            // Mixed model
+            calc.reset(
+                    new bpp::RHomogeneousMixedTreeLikelihood(tree, *sites, model, rate_dist, false, false, false));
+        }
+        calc->initialize();
+        //like->computeTreeLikelihood();
+        return calc->getLogLikelihood();
     }
 private:
     bpp::SiteContainer* sites;
