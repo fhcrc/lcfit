@@ -21,7 +21,7 @@ animate_node_fit <- function(fit_log, fit_points, bpp_ll, outfile, title="Fit pr
            geom_line(aes(x=branch_length, y=value), data=bpp_ll) +
            geom_point(aes(x=branch_length, y=ll), data=fit_points) +
            geom_line(aes(x=branch_length, y=ll), data=iter_fit) +
-           theme_bw() + xlim(0, 1) + ylim(r[1], r[2]) +
+           theme_bw() + xlim(0, 1) + ylim(r[1]-50, r[2]+50) +
            ggtitle(paste(title, ": Iteration", row$iter))
          print(p)
       }
