@@ -231,7 +231,7 @@ public:
     ///
     /// Given a set of starting points, attempts to add (branch_length, ll) points until the function is non-monotonic,
     /// then fits the CFN model using these sampled points.
-    LCFitResult fit_model(const Tree& tree, const int node_id)
+    LCFitResult fit_model(const Tree& tree, const int node_id, FILE* log_fp=nullptr)
     {
         vector<double> x = start; // Initial conditions for [c,m,r,b]
         const vector<Point> points = this->select_points(tree, node_id);
@@ -253,7 +253,7 @@ public:
         l.reserve(points.size());
         std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
 
-        const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
+        const int status = fit_ll_log(t.size(), t.data(), l.data(), x.data(), log_fp);
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
         return {x, points.size()};
     }
@@ -483,6 +483,11 @@ int run_main(int argc, char** argv)
     ofstream csv_fit_out(csv_fit_path);
     csv_fit_out << "node_id,branch_length,ll" << endl;;
 
+    FILE* fit_log_fp = nullptr;
+    if(bpp::ApplicationTools::parameterExists("lcfit.output.fit_log", params)) {
+        fit_log_fp = fopen(bpp::ApplicationTools::getAFilePath("lcfit.output.fit_log", params, true, false).c_str(), "r");
+    }
+
     const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
             "lcfit.sample.branch.lengths",
             params, ',', "0.1,0.15,0.5");
@@ -502,7 +507,7 @@ int run_main(int argc, char** argv)
     for(const int & node_id : tree.getNodesId()) {
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
-        LCFitResult r = fit.fit_model(tree, node_id);
+        LCFitResult r = fit.fit_model(tree, node_id, fit_log_fp);
         const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, r.coef, 0.01);
         // Write to CSV
         std::for_each(begin(evals), end(evals),

@@ -130,7 +130,7 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
      m = x[2];
      b = x[3];
 */
-int fit_ll(const size_t n, const double* t, const double* l, double* x)
+int fit_ll_log(const size_t n, const double* t, const double* l, double* x, FILE* log_fp)
 {
     const gsl_multifit_fdfsolver_type* T;
     gsl_multifit_fdfsolver* s;
@@ -166,6 +166,14 @@ int fit_ll(const size_t n, const double* t, const double* l, double* x)
         print_state(iter, s);
 #endif /* VERBOSE */
 
+        if(log_fp != NULL)
+          fprintf(log_fp, "%f,%f,%f,%f,%s\n",
+              gsl_vector_get(s->x, 0),
+              gsl_vector_get(s->x, 1),
+              gsl_vector_get(s->x, 2),
+              gsl_vector_get(s->x, 3),
+              gsl_strerror(status));
+
         if(status)
             break;
 
@@ -194,4 +202,8 @@ int fit_ll(const size_t n, const double* t, const double* l, double* x)
 
     gsl_multifit_fdfsolver_free(s);
     return 0;
+}
+
+int fit_ll(const size_t n, const double* t, const double* l, double* x) {
+  return fit_ll_log(n, t, l, x, NULL);
 }
