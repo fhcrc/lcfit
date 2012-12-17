@@ -1,12 +1,53 @@
 #!/usr/bin/env Rscript
 
+library(animation)
 library(ggplot2)
 library(plyr)
 library(reshape2)
 
-main <- function(input_bls, input_maxima, input_fit, outfile) {
+animate_node_fit <- function(fit_log, fit_points, bpp_ll, outfile, title="Fit process") {
+  cfn_loglike <- function(t, c, m, r, b) c*log((1+exp(-r*(t+b)))/2)+m*log((1-exp(-r*(t+b)))/2)
+  x <- seq(0, 1, length.out=300)
+  if(nrow(fit_log) > 100)
+    fit_log <- fit_log[1:nrow(fit_log) %% 5 == 0,]
+  fname <- basename(outfile)
+  saveMovie({
+      for (i in 1:nrow(fit_log)) {
+         row <- fit_log[i, ]
+         message(paste("Iteration", row$iter))
+         r <- range(subset(bpp_ll, branch_length <=1, select=value))
+         iter_fit <- data.frame(branch_length=x, ll=cfn_loglike(x, row$c, row$m, row$r, row$b), name='lcfit')
+         p <- ggplot(bpp_ll, aes(color=name, linetype=name)) +
+           geom_line(aes(x=branch_length, y=value), data=bpp_ll) +
+           geom_point(aes(x=branch_length, y=ll), data=fit_points) +
+           geom_line(aes(x=branch_length, y=ll), data=iter_fit) +
+           theme_bw() + xlim(0, 1) + ylim(r[1], r[2]) +
+           ggtitle(paste(title, ": Iteration", row$iter))
+         print(p)
+      }
+  }, interval=0.4, movie.name=fname, ani.width = 600, ani.height = 600, outdir=getwd())
+}
+
+read_fit_log <- function(path) {
+  log <- read.csv(path, as.is=TRUE)
+  node <- -1
+  last <- 1000000
+  log$node <- NA
+  # Number log with node #
+  for(i in 1:nrow(log)) {
+    if(log$iter[i] != last + 1)
+      node <- node + 1
+    log$node[i] <- node
+    last <- log$iter[i]
+  }
+  log
+}
+
+
+main <- function(input_bls, input_maxima, input_fit, input_fit_log, outfile) {
   d <- read.csv(input_bls, as.is=TRUE)
   maxima <- read.csv(input_maxima, as.is=TRUE)
+  fit_log <- read_fit_log(input_fit_log)
   m <- melt(d, id.vars=1:2)
 
   level_names <- c('Bio++', 'lcfit')
@@ -32,7 +73,6 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
     ylab('# of peeling recursions')
   print(p)
 
-
   d_ply(m, .(node_id), function(piece) {
     node_id <- piece$node_id[1]
     f <- subset(fit, node_id == piece$node_id[1])
@@ -47,6 +87,12 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
         geom_point(aes(x=branch_length, y=ll), data=f) +
         xlim(0, max(c(max(f$branch_length), 1)))
     print(p)
+
+    lg <- subset(fit_log, node==node_id)
+    anim_out <- sprintf("node%03d.gif", node_id)
+    animate_node_fit(lg, f, subset(piece, variable=='bpp_ll'), anim_out,
+                     paste("Fit for node", node_id))
+    file.rename(anim_out, paste(dirname(outfile), anim_out, sep='/'))
   })
   dev.off()
 
@@ -63,12 +109,13 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
 
 if(!interactive()) {
   args <- commandArgs(TRUE)
-  if(length(args) != 4) {
-    stop("usage: plot_fits.R <input_bls> <input_maxima> <input_fit> <outfile>")
+  if(length(args) != 5) {
+    stop("usage: plot_fits.R <input_bls> <input_maxima> <input_fit> <fit_log> <outfile>")
   }
   input_bls <- args[1]
   input_maxima <- args[2]
   input_fit <- args[3]
-  output <- args[4]
-  main(input_bls, input_maxima, input_fit, output)
+  input_fit_log <- args[4]
+  output <- args[5]
+  main(input_bls, input_maxima, input_fit, input_fit_log, output)
 }

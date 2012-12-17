@@ -167,7 +167,8 @@ int fit_ll_log(const size_t n, const double* t, const double* l, double* x, FILE
 #endif /* VERBOSE */
 
         if(log_fp != NULL)
-          fprintf(log_fp, "%f,%f,%f,%f,%s\n",
+          fprintf(log_fp, "%d,%f,%f,%f,%f,%s\n",
+              iter,
               gsl_vector_get(s->x, 0),
               gsl_vector_get(s->x, 1),
               gsl_vector_get(s->x, 2),

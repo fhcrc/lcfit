@@ -485,7 +485,9 @@ int run_main(int argc, char** argv)
 
     FILE* fit_log_fp = nullptr;
     if(bpp::ApplicationTools::parameterExists("lcfit.output.fit_log", params)) {
-        fit_log_fp = fopen(bpp::ApplicationTools::getAFilePath("lcfit.output.fit_log", params, true, false).c_str(), "r");
+        fit_log_fp = fopen(bpp::ApplicationTools::getAFilePath("lcfit.output.fit_log", params, true, false).c_str(), "w");
+        assert(fit_log_fp != nullptr);
+        fprintf(fit_log_fp, "iter,c,m,r,b,status\n");
     }
 
     const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
