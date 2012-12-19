@@ -32,7 +32,6 @@
 
 using namespace std;
 
-const double TOLERANCE = 1e-4;
 const size_t MAX_EVAL_COUNT = 100;
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
@@ -75,42 +74,12 @@ struct Evaluation {
     double branch_length, ll, pred_ll;
 };
 
-/// Model fit
-struct ModelFit {
-    ModelFit(int node_id, double t, double t_hat, double c, double m, double r, double b) :
-        node_id(node_id),
-        t(t),
-        t_hat(t_hat),
-        c(c),
-        m(m),
-        r(r),
-        b(b) {};
-    int node_id;
-    double t,     // Branch length
-           t_hat, // Fit branch length
-           c,
-           m,
-           r,
-           b;
-};
-
 void to_csv(ostream& out, const Evaluation& e)
 {
     out << e.node_id << ","
         << e.branch_length << ","
         << e.ll << ","
         << e.pred_ll << endl;
-}
-
-void to_csv(ostream& out, const ModelFit& f)
-{
-    out << f.node_id << ","
-        << f.t << ","
-        << f.t_hat << ","
-        << f.c << ","
-        << f.m << ","
-        << f.r << ","
-        << f.b << endl;
 }
 
 enum class Monotonicity
@@ -259,7 +228,7 @@ public:
         return {x, points, points.size()};
     }
 
-    pair<double, size_t> estimate_ml_branch_length(Tree tree, const int node_id, const double tol=TOLERANCE)
+    pair<double, size_t> estimate_ml_branch_length(Tree tree, const int node_id, const double tol)
     {
         vector<double> x = start; // Initial conditions for [c,m,r,b]
         const vector<Point> points = this->select_points(tree, node_id);
@@ -274,7 +243,7 @@ public:
         l.reserve(points.size());
         std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
         double last = ml_t(x[0], x[1], x[2], x[3]);
-        while(eval_count <= MAX_EVAL_COUNT) { // TODO: Fix magic number 100?
+        while(eval_count <= MAX_EVAL_COUNT) {
             const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
             if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
             double ml_bl = ml_t(x[0], x[1], x[2], x[3]);
@@ -406,7 +375,7 @@ pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalcula
         double left,
         double right,
         double raw_start,
-        double tolerance=TOLERANCE) {
+        double tolerance) {
     size_t n_eval=0;
 
     std::function<double(double)> f = [&node_id, &calc, &tree, &n_eval](double d)->double {
@@ -474,6 +443,8 @@ int run_main(int argc, char** argv)
     // Rate dist
     unique_ptr<bpp::DiscreteDistribution> rate_dist(bpp::PhylogeneticsApplicationTools::getRateDistribution(params));
 
+
+    double fit_tolerance = bpp::ApplicationTools::getDoubleParameter("lcfit.ml_tolerance", params, 1e-4);
     // lcfit-specific
     // Output
     string csv_like_path = bpp::ApplicationTools::getAFilePath("lcfit.output.likelihoods_file", params, true, false);
@@ -506,7 +477,7 @@ int run_main(int argc, char** argv)
      */
     csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
     //csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
-    csv_ml_out << "node_id,lcfit_t,lcfit_n,brent_t,brent_n" << endl;
+    csv_ml_out << "node_id,lcfit_t,lcfit_n,brent_t,brent_n,lcfit_fit_t,lcfit_fit_n" << endl;
     for(const int & node_id : tree.getNodesId()) {
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
@@ -524,18 +495,20 @@ int run_main(int argc, char** argv)
         std::for_each(begin(evals), end(evals),
             [&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
 
-        auto lcfit_ml_result = fit.estimate_ml_branch_length(tree, node_id);
+        auto lcfit_ml_result = fit.estimate_ml_branch_length(tree, node_id, fit_tolerance);
         auto brent_ml_result = estimate_ml_branch_length_brent(likelihood_calc,
                 tree,
                 node_id,
                 1e-6,
                 3.,
-                0.5);
+                0.5, fit_tolerance);
         csv_ml_out << node_id << ","
             << lcfit_ml_result.first << ","
             << lcfit_ml_result.second << ","
             << brent_ml_result.first << ","
-            << brent_ml_result.second << endl;
+            << brent_ml_result.second << ","
+            << ml_t(r.coef[0], r.coef[1], r.coef[2], r.coef[3]) << "," <<
+            r.evaluated_points.size() << endl;
     }
 
     return 0;
