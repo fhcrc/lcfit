@@ -1,0 +1,5 @@
+
+param=runs/tree0006/JC/uniform/model.bpp
+number_of_sites=1000
+input.tree.format=Newick
+output.sequence.format=Fasta()

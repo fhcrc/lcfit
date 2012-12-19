@@ -1,0 +1,29 @@
+{
+  "n_sites": 1000, 
+  "lcfit": [
+    "runs/tree0006/MG94-2.0/uniform/lcfit_bls.csv", 
+    "runs/tree0006/MG94-2.0/uniform/lcfit_maxima.csv", 
+    "runs/tree0006/MG94-2.0/uniform/lcfit_fit.csv", 
+    "runs/tree0006/MG94-2.0/uniform/lcfit_log.csv"
+  ], 
+  "ml_tree": "runs/tree0006/MG94-2.0/uniform/ml_tree.tre", 
+  "lcfit_plots": [
+    "runs/tree0006/MG94-2.0/uniform/lcfit_plots.pdf"
+  ], 
+  "model_file": "runs/tree0006/MG94-2.0/uniform/model.bpp", 
+  "initial": "1100,800,2.0,0.5", 
+  "rdist_name": "uniform", 
+  "source_tree": "/loc/no-backup/cmccoy/lcfit/sims/trees/tree0006.tre", 
+  "bppml_file": "runs/tree0006/MG94-2.0/uniform/bppml.bpp", 
+  "sample": "0.1,0.2,0.5", 
+  "seqgen_file": "runs/tree0006/MG94-2.0/uniform/seqgen.bpp", 
+  "model": {
+    "ignore": "MG94.rho", 
+    "alphabet": "Codon(letter=DNA)", 
+    "name": "MG94(genetic_code=StandardGeneticCode,rho=2.0)"
+  }, 
+  "rdist": "Uniform()", 
+  "model_name": "MG94-2.0", 
+  "alignment": "runs/tree0006/MG94-2.0/uniform/alignment.fasta", 
+  "OUTDIR": "tree0006/MG94-2.0/uniform"
+}

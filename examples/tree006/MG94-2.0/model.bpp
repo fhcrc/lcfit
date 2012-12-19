@@ -1,0 +1,3 @@
+alphabet=Codon(letter=DNA)
+model=MG94(genetic_code=StandardGeneticCode,rho=2.0)
+rate_distribution=Uniform()

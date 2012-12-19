@@ -1,0 +1,3 @@
+alphabet=Protein
+model=WAG01
+rate_distribution=Uniform()

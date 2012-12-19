@@ -1,0 +1,8 @@
+# Log likelihood = -29510.88286627179331844673
+# Number of sites = 1000
+
+# Substitution model parameters:
+model = MG94(frequencies=,rho=2.000000000000)
+
+# Rate distribution parameters:
+rate_distribution = Uniform()

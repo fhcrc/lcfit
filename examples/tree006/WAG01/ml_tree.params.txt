@@ -1,0 +1,8 @@
+# Log likelihood = -23800.57507030659689917229
+# Number of sites = 1000
+
+# Substitution model parameters:
+model = WAG01()
+
+# Rate distribution parameters:
+rate_distribution = Uniform()
