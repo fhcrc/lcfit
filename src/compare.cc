@@ -214,6 +214,7 @@ private:
 struct LCFitResult
 {
     vector<double> coef;
+    vector<Point> evaluated_points;
     size_t ll_eval_count;
 };
 
@@ -255,7 +256,7 @@ public:
 
         const int status = fit_ll_log(t.size(), t.data(), l.data(), x.data(), log_fp);
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
-        return {x, points.size()};
+        return {x, points, points.size()};
     }
 
     pair<double, size_t> estimate_ml_branch_length(Tree tree, const int node_id, const double tol=TOLERANCE)
@@ -382,14 +383,14 @@ private:
 };
 
 // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
-vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const vector<double>& x, const double delta=0.01) {
+vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const vector<double>& x, const double max_t=1.0, const double delta=0.01) {
     vector<Evaluation> evaluations;
     const double c = x[0];
     const double m = x[1];
     const double r = x[2];
     const double b = x[3];
     const double t = tree.getDistanceToFather(node_id);
-    for(double t = delta; t <= 1.; t += delta) {
+    for(double t = delta; t <= max_t; t += delta) {
         tree.setDistanceToFather(node_id, t);
         double actual_ll = calc->calculate_log_likelihood(tree);
         double fit_ll = ll(t, c, m, r, b);
@@ -510,7 +511,15 @@ int run_main(int argc, char** argv)
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
         LCFitResult r = fit.fit_model(tree, node_id, fit_log_fp);
-        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, r.coef, 0.01);
+
+        // Find maximum of all x-values and 1.0
+        double max_x = accumulate(begin(r.evaluated_points),
+                                  end(r.evaluated_points),
+                                  1.0,
+                                  [](const double m, const Point& p) { return std::max(m, p.x); });
+
+        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, r.coef, max_x,
+                                                      max_x/100.0);
         // Write to CSV
         std::for_each(begin(evals), end(evals),
             [&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
