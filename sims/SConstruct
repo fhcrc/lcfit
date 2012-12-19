@@ -17,9 +17,9 @@ w = SConsWrap(n, 'runs')
 models = {
         # Nucleotide models
         'JC': {'name': 'JC69', 'alphabet': 'DNA'},
-        'HKY85-2.0': {'name': 'HKY85(kappa=2.0,theta=0.4,theta1=0.6,theta2=0.5)',
-                      'alphabet': 'DNA',
-                      'ignore': 'HKY85.kappa,HKY85.theta,HKY85.theta1,HKY85.theta2',},
+        #'HKY85-2.0': {'name': 'HKY85(kappa=2.0,theta=0.4,theta1=0.6,theta2=0.5)',
+                      #'alphabet': 'DNA',
+                      #'ignore': 'HKY85.kappa,HKY85.theta,HKY85.theta1,HKY85.theta2',},
 
         # Codon models
         'MG94-2.0': {'name': 'MG94(genetic_code=StandardGeneticCode,rho=2.0)',
@@ -37,9 +37,9 @@ models = {
                      #'ignore': """TN93.kappa1_Gamma.alpha,TN93.kappa1_Gamma.beta,TN93.kappa2_Exponential.lambda,TN93.theta,TN93.theta1,TN93.theta2""",},
 
         # Protein models
-        'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
+        #'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
         'WAG01': {'name': 'WAG01', 'alphabet':'Protein'},
-        'LG08': {'name': 'LG08', 'alphabet':'Protein'},
+        #'LG08': {'name': 'LG08', 'alphabet':'Protein'},
 }
 
 initial_values = ['1100,800,2.0,0.5',]
@@ -51,7 +51,7 @@ rdist = {
 #        'gamma4-1.0': 'Gamma(n=4, alpha=1.0)',
 }
 
-n.add('source_tree', [os.path.abspath(i) for i in glob.glob('trees/*.tre')],
+n.add('source_tree', [os.path.abspath(i) for i in glob.glob('trees/tree006.tre')],
       label_func=stripext)
 
 n.add('model_name', models)
