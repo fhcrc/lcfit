@@ -26,6 +26,7 @@ struct PointsByX
     };
 };
 
+/// Select points for use with lcfit
 vector<Point> select_points(std::function<double(double)> log_like, const vector<double>& starting_pts, const size_t max_points=8)
 {
         vector<Point> points;
@@ -70,6 +71,8 @@ vector<Point> select_points(std::function<double(double)> log_like, const vector
         return points;
 }
 
+/// Select the top \c n points from \c points by log-likelihood
+/// \returns The top \c n points, ordered by increasing \c x value.
 vector<Point> retain_top(const vector<Point>& points, const size_t n)
 {
     if(n >= points.size()) return points;
@@ -82,7 +85,8 @@ vector<Point> retain_top(const vector<Point>& points, const size_t n)
     return sorted;
 }
 
-
+/// Classify \c points by monotonicity.
+/// \param points Input points, <b>sorted by increasing x-value</b>
 Monotonicity monotonicity(const std::vector<Point>& points)
 {
     assert(points.size() > 1);
