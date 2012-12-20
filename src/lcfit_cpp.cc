@@ -10,7 +10,7 @@ using namespace std;
 namespace lcfit
 {
 
-struct PointsByYRev
+struct point_by_y_desc
 {
     inline bool operator()(const Point& p1, const Point& p2)
     {
@@ -18,7 +18,7 @@ struct PointsByYRev
     };
 };
 
-struct PointsByX
+struct point_by_x
 {
     inline bool operator()(const Point& p1, const Point& p2)
     {
@@ -79,9 +79,9 @@ vector<Point> retain_top(const vector<Point>& points, const size_t n)
 
     vector<Point> sorted = points;
     // Place the
-    partial_sort(begin(sorted), begin(sorted) + n, end(sorted), PointsByYRev());
+    partial_sort(begin(sorted), begin(sorted) + n, end(sorted), point_by_y_desc());
     sorted.resize(n);
-    sort(begin(sorted), end(sorted), PointsByX());
+    sort(begin(sorted), end(sorted), point_by_x());
     return sorted;
 }
 
