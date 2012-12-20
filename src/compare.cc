@@ -229,7 +229,7 @@ public:
         // Scale initial conditions to intersect with maximum likelihood point
         const Point p = *std::max_element(begin(points), end(points),
                 [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
-        double scale_factor = cm_scale_factor(p.x, p.y, x[0], x[1], x[2], x[3]);
+        double scale_factor = lcfit_cfn_scale_factor(p.x, p.y, x[0], x[1], x[2], x[3]);
         x[0] *= scale_factor;
         x[1] *= scale_factor;
 
@@ -242,7 +242,7 @@ public:
         l.reserve(points.size());
         std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
 
-        const int status = fit_ll(t.size(), t.data(), l.data(), x.data());
+        const int status = lcfit_fit_cfn(t.size(), t.data(), l.data(), x.data());
         if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
         return x;
     }
@@ -310,7 +310,7 @@ vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const
     for(double t = delta; t <= 1.; t += delta) {
         tree.setDistanceToFather(node_id, t);
         double actual_ll = calc->calculate_log_likelihood(tree);
-        double fit_ll = ll(t, c, m, r, b);
+        double fit_ll = lcfit_cfn_log_like(t, c, m, r, b);
         evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
     }
     tree.setDistanceToFather(node_id, t);
@@ -323,7 +323,7 @@ ModelFit compare_ml_values(const Tree& tree, const int node_id, const vector<dou
     const double m = x[1];
     const double r = x[2];
     const double b = x[3];
-    const double t_hat = ml_t(c, m, r, b);
+    const double t_hat = lcfit_cfn_ml_t(c, m, r, b);
     const double t = tree.getDistanceToFather(node_id);
     return ModelFit(node_id, t, t_hat, c, m, r, b);
 }
