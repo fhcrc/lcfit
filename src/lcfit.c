@@ -19,16 +19,16 @@ struct ll_params {
 
 /* The log likelihood for the Binary Symmetric Model with given parameters. */
 /* Model l[i] = c*log((1+exp(-r*(t[i]+b)))/2)+m*log((1-exp(-r*(t[i]+b)))/2) */
-double lcfit_bsm_log_like(double t, double c, double m, double r, double b)
+double lcfit_bsm_log_like(const double t, const bsm_t* m)
 {
-    double expterm = exp(-r * (t + b));
-    return (c * log((1 + expterm) / 2) + m * log((1 - expterm) / 2));
+    double expterm = exp(-m->r * (t + m->b));
+    return (m->c * log((1 + expterm) / 2) + m->m * log((1 - expterm) / 2));
 }
 
 /* The ML branch length for c, m, r, b */
-double lcfit_bsm_ml_t(const double c, const double m, const double r, const double b)
+double lcfit_bsm_ml_t(const bsm_t* m)
 {
-    double t = ((log((c - m) / (c + m))) / (-r)) - b;
+    double t = ((log((m->c - m->m) / (m->c + m->m))) / (-m->r)) - m->b;
     /* std::cout << "lcfit:" << ll(t, c, m, r) << "\n"; */
     return t;
 }
@@ -37,9 +37,9 @@ double lcfit_bsm_ml_t(const double c, const double m, const double r, const doub
  * The scaling parameter for c and m to obtain log-likelihood value `l` at branch length `t`,
  * keeping `r` and `b` fixed.
  */
-double lcfit_bsm_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b)
+double lcfit_bsm_scale_factor(const double t, const double l, const bsm_t* m)
 {
-    double result = l / lcfit_bsm_log_like(t, c, m, r, b);
+    double result = l / lcfit_bsm_log_like(t, m);
     return result;
 }
 
@@ -57,15 +57,15 @@ int expb_f(const gsl_vector* x, void* data, gsl_vector* f)
     const double* t = ((struct data_to_fit*) data)->t;
     const double* l = ((struct data_to_fit*) data)->l;
 
-    double c = gsl_vector_get(x, 0);
-    double m = gsl_vector_get(x, 1);
-    double r = gsl_vector_get(x, 2);
-    double b = gsl_vector_get(x, 3);
+    bsm_t m = {gsl_vector_get(x, 0),
+               gsl_vector_get(x, 1),
+               gsl_vector_get(x, 2),
+               gsl_vector_get(x, 3)};
 
     size_t i;
 
     for(i = 0; i < n; i++) {
-        gsl_vector_set(f, i, lcfit_bsm_log_like(t[i], c, m, r, b) - l[i]);
+        gsl_vector_set(f, i, lcfit_bsm_log_like(t[i], &m) - l[i]);
     }
 
     return GSL_SUCCESS;
@@ -130,13 +130,13 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
      m = x[2];
      b = x[3];
 */
-int lcfit_fit_bsm(const size_t n, const double* t, const double* l, double* x)
+int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
 {
     const gsl_multifit_fdfsolver_type* T;
     gsl_multifit_fdfsolver* s;
+    double x[4] = {m->c, m->m, m->r, m->b};
 
     int status;
-    size_t i;
     unsigned int iter = 0;
 
     struct data_to_fit d = {n, t, l};
@@ -188,9 +188,11 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, double* x)
     printf("status = %s\n", gsl_strerror(status));
 #endif /* VERBOSE */
 
-    for(i = 0; i < 4; i++) {
-        x[i] = FIT(i);
-    }
+    // Update fit
+    m->c = FIT(0);
+    m->m = FIT(1);
+    m->r = FIT(2);
+    m->b = FIT(3);
 
     gsl_multifit_fdfsolver_free(s);
     return 0;
