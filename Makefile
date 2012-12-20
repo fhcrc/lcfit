@@ -1,10 +1,10 @@
-.PHONY: all lcfit-compare lcfit-test setup-cmake clean run
+.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test
 
 BUILD := _build
 CMAKE_BUILD_TYPE ?= Debug
 BUILD_DIR := $(BUILD)/$(CMAKE_BUILD_TYPE)
 
-all: lcfit-compare
+all: lcfit-compare lcfit-test
 
 data.pdf: data.csv
 	Rscript plot_fits.R data.csv data.maxima.csv data.fit.csv data.pdf
@@ -15,6 +15,12 @@ data.csv: lcfit-compare
 
 lcfit-compare: setup-cmake
 	+make -C$(BUILD_DIR) $@
+
+lcfit-test: setup-cmake
+	+make -C$(BUILD_DIR) $@
+
+test: lcfit-test
+	$(BUILD_DIR)/$<
 
 setup-cmake:
 	mkdir -p $(BUILD_DIR)

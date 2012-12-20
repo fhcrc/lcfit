@@ -1,5 +1,3 @@
 *.o
-test
-compare
 _build
 .sconsign.dblite
