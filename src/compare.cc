@@ -198,7 +198,7 @@ private:
 };
 
 
-/// Runs lcfit, generating parameters for the BSM model
+/// Runs lcfit, generating parameters for the BSM
 class LCFitter
 {
 public:
@@ -212,7 +212,7 @@ public:
     /// Run lcfit, returning coefficients of the model
     ///
     /// Given a set of starting points, attempts to add (branch_length, ll) points until the function is non-monotonic,
-    /// then fits the BSM model using these sampled points.
+    /// then fits the BS model using these sampled points.
     vector<double> fit_model(const Tree& tree, const int node_id)
     {
         const double original_dist = tree.getDistanceToFather(node_id);

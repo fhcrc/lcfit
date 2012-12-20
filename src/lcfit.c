@@ -17,7 +17,7 @@ struct ll_params {
            b; /* "minimum branch length" */
 };
 
-/* The log likelihood for the BSM model with given parameters. */
+/* The log likelihood for the Binary Symmetric Model with given parameters. */
 /* Model l[i] = c*log((1+exp(-r*(t[i]+b)))/2)+m*log((1-exp(-r*(t[i]+b)))/2) */
 double lcfit_bsm_log_like(double t, double c, double m, double r, double b)
 {
