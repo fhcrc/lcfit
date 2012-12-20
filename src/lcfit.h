@@ -9,10 +9,10 @@ extern "C" {
 #endif
 
 
-double lcfit_cfn_log_like(double t, double c, double m, double r, double b);
-double lcfit_cfn_ml_t(const double c, const double m, const double r, const double b);
-double lcfit_cfn_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b);
-int lcfit_fit_cfn(const size_t n, const double* t, const double* l, double* x);
+double lcfit_bsm_log_like(double t, double c, double m, double r, double b);
+double lcfit_bsm_ml_t(const double c, const double m, const double r, const double b);
+double lcfit_bsm_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b);
+int lcfit_fit_bsm(const size_t n, const double* t, const double* l, double* x);
 
 #ifdef __cplusplus
 } // extern "C"

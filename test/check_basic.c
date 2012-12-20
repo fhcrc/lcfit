@@ -12,10 +12,10 @@ START_TEST(test_scale)
   const double c = 1500, m = 1000, r = 1.0, b = 0.5;
   const double t = 0.5, l = -23804.3;
   /* Try scaling */
-  const double scale = lcfit_cfn_scale_factor(t, l, c, m, r, b);
+  const double scale = lcfit_bsm_scale_factor(t, l, c, m, r, b);
 
   /* Test LL at t */
-  const double calc_ll = lcfit_cfn_log_like(t, c*scale, m*scale, r, b);
+  const double calc_ll = lcfit_bsm_log_like(t, c*scale, m*scale, r, b);
 
   fail_unless(fabs(l - calc_ll) < TOL, 
               "LL after scaling was %f instead of %f", calc_ll, l);
@@ -30,7 +30,7 @@ fail_unless_fit_improves(const double x_init[4], const double t[4], const double
   double x[4];
   memcpy(x, x_init, 4*sizeof(double));
 
-  int result = lcfit_fit_cfn(4, t, l, x);
+  int result = lcfit_fit_bsm(4, t, l, x);
   fail_unless(!result, "fit_ll returned '%s'", gsl_strerror(result));
 
   /* Estimates must improve */
@@ -38,8 +38,8 @@ fail_unless_fit_improves(const double x_init[4], const double t[4], const double
   double init_residuals = 0, updated_residuals = 0;
   for(i = 0; i < 4; ++i) {
     fail_unless(x[i] != x_init[i]);
-    double init_fit_ll = lcfit_cfn_log_like(t[i], x_init[0], x_init[1], x_init[2], x_init[3]),
-           new_fit_ll = lcfit_cfn_log_like(t[i], x[0], x[1], x[2], x[3]);
+    double init_fit_ll = lcfit_bsm_log_like(t[i], x_init[0], x_init[1], x_init[2], x_init[3]),
+           new_fit_ll = lcfit_bsm_log_like(t[i], x[0], x[1], x[2], x[3]);
     init_residuals += fabs(init_fit_ll - l[i]);
     updated_residuals += fabs(new_fit_ll - l[i]);
   }
@@ -62,12 +62,12 @@ END_TEST
 /* Check that l == ll(t, c, m, r, b) */
 void fail_unless_ll_matches(float l, float t, float c, float m, float r, float b)
 {
-  float res = lcfit_cfn_log_like(t, c, m, r, b);
+  float res = lcfit_bsm_log_like(t, c, m, r, b);
   fail_unless(fabs(l - res) < TOL, "%f != %f", l, res);
 }
 
-/* Check a few evaluations of CFN */
-START_TEST(test_cfn_ll)
+/* Check a few evaluations of BSM */
+START_TEST(test_bsm_ll)
 {
   fail_unless_ll_matches(-8.692919, 0.2, 100, 1, 0.2, 0.4);
   fail_unless_ll_matches(-695.2381, 0.6, 1000, 250, 0.2, 0.4);
@@ -82,7 +82,7 @@ lcfit_suite (void)
   /* Core test case */
   TCase *tc_core = tcase_create ("LCFIT");
   tcase_add_test (tc_core, test_scale);
-  tcase_add_test (tc_core, test_cfn_ll);
+  tcase_add_test (tc_core, test_bsm_ll);
   tcase_add_test (tc_core, test_fit_ll);
   suite_add_tcase (s, tc_core);
 

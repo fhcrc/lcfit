@@ -17,16 +17,16 @@ struct ll_params {
            b; /* "minimum branch length" */
 };
 
-/* The log likelihood for the CFN model with given parameters. */
+/* The log likelihood for the BSM model with given parameters. */
 /* Model l[i] = c*log((1+exp(-r*(t[i]+b)))/2)+m*log((1-exp(-r*(t[i]+b)))/2) */
-double lcfit_cfn_log_like(double t, double c, double m, double r, double b)
+double lcfit_bsm_log_like(double t, double c, double m, double r, double b)
 {
     double expterm = exp(-r * (t + b));
     return (c * log((1 + expterm) / 2) + m * log((1 - expterm) / 2));
 }
 
 /* The ML branch length for c, m, r, b */
-double lcfit_cfn_ml_t(const double c, const double m, const double r, const double b)
+double lcfit_bsm_ml_t(const double c, const double m, const double r, const double b)
 {
     double t = ((log((c - m) / (c + m))) / (-r)) - b;
     /* std::cout << "lcfit:" << ll(t, c, m, r) << "\n"; */
@@ -37,9 +37,9 @@ double lcfit_cfn_ml_t(const double c, const double m, const double r, const doub
  * The scaling parameter for c and m to obtain log-likelihood value `l` at branch length `t`,
  * keeping `r` and `b` fixed.
  */
-double lcfit_cfn_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b)
+double lcfit_bsm_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b)
 {
-    double result = l / lcfit_cfn_log_like(t, c, m, r, b);
+    double result = l / lcfit_bsm_log_like(t, c, m, r, b);
     return result;
 }
 
@@ -65,7 +65,7 @@ int expb_f(const gsl_vector* x, void* data, gsl_vector* f)
     size_t i;
 
     for(i = 0; i < n; i++) {
-        gsl_vector_set(f, i, lcfit_cfn_log_like(t[i], c, m, r, b) - l[i]);
+        gsl_vector_set(f, i, lcfit_bsm_log_like(t[i], c, m, r, b) - l[i]);
     }
 
     return GSL_SUCCESS;
@@ -130,7 +130,7 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
      m = x[2];
      b = x[3];
 */
-int lcfit_fit_cfn(const size_t n, const double* t, const double* l, double* x)
+int lcfit_fit_bsm(const size_t n, const double* t, const double* l, double* x)
 {
     const gsl_multifit_fdfsolver_type* T;
     gsl_multifit_fdfsolver* s;
