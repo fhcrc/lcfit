@@ -3,15 +3,35 @@
 #include "lcfit.h"
 #include "lcfit_cpp.h"
 
+#include <algorithm>
+#include <iostream>
+
 #define TOL 1e-4
 
 using namespace lcfit;
 
-TEST_CASE("monotonicity_decreasing", "Ensure that monotonicity correctly identifies decreasing points") {
+TEST_CASE("retain_top", "")
+{
+    const std::vector<Point> points{{0, 1}, {0.1, 1.2}, {2, 0.6}};
+    std::vector<Point> expected{{0.1,1.2}};
+    std::vector<Point> result = retain_top(points, 1);
+    REQUIRE(result.size() == 1);
+    REQUIRE(result == expected);
+
+    // Try with two points
+    expected = {{0,1},{0.1,1.2}};
+    result = retain_top(points, 2);
+    REQUIRE(result.size() == 2);
+    REQUIRE(result == expected);
+}
+
+TEST_CASE("monotonicity_decreasing", "Ensure that monotonicity correctly identifies decreasing points")
+{
     REQUIRE(monotonicity({{0, 1}, {0.1, 0.8}, {2, 0.6}}) == Monotonicity::MONO_DEC);
 }
 
-TEST_CASE("monotonicity_nonmonotonic", "Ensure that monotonicity correctly points including an extremum") {
+TEST_CASE("monotonicity_nonmonotonic", "Ensure that monotonicity correctly points including an extremum")
+{
     REQUIRE(monotonicity({{0, 1}, {0.1, 0.8}, {2, 0.81}}) == Monotonicity::NON_MONOTONIC);
 }
 

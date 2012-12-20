@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iterator>
+#include <iostream>
 
 using namespace std;
 
@@ -14,6 +15,14 @@ struct PointsByYRev
     inline bool operator()(const Point& p1, const Point& p2)
     {
         return p1.y > p2.y;
+    };
+};
+
+struct PointsByX
+{
+    inline bool operator()(const Point& p1, const Point& p2)
+    {
+        return p1.x < p2.x;
     };
 };
 
@@ -69,6 +78,7 @@ vector<Point> retain_top(const vector<Point>& points, const size_t n)
     // Place the
     partial_sort(begin(sorted), begin(sorted) + n, end(sorted), PointsByYRev());
     sorted.resize(n);
+    sort(begin(sorted), end(sorted), PointsByX());
     return sorted;
 }
 

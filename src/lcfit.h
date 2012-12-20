@@ -8,6 +8,7 @@
 extern "C" {
 #endif
 
+/* Fit of the binary-symmetric model */
 typedef struct {
     double c;
     double m;
@@ -23,6 +24,5 @@ int lcfit_fit_bsm(const size_t, const double*, const double*, bsm_t*);
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
 
 #endif // LCFIT_H

@@ -19,6 +19,11 @@ enum class Monotonicity
 struct Point
 {
     double x, y;
+
+    inline bool operator==(const Point& other) const
+    {
+        return x == other.x && y == other.y;
+    };
 };
 
 Monotonicity monotonicity(const std::vector<Point>&);
