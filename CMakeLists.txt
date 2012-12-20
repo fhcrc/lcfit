@@ -19,6 +19,12 @@ set(LCFIT_TEST_C_FILES
 add_executable(lcfit-test ${LCFIT_TEST_C_FILES})
 target_link_libraries(lcfit-test ${LCFIT_TEST_LIBS})
 
+project(libcpplfit CXX)
+include_directories(src)
+add_library(lcfit-cpp-static STATIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/lcfit_cpp.cc
+  ${LCFIT_LIB_C_FILES})
+target_link_libraries(lcfit-cpp-static lcfit-static gsl gslcblas)
 
 # Comparison
 project(lcfit CXX)
