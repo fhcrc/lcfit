@@ -3,28 +3,24 @@
 library(ggplot2)
 library(reshape2)
 library(scales)
-                                        #agg <- read.delim('lcfit_plots_agg.txt', sep='\t')
-                                        #p <- ggplot(agg, aes(x=t, y=rss, shape=model_name, color=model_name)) +
-                                        #geom_point(size=1.2) +
-                                        #ggtitle("RSS by branch length") +
-                                        #xlab("ML Branch length") +
-                                        #ylab("RSS") +
-                                        #theme_bw() +
-                                        #xlim(0,2)
-                                        #ggsave('rss_bl.svg', width=7,height=5)
 
-                                        # From http://wiki.stdout.org/rcookbook/Graphs/Plotting%20means%20and%20error%20bars%20(ggplot2)/
+
+# setup theme
+theme_set(theme_bw(20))
+theme_update(legend.key=element_blank())
+
+# From http://wiki.stdout.org/rcookbook/Graphs/Plotting%20means%20and%20error%20bars%20(ggplot2)/
 summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
                       conf.interval=.95, .drop=TRUE) {
   require(plyr)
 
-                                        # New version of length which can handle NA's: if na.rm==T, don't count them
+  # New version of length which can handle NA's: if na.rm==T, don't count them
   length2 <- function (x, na.rm=FALSE) {
     if (na.rm) sum(!is.na(x))
     else       length(x)
   }
 
-                                        # This is does the summary; it's not easy to understand...
+  # This is does the summary; it's not easy to understand...
   datac <- ddply(data, groupvars, .drop=.drop,
                  .fun= function(xx, col, na.rm) {
                    c( N    = length2(xx[,col], na.rm=na.rm),
@@ -36,14 +32,14 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
                  na.rm
                  )
 
-                                        # Rename the "mean" column
+  # Rename the "mean" column
   datac <- rename(datac, c("mean"=measurevar))
 
   datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
 
-                                        # Confidence interval multiplier for standard error
-                                        # Calculate t-statistic for confidence interval:
-                                        # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+  # Confidence interval multiplier for standard error
+  # Calculate t-statistic for confidence interval:
+  # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
   ciMult <- qt(conf.interval/2 + .5, datac$N-1)
   datac$ci <- datac$se * ciMult
 
@@ -56,16 +52,17 @@ m <- melt(maxima, id.vars=c('node_id', 'model_name', 'ml_tree', 'tolerance'), me
 m <- transform(m, variable=ifelse(variable=='brent_n', 'Brent', 'lcfit'))
 
 
-                                        # Summarize
+# Summarize
 m_summary <- summarySE(m, "value", c("model_name", "tolerance", "variable"))
 
-                                        # Plot
+# Plot
 xscale <- scale_x_continuous(trans=log10_trans(),
                             breaks=trans_breaks("log10", function(x) 10^x),
                             labels=trans_format("log10", math_format(10^.x)))
 
-p <- ggplot(m_summary, aes(x=tolerance, y=value, ymin=value-se, ymax=value+se, color=variable, shape=variable)) +
-  geom_point() +
+p <- ggplot(m_summary, aes(x=tolerance, y=value, ymin=value-se, ymax=value+se,
+                           color=variable, shape=variable)) +
+  geom_point(size=3) +
   geom_line() +
   geom_errorbar(width=0.15) +
   xscale +
