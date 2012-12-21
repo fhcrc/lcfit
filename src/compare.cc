@@ -183,35 +183,18 @@ public:
         const double original_dist = tree.getDistanceToFather(node_id);
         bsm_t m = {start[0], start[1], start[2], start[3]};
         NodeLogLikelihoodCalculator ll{calc,tree,node_id};
-
-        const vector<Point> points = lcfit::select_points(ll, sample_points, 8);
+        lcfit::LCFitResult fit_result = lcfit::fit_bsm_log_likelihood(ll, m, sample_points, 8);
+        assert(tree.getDistanceToFather(node_id) == original_dist);
 
         // Log fit
         if(csv_fit_out != nullptr) {
-            for(const Point& p : points) {
+            for(const Point& p : fit_result.evaluated_points) {
                 *csv_fit_out << node_id << "," << p.x << "," << p.y << endl;
             }
         }
 
         // Scale initial conditions to intersect with maximum likelihood point
-        const Point p = *std::max_element(begin(points), end(points),
-                [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
-        double scale_factor = lcfit_bsm_scale_factor(p.x, p.y, &m);
-        m.c *= scale_factor;
-        m.m *= scale_factor;
-
-        assert(tree.getDistanceToFather(node_id) == original_dist);
-
-        // Extract x, y
-        vector<double> t, l;
-        t.reserve(points.size());
-        std::transform(begin(points), end(points), std::back_inserter(t), [](const Point& p) ->double { return p.x; });
-        l.reserve(points.size());
-        std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
-
-        const int status = lcfit_fit_bsm(t.size(), t.data(), l.data(), &m);
-        if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
-        return m;
+        return fit_result.model_fit;
     }
 private:
     const vector<double> start;

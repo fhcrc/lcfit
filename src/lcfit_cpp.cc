@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iterator>
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -27,6 +28,10 @@ struct point_by_x
 };
 
 /// Select points for use with lcfit
+/// \param log_like Function returning the actual log-likelihood of a branch length
+/// \param starting_pts Initial points to sample. {0.1,0.15,0.5} has given good results. More points will be added ot
+/// ensure that the function is non-monotonic on the interval.
+/// \param max_points Maximum number of points to sample. Passed to lcfit::select_points.
 vector<Point> select_points(std::function<double(double)> log_like, const std::vector<double>& starting_pts, const size_t max_points)
 {
         vector<Point> points;
@@ -106,6 +111,36 @@ Monotonicity monotonicity(const std::vector<Point>& points)
     else if(maybe_inc) return Monotonicity::MONO_INC;
     else if(maybe_dec) return Monotonicity::MONO_DEC;
     assert(false);
+}
+
+/// Fit the BSM
+/// \param log_like Function returning the actual log-likelihood of a branch length
+/// \param init_model Initial model. <i>will be scaled to speed fit</i>
+/// \param sample_points Initial points to sample. {0.1,0.15,0.5} has given good results. More points will be added ot
+/// ensure that the function is non-monotonic on the interval.
+/// \param max_points Maximum number of points to sample. Passed to lcfit::select_points.
+LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like, const bsm_t& init_model, const std::vector<double>& sample_points, const size_t max_points)
+{
+    bsm_t model = init_model;
+
+    const vector<Point> points = lcfit::select_points(log_like, sample_points, max_points);
+    const Point p = *std::max_element(begin(points), end(points),
+            [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
+    const double scale_factor = lcfit_bsm_scale_factor(p.x, p.y, &model);
+    model.c *= scale_factor;
+    model.m *= scale_factor;
+
+    vector<double> t, l;
+    t.reserve(points.size());
+    l.reserve(points.size());
+    for(const Point& p : points) {
+        t.push_back(p.x);
+        l.push_back(p.y);
+    }
+
+    const int status = lcfit_fit_bsm(t.size(), t.data(), l.data(), &model);
+    if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
+    return {points, std::move(model)};
 }
 
 }
