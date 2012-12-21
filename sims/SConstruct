@@ -16,15 +16,15 @@ w = SConsWrap(n, 'runs')
 
 models = {
         # Nucleotide models
-        'JC': {'name': 'JC69', 'alphabet': 'DNA'},
+        #'JC': {'name': 'JC69', 'alphabet': 'DNA'},
         #'HKY85-2.0': {'name': 'HKY85(kappa=2.0,theta=0.4,theta1=0.6,theta2=0.5)',
                       #'alphabet': 'DNA',
                       #'ignore': 'HKY85.kappa,HKY85.theta,HKY85.theta1,HKY85.theta2',},
 
         # Codon models
-        'MG94-2.0': {'name': 'MG94(genetic_code=StandardGeneticCode,rho=2.0)',
-                     'alphabet': 'Codon(letter=DNA)',
-                     'ignore': 'MG94.rho'},
+        #'MG94-2.0': {'name': 'MG94(genetic_code=StandardGeneticCode,rho=2.0)',
+                     #'alphabet': 'Codon(letter=DNA)',
+                     #'ignore': 'MG94.rho'},
 
         # Covarion
         #'TS98-JC': {'name': 'TS98(model=JC69,s1=2.0,s2=0.4)',
@@ -51,7 +51,7 @@ rdist = {
 #        'gamma4-1.0': 'Gamma(n=4, alpha=1.0)',
 }
 
-n.add('source_tree', [os.path.abspath(i) for i in glob.glob('trees/tree006.tre')],
+n.add('source_tree', [os.path.abspath(i) for i in glob.glob('trees/tree0006.tre')],
       label_func=stripext)
 
 n.add('model_name', models)
@@ -60,6 +60,7 @@ n.add('rdist_name', rdist)
 n.add('rdist', lambda c: [rdist[c['rdist_name']]], create_dir=False)
 n.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'), create_dir=False)
 n.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'), create_dir=False)
+n.add('tolerance', [10**i for i in xrange(-6, 0)], label_func='{0:.1E}'.format)
 
 @w.add_target()
 def model_file(outdir, c):
@@ -155,6 +156,7 @@ def lcfit(outdir, c):
             'input.sequence.file=${SOURCES[0]} '
             'lcfit.starting.values=' + c['initial'] + ' ' +
             'lcfit.sample.branch.lengths=' + c['sample'] + ' ' +
+            'lcfit.ml_tolerance=' + str(c['tolerance']) + ' ' +
             'lcfit.output.likelihoods_file=${TARGETS[0]} '
             'lcfit.output.maxima_file=${TARGETS[1]} '
             'lcfit.output.fit_file=${TARGETS[2]} '
