@@ -20,6 +20,7 @@ double minimize(const std::function<double(double)> fn,
                 double a,
                 double b,
                 const int max_iter,
+                const double tolerance,
                 const gsl_min_fminimizer_type *min_type)
 {
     int iter = 0, status;
@@ -40,7 +41,7 @@ double minimize(const std::function<double(double)> fn,
         a = gsl_min_fminimizer_x_lower(s);
         b = gsl_min_fminimizer_x_upper(s);
 
-        status = gsl_min_test_interval(a, b, 0.001, 0.0);
+        status = gsl_min_test_interval(a, b, tolerance, 0.0);
     } while(status == GSL_CONTINUE && iter < max_iter);
     gsl_min_fminimizer_free(s);
     return m;

@@ -410,7 +410,7 @@ pair<double, size_t> estimate_ml_branch_length_brent(const TreeLikelihoodCalcula
         }
     }
 
-    double ml_bl = gsl::minimize(f, prev_start, left, right);
+    double ml_bl = gsl::minimize(f, prev_start, left, right, 100, tolerance);
 
     // gsl::minimize calls f(left), f(right), and f(prev_start)
     // If we were smarter, could cache those.

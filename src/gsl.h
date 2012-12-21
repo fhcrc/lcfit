@@ -11,6 +11,7 @@ double minimize(const std::function<double(double)> fn,
                 double a = 0,
                 double b = 1,
                 const int max_iter = 100,
+                const double tolerance = 1e-3,
                 const gsl_min_fminimizer_type *min_type = gsl_min_fminimizer_brent);
 } // namespace gsl
 
