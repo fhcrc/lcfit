@@ -107,3 +107,20 @@ TEST_CASE("test_bsm_ll", "")
   bsm_t m2 = {1000, 250, 0.2, 0.4};
   fail_unless_ll_matches(-695.2381, 0.6, &m2);
 }
+
+TEST_CASE("test_bsm_fit", "Test fitting an actual BSM log-likelihood function")
+{
+    auto log_like = [](const double t) -> double {
+        const static bsm_t m = {2000, 500, 2.0, 0.4};
+        return lcfit_bsm_log_like(t, &m);
+    };
+    const std::vector<double> t{0.1,0.15,0.5};
+    const bsm_t m = {1500, 1000, 1.0, 0.5};
+    lcfit::LCFitResult r = fit_bsm_log_likelihood(log_like, m, t);
+    bsm_t* fit = &r.model_fit;
+
+    // Fit should be quite close for all evaluated points.
+    for(const Point& p : r.evaluated_points) {
+        REQUIRE(std::abs(lcfit_bsm_log_like(p.x, fit) - p.y) < TOL);
+    }
+}
