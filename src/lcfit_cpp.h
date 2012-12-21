@@ -27,7 +27,7 @@ struct Point
 };
 
 Monotonicity monotonicity(const std::vector<Point>&);
-std::vector<Point> select_points(std::function<double(double)>, const std::vector<double>&, const size_t);
+std::vector<Point> select_points(std::function<double(double)> f, const std::vector<double>& v, const size_t max_points=8);
 std::vector<Point> retain_top(const std::vector<Point>&, const size_t);
 
 } // lcfit

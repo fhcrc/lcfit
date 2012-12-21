@@ -13,6 +13,7 @@ set(LCFIT_TEST_LIBS
   gslcblas)
 
 project(libcpplcfit CXX)
+set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
 include_directories(src)
 add_library(lcfit-cpp-static STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/lcfit_cpp.cc
@@ -34,7 +35,7 @@ set(LCFIT_LIBS
 
 # LCFIT
 add_executable(lcfit-compare ${LCFIT_COMPARE_CPP})
-target_link_libraries(lcfit-compare lcfit-static ${LCFIT_LIBS})
+target_link_libraries(lcfit-compare lcfit-cpp-static ${LCFIT_LIBS})
 
 include_directories(test)
 add_executable(lcfit-test

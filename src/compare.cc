@@ -27,8 +27,10 @@
 #include <Bpp/Seq/SiteTools.h>
 
 #include "lcfit.h"
+#include "lcfit_cpp.h"
 
 using namespace std;
+using namespace lcfit;
 
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
@@ -39,25 +41,6 @@ void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std:
         out << i << delim;
     }
     out << endl;
-}
-
-// A simple point
-struct Point
-{
-    Point(const double x, const double y) :
-        x(x),
-        y(y) {};
-    double x, y;
-};
-
-// Support hashing points
-namespace std {
-    template <> struct hash<Point> {
-        size_t operator()(const Point & p) const
-        {
-            return std::hash<double>()(p.x) ^ std::hash<double>()(p.y);
-        };
-    };
 }
 
 /// Evaluation of the fit for a node at a given branch length
@@ -107,37 +90,6 @@ void to_csv(ostream& out, const ModelFit& f)
         << f.m << ","
         << f.r << ","
         << f.b << endl;
-}
-
-enum class Monotonicity
-{
-    UNKNOWN = 0,
-    MONO_INC,
-    MONO_DEC,
-    NON_MONOTONIC
-};
-
-/// Find the monotonicity of a set of (sorted) points
-inline Monotonicity monotonicity(const vector<Point>& points)
-{
-    assert(points.size() > 0);
-    auto i = begin(points);
-    auto e = end(points);
-    bool maybe_inc = true, maybe_dec = true;
-
-    Point last = *i++;
-    for(; i != e; i++) {
-        Point current = *i;
-        if(current.y > last.y) maybe_dec = false;
-        else if(current.y < last.y) maybe_inc = false;
-        last = current;
-    }
-    assert(!(maybe_inc && maybe_dec));
-
-    if(!maybe_inc && !maybe_dec) return Monotonicity::NON_MONOTONIC;
-    else if(maybe_inc) return Monotonicity::MONO_INC;
-    else if(maybe_dec) return Monotonicity::MONO_DEC;
-    assert(false);
 }
 
 template<typename ForwardIterator>
@@ -197,6 +149,19 @@ private:
     bpp::DiscreteDistribution* rate_dist;
 };
 
+/// Calculate the log likelihood of a node given a branch length
+struct NodeLogLikelihoodCalculator
+{
+    TreeLikelihoodCalculator* calc;
+    Tree tree;
+    const int node_id;
+
+    double operator()(double d)
+    {
+        tree.setDistanceToFather(node_id, d);
+        return calc->calculate_log_likelihood(tree);
+    };
+};
 
 /// Runs lcfit, generating parameters for the BSM
 class LCFitter
@@ -217,7 +182,9 @@ public:
     {
         const double original_dist = tree.getDistanceToFather(node_id);
         bsm_t m = {start[0], start[1], start[2], start[3]};
-        const vector<Point> points = this->select_points(tree, node_id);
+        NodeLogLikelihoodCalculator ll{calc,tree,node_id};
+
+        const vector<Point> points = lcfit::select_points(ll, sample_points, 8);
 
         // Log fit
         if(csv_fit_out != nullptr) {
@@ -251,52 +218,6 @@ private:
     const vector<double> sample_points;
     TreeLikelihoodCalculator* calc;
     ostream* csv_fit_out;
-
-    /// Choose the input (branch_length, ll) samples for running lcfit
-    vector<Point> select_points(Tree tree, const int node_id, const size_t max_points=8) // TODO: Fix magic number 8
-    {
-        vector<Point> points;
-
-        // Try starting points
-        for(const double & d : sample_points) {
-            tree.setDistanceToFather(node_id, d);
-            points.emplace_back(d, calc->calculate_log_likelihood(tree));
-        }
-
-        // Add additional samples until the evaluated branch lengths enclose a maximum.
-        size_t offset; // Position
-        double d;      // Branch length
-
-        Monotonicity c = monotonicity(points);
-        do {
-            switch(c) {
-            case Monotonicity::NON_MONOTONIC:
-                d = (points[1].x + points[2].x) / 2.0; // Add a point between the first and second try
-                offset = 2;
-                break;
-            case Monotonicity::MONO_INC:
-                d = points.back().x * 2.0; // Double largest value
-                offset = points.size();
-                break;
-            case Monotonicity::MONO_DEC:
-                d = points[0].x / 10.0; // Add new smallest value - order of magnitude lower
-                offset = 0;
-                break;
-            default:
-                assert(false);
-            }
-
-            tree.setDistanceToFather(node_id, d);
-            points.emplace(points.begin() + offset, d, calc->calculate_log_likelihood(tree));
-
-            c = monotonicity(points);
-
-            assert(is_sorted(points.begin(), points.end(),
-                        [](const Point& p1, const Point& p2) -> bool { return p1.x < p1.y; }));
-        } while(points.size() <= max_points && c != Monotonicity::NON_MONOTONIC);
-
-        return points;
-    };
 };
 
 // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points

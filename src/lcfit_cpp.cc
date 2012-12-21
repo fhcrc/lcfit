@@ -27,7 +27,7 @@ struct point_by_x
 };
 
 /// Select points for use with lcfit
-vector<Point> select_points(std::function<double(double)> log_like, const vector<double>& starting_pts, const size_t max_points=8)
+vector<Point> select_points(std::function<double(double)> log_like, const std::vector<double>& starting_pts, const size_t max_points)
 {
         vector<Point> points;
 
