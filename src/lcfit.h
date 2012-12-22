@@ -8,15 +8,21 @@
 extern "C" {
 #endif
 
+/* Fit of the binary-symmetric model */
+typedef struct {
+    double c;
+    double m;
+    double r;
+    double b;
+} bsm_t;
 
-double lcfit_bsm_log_like(double t, double c, double m, double r, double b);
-double lcfit_bsm_ml_t(const double c, const double m, const double r, const double b);
-double lcfit_bsm_scale_factor(const double t, const double l, const double c, const double m, const double r, const double b);
-int lcfit_fit_bsm(const size_t n, const double* t, const double* l, double* x);
+double lcfit_bsm_log_like(double, const bsm_t*);
+double lcfit_bsm_ml_t(const bsm_t*);
+double lcfit_bsm_scale_factor(const double, const double, const bsm_t*);
+int lcfit_fit_bsm(const size_t, const double*, const double*, bsm_t*);
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
 
 #endif // LCFIT_H

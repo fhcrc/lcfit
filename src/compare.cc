@@ -27,8 +27,10 @@
 #include <Bpp/Seq/SiteTools.h>
 
 #include "lcfit.h"
+#include "lcfit_cpp.h"
 
 using namespace std;
+using namespace lcfit;
 
 typedef bpp::TreeTemplate<bpp::Node> Tree;
 
@@ -39,25 +41,6 @@ void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std:
         out << i << delim;
     }
     out << endl;
-}
-
-// A simple point
-struct Point
-{
-    Point(const double x, const double y) :
-        x(x),
-        y(y) {};
-    double x, y;
-};
-
-// Support hashing points
-namespace std {
-    template <> struct hash<Point> {
-        size_t operator()(const Point & p) const
-        {
-            return std::hash<double>()(p.x) ^ std::hash<double>()(p.y);
-        };
-    };
 }
 
 /// Evaluation of the fit for a node at a given branch length
@@ -107,37 +90,6 @@ void to_csv(ostream& out, const ModelFit& f)
         << f.m << ","
         << f.r << ","
         << f.b << endl;
-}
-
-enum class Monotonicity
-{
-    UNKNOWN = 0,
-    MONO_INC,
-    MONO_DEC,
-    NON_MONOTONIC
-};
-
-/// Find the monotonicity of a set of (sorted) points
-inline Monotonicity monotonicity(const vector<Point>& points)
-{
-    assert(points.size() > 0);
-    auto i = begin(points);
-    auto e = end(points);
-    bool maybe_inc = true, maybe_dec = true;
-
-    Point last = *i++;
-    for(; i != e; i++) {
-        Point current = *i;
-        if(current.y > last.y) maybe_dec = false;
-        else if(current.y < last.y) maybe_inc = false;
-        last = current;
-    }
-    assert(!(maybe_inc && maybe_dec));
-
-    if(!maybe_inc && !maybe_dec) return Monotonicity::NON_MONOTONIC;
-    else if(maybe_inc) return Monotonicity::MONO_INC;
-    else if(maybe_dec) return Monotonicity::MONO_DEC;
-    assert(false);
 }
 
 template<typename ForwardIterator>
@@ -197,6 +149,19 @@ private:
     bpp::DiscreteDistribution* rate_dist;
 };
 
+/// Calculate the log likelihood of a node given a branch length
+struct NodeLogLikelihoodCalculator
+{
+    TreeLikelihoodCalculator* calc;
+    Tree tree;
+    const int node_id;
+
+    double operator()(double d)
+    {
+        tree.setDistanceToFather(node_id, d);
+        return calc->calculate_log_likelihood(tree);
+    };
+};
 
 /// Runs lcfit, generating parameters for the BSM
 class LCFitter
@@ -213,104 +178,39 @@ public:
     ///
     /// Given a set of starting points, attempts to add (branch_length, ll) points until the function is non-monotonic,
     /// then fits the BS model using these sampled points.
-    vector<double> fit_model(const Tree& tree, const int node_id)
+    bsm_t fit_model(const Tree& tree, const int node_id)
     {
         const double original_dist = tree.getDistanceToFather(node_id);
-        vector<double> x = start; // Initial conditions for [c,m,r,b]
-        const vector<Point> points = this->select_points(tree, node_id);
+        bsm_t m = {start[0], start[1], start[2], start[3]};
+        NodeLogLikelihoodCalculator ll{calc,tree,node_id};
+        lcfit::LCFitResult fit_result = lcfit::fit_bsm_log_likelihood(ll, m, sample_points, 8);
+        assert(tree.getDistanceToFather(node_id) == original_dist);
 
         // Log fit
         if(csv_fit_out != nullptr) {
-            for(const Point& p : points) {
+            for(const Point& p : fit_result.evaluated_points) {
                 *csv_fit_out << node_id << "," << p.x << "," << p.y << endl;
             }
         }
 
         // Scale initial conditions to intersect with maximum likelihood point
-        const Point p = *std::max_element(begin(points), end(points),
-                [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
-        double scale_factor = lcfit_bsm_scale_factor(p.x, p.y, x[0], x[1], x[2], x[3]);
-        x[0] *= scale_factor;
-        x[1] *= scale_factor;
-
-        assert(tree.getDistanceToFather(node_id) == original_dist);
-
-        // Extract x, y
-        vector<double> t, l;
-        t.reserve(points.size());
-        std::transform(begin(points), end(points), std::back_inserter(t), [](const Point& p) ->double { return p.x; });
-        l.reserve(points.size());
-        std::transform(begin(points), end(points), std::back_inserter(l), [](const Point& p) ->double { return p.y; });
-
-        const int status = lcfit_fit_bsm(t.size(), t.data(), l.data(), x.data());
-        if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
-        return x;
+        return fit_result.model_fit;
     }
 private:
     const vector<double> start;
     const vector<double> sample_points;
     TreeLikelihoodCalculator* calc;
     ostream* csv_fit_out;
-
-    /// Choose the input (branch_length, ll) samples for running lcfit
-    vector<Point> select_points(Tree tree, const int node_id, const size_t max_points=8) // TODO: Fix magic number 8
-    {
-        vector<Point> points;
-
-        // Try starting points
-        for(const double & d : sample_points) {
-            tree.setDistanceToFather(node_id, d);
-            points.emplace_back(d, calc->calculate_log_likelihood(tree));
-        }
-
-        // Add additional samples until the evaluated branch lengths enclose a maximum.
-        size_t offset; // Position
-        double d;      // Branch length
-
-        Monotonicity c = monotonicity(points);
-        do {
-            switch(c) {
-            case Monotonicity::NON_MONOTONIC:
-                d = (points[1].x + points[2].x) / 2.0; // Add a point between the first and second try
-                offset = 2;
-                break;
-            case Monotonicity::MONO_INC:
-                d = points.back().x * 2.0; // Double largest value
-                offset = points.size();
-                break;
-            case Monotonicity::MONO_DEC:
-                d = points[0].x / 10.0; // Add new smallest value - order of magnitude lower
-                offset = 0;
-                break;
-            default:
-                assert(false);
-            }
-
-            tree.setDistanceToFather(node_id, d);
-            points.emplace(points.begin() + offset, d, calc->calculate_log_likelihood(tree));
-
-            c = monotonicity(points);
-
-            assert(is_sorted(points.begin(), points.end(),
-                        [](const Point& p1, const Point& p2) -> bool { return p1.x < p1.y; }));
-        } while(points.size() <= max_points && c != Monotonicity::NON_MONOTONIC);
-
-        return points;
-    };
 };
 
 // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
-vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const vector<double>& x, const double delta=0.01) {
+vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const bsm_t& m, const double delta=0.01) {
     vector<Evaluation> evaluations;
-    const double c = x[0];
-    const double m = x[1];
-    const double r = x[2];
-    const double b = x[3];
     const double t = tree.getDistanceToFather(node_id);
     for(double t = delta; t <= 1.; t += delta) {
         tree.setDistanceToFather(node_id, t);
         double actual_ll = calc->calculate_log_likelihood(tree);
-        double fit_ll = lcfit_bsm_log_like(t, c, m, r, b);
+        double fit_ll = lcfit_bsm_log_like(t, &m);
         evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
     }
     tree.setDistanceToFather(node_id, t);
@@ -318,14 +218,10 @@ vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const
 }
 
 // Compare ML branch length estimate from lcfit to original branch length (presumed to be ML value)
-ModelFit compare_ml_values(const Tree& tree, const int node_id, const vector<double>& x) {
-    const double c = x[0];
-    const double m = x[1];
-    const double r = x[2];
-    const double b = x[3];
-    const double t_hat = lcfit_bsm_ml_t(c, m, r, b);
+ModelFit compare_ml_values(const Tree& tree, const int node_id, const bsm_t m) {
+    const double t_hat = lcfit_bsm_ml_t(&m);
     const double t = tree.getDistanceToFather(node_id);
-    return ModelFit(node_id, t, t_hat, c, m, r, b);
+    return ModelFit(node_id, t, t_hat, m.c, m.m, m.r, m.b);
 }
 
 int run_main(int argc, char** argv)
@@ -381,12 +277,12 @@ int run_main(int argc, char** argv)
     for(const int & node_id : tree.getNodesId()) {
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
-        vector<double> x = fit.fit_model(tree, node_id);
-        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, x, 0.01);
+        const bsm_t m = fit.fit_model(tree, node_id);
+        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, m, 0.01);
         // Write to CSV
         std::for_each(begin(evals), end(evals),
             [&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
-        const ModelFit fit = compare_ml_values(tree, node_id, x);
+        const ModelFit fit = compare_ml_values(tree, node_id, m);
         to_csv(csv_ml_out, fit);
     }
 
