@@ -1,0 +1,15 @@
+alphabet=DNA
+rate_distribution=Uniform()
+
+nonhomogeneous = general
+nonhomogeneous.number_of_models = 3
+nonhomogeneous.root_freq=GC(theta=0.6)
+
+model1=T92()
+model2=MixedModel(model=T92(kappa=Simple(values=(4,10,20),probas=(0.1,0.5,0.4))))
+model3=MixedModel(model=TN93(theta1=Simple(values=(0.1,0.5,0.9),probas=(0.3,0.2,0.5))))
+
+model1.nodes_id=0:6
+model2.nodes_id=7:12
+model3.nodes_id=13:17
+

@@ -36,9 +36,27 @@ models = {
                      #'alphabet': 'DNA',
                      #'ignore': """TN93.kappa1_Gamma.alpha,TN93.kappa1_Gamma.beta,TN93.kappa2_Exponential.lambda,TN93.theta,TN93.theta1,TN93.theta2""",},
 
+        # Nonhomogenous
+        'TN93-nonhom': {
+            'alphabet': 'DNA',
+            'detail': """
+nonhomogeneous = general
+nonhomogeneous.number_of_models = 3
+nonhomogeneous.root_freq=GC(theta=0.6)
+
+model1=T92()
+model2=MixedModel(model=T92(kappa=Simple(values=(4,10,20),probas=(0.1,0.5,0.4))))
+model3=MixedModel(model=TN93(theta1=Simple(values=(0.1,0.5,0.9),probas=(0.3,0.2,0.5))))
+
+model1.nodes_id=0:6
+model2.nodes_id=7:12
+model3.nodes_id=13:17
+""",
+            'ignore': 'GC.theta,T92.kappa_1,T92.theta_1,T92.kappa_Simple.V1_1,T92.kappa_Simple.theta1_1,T92.kappa_Simple.V2_1,T92.kappa_Simple.theta2_1,T92.kappa_Simple.V3_1,T92.theta_2,TN93.kappa1_1,TN93.kappa2_1,TN93.theta_1,TN93.theta1_Simple.V1_1,TN93.theta1_Simple.theta1_1,TN93.theta1_Simple.V2_1,TN93.theta1_Simple.theta2_1,TN93.theta1_Simple.V3_1,TN93.theta2_1'},
+
         # Protein models
         #'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
-        'WAG01': {'name': 'WAG01', 'alphabet':'Protein'},
+        #'WAG01': {'name': 'WAG01', 'alphabet':'Protein'},
         #'LG08': {'name': 'LG08', 'alphabet':'Protein'},
 }
 
@@ -67,8 +85,11 @@ def model_file(outdir, c):
     def write_model_action(target, source, env):
         with open(str(target[0]), 'w') as fp:
             print >> fp, """alphabet={model[alphabet]}
-model={model[name]}
 rate_distribution={rdist}""".format(**c)
+            if 'name' in c['model']:
+                print >> fp, """model={model[name]}""".format(**c)
+            else:
+                print >> fp, """{model[detail]}""".format(**c)
     target = os.path.join(outdir, 'model.bpp')
     return env.Command(target, [], write_model_action)[0]
 

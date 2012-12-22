@@ -1,0 +1,20 @@
+# Log likelihood = -12887.83520403916190844029
+# Number of sites = 1000
+
+# Substitution model parameters:
+nonhomogeneous = general
+nonhomogeneous.number_of_models = 3
+
+model1 = T92(kappa=1.000000000000, theta=0.500000000000)
+model1.nodes_id = 0,1,2,3,4,5,6
+
+model2 = MixtureOfASubstitutionModel(T92.kappa_Simple.V1=4.000000000000, T92.kappa_Simple.theta1=0.100000000000, T92.kappa_Simple.V2=10.000000000000, T92.kappa_Simple.theta2=0.555556000000, T92.kappa_Simple.V3=20.000000000000, T92.theta=0.500000000000)
+model2.nodes_id = 7,8,9,10,11,12
+
+model3 = MixtureOfASubstitutionModel(TN93.kappa1=1.000000000000, TN93.kappa2=1.000000000000, TN93.theta=0.500000000000, TN93.theta1_Simple.V1=0.100000000000, TN93.theta1_Simple.theta1=0.300000000000, TN93.theta1_Simple.V2=0.500000000000, TN93.theta1_Simple.theta2=0.285714000000, TN93.theta1_Simple.V3=0.900000000000, TN93.theta2=0.500000000000)
+model3.nodes_id = 13,14,15,16,17
+
+# Root frequencies:
+nonhomogeneous.root_freq = GC(theta=0.600000000000)
+# Rate distribution parameters:
+rate_distribution = Uniform()

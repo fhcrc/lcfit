@@ -1,0 +1,5 @@
+
+param=runs/tree0006/TN93-nonhom/uniform/1.0E-01/model.bpp
+number_of_sites=1000
+input.tree.format=Newick
+output.sequence.format=Fasta()
