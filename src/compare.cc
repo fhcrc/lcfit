@@ -218,7 +218,8 @@ vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const
 }
 
 // Compare ML branch length estimate from lcfit to original branch length (presumed to be ML value)
-ModelFit compare_ml_values(const Tree& tree, const int node_id, const bsm_t m) {
+ModelFit compare_ml_values(const Tree& tree, const int node_id, const bsm_t m)
+{
     const double t_hat = lcfit_bsm_ml_t(&m);
     const double t = tree.getDistanceToFather(node_id);
     return ModelFit(node_id, t, t_hat, m.c, m.m, m.r, m.b);

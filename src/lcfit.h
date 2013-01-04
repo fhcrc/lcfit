@@ -32,7 +32,8 @@ const bsm_t DEFAULT_INIT = {1500.0, 1000.0, 1.0, 0.5};
 /** \brief The log likelihood for the Binary Symmetric Model at a given branch length
  *
  *  \f[
- *    l[i] = c*log((1+\exp(-r*(t[i]+b)))/2)+m*log((1-\exp(-r*(t[i]+b)))/2)
+ *    L(t|c,m,r,b) = c \log\left(\frac{1+e^{-r (t+b)}}{2}\right)+
+ *                   m \log\left(\frac{1-e^{-r (t+b)}}{2}\right)
  *  \f]
  *
  *  \param t Branch length

@@ -1,4 +1,8 @@
 /* http://www.gnu.org/software/gsl/manual/html_node/Nonlinear-Least_002dSquares-Fitting.html */
+/**
+ * \file lcfit.c
+ * \brief lcfit C-API implementation.
+ */
 
 #include "lcfit.h"
 
@@ -40,7 +44,7 @@ struct data_to_fit {
 };
 
 /* Evaluate the likelihood curve described in data at the point x. */
-int expb_f(const gsl_vector* x, void* data, gsl_vector* f)
+int lcfit_pair_f(const gsl_vector* x, void* data, gsl_vector* f)
 {
     const size_t n = ((struct data_to_fit*) data)->n;
     const double* t = ((struct data_to_fit*) data)->t;
@@ -61,7 +65,7 @@ int expb_f(const gsl_vector* x, void* data, gsl_vector* f)
 }
 
 /* The corresponding Jacobian. */
-int expb_df(const gsl_vector* x, void* data, gsl_matrix* J)
+int lcfit_pair_df(const gsl_vector* x, void* data, gsl_matrix* J)
 {
     const size_t n = ((struct data_to_fit*) data)->n;
     const double* t = ((struct data_to_fit*) data)->t;
@@ -93,10 +97,10 @@ int expb_df(const gsl_vector* x, void* data, gsl_matrix* J)
     return GSL_SUCCESS;
 }
 
-int expb_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J)
+int lcfit_pair_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J)
 {
-    expb_f(x, data, f);
-    expb_df(x, data, J);
+    lcfit_pair_f(x, data, f);
+    lcfit_pair_df(x, data, J);
 
     return GSL_SUCCESS;
 }
@@ -135,9 +139,9 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
      * http://www.gnu.org/software/gsl/manual/html_node/Vector-views.html */
     gsl_vector_const_view x_view = gsl_vector_const_view_array(x, 4);
 
-    fdf.f = &expb_f;
-    fdf.df = &expb_df;
-    fdf.fdf = &expb_fdf;
+    fdf.f = &lcfit_pair_f;
+    fdf.df = &lcfit_pair_df;
+    fdf.fdf = &lcfit_pair_fdf;
     fdf.n = n;
     fdf.p = 4; /* 4 parameters */
     fdf.params = &d;

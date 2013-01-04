@@ -59,7 +59,7 @@ Monotonicity monotonicity(const std::vector<Point>& points);
 /// Select points for use with lcfit
 ///
 /// \param log_like Function returning the actual log-likelihood of a branch length
-/// \param starting_pts Initial points to sample. {0.1,0.15,0.5} has given good results. More points will be added ot
+/// \param starting_pts Initial points to sample. {0.1,0.15,0.5} has given good results. More points will be added to
 /// ensure that the function is non-monotonic on the interval.
 /// \param max_points Maximum number of points to sample. Passed to lcfit::select_points.
 std::vector<Point> select_points(std::function<double(double)>, const std::vector<double>& v, const size_t max_points=8);

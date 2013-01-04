@@ -1,0 +1,23 @@
+/**\mainpage lcfit
+ *
+ * \section intro_sec Introduction
+ * lcfit provides methods to approximate likelihood functions under complex
+ * models using the Binary State Model, which is inexpensive to evaluate.
+ *
+ * The API is divided into two parts:
+ * * lcfit.h contains a pure-C API to perform fitting using a set of training
+ * points.
+ * * lcfit_cpp.h contains definitions for the C++11 API to lcfit.h, adding some additional functionality, like choosing the set of points at which to evaluate the likelihood function.
+ *
+ * \section model_sec Model
+ * The log-likelihood under the binary state model is:
+ *  \f[
+ *    L(t|c,m,r,b) = c \log\left(\frac{1+e^{-r (t+b)}}{2}\right)+
+ *                   m \log\left(\frac{1-e^{-r (t+b)}}{2}\right)
+ *  \f]
+ * Where:
+ * - \f$c\f$ is the number of constant sites
+ * - \f$m\f$ is the number of non-constant sites
+ * - \f$r\f$ is the rate
+ * - \f$b\f$ is the branch length offset.
+ */

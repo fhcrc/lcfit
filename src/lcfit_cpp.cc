@@ -1,3 +1,7 @@
+/**
+ * \file lcfit_cpp.cc
+ * \brief lcfit C++-API implementation
+ */
 #include "lcfit_cpp.h"
 
 #include <algorithm>
