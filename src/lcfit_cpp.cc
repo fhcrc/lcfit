@@ -110,7 +110,7 @@ Monotonicity monotonicity(const std::vector<Point>& points)
     if(!maybe_inc && !maybe_dec) return Monotonicity::NON_MONOTONIC;
     else if(maybe_inc) return Monotonicity::MONO_INC;
     else if(maybe_dec) return Monotonicity::MONO_DEC;
-    assert(false);
+    throw runtime_error("Monotonicity reached end of function.");
 }
 
 /// Fit the BSM
