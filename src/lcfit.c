@@ -8,17 +8,6 @@
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
 
-/* First, the log likelihood function. */
-/* A struct to store the parameters. */
-struct ll_params {
-    double c, /* "number of constant sites" */
-           m, /* "number of mutations" */
-           r, /* "rate of mutation" */
-           b; /* "minimum branch length" */
-};
-
-/* The log likelihood for the Binary Symmetric Model with given parameters. */
-/* Model l[i] = c*log((1+exp(-r*(t[i]+b)))/2)+m*log((1-exp(-r*(t[i]+b)))/2) */
 double lcfit_bsm_log_like(const double t, const bsm_t* m)
 {
     double expterm = exp(-m->r * (t + m->b));

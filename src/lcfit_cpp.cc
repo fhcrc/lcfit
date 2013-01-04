@@ -27,11 +27,6 @@ struct point_by_x
     };
 };
 
-/// Select points for use with lcfit
-/// \param log_like Function returning the actual log-likelihood of a branch length
-/// \param starting_pts Initial points to sample. {0.1,0.15,0.5} has given good results. More points will be added ot
-/// ensure that the function is non-monotonic on the interval.
-/// \param max_points Maximum number of points to sample. Passed to lcfit::select_points.
 vector<Point> select_points(std::function<double(double)> log_like, const std::vector<double>& starting_pts, const size_t max_points)
 {
         vector<Point> points;
@@ -76,8 +71,6 @@ vector<Point> select_points(std::function<double(double)> log_like, const std::v
         return points;
 }
 
-/// Select the top \c n points from \c points by log-likelihood
-/// \returns The top \c n points, ordered by increasing \c x value.
 vector<Point> retain_top(const vector<Point>& points, const size_t n)
 {
     if(n >= points.size()) return points;
@@ -90,8 +83,6 @@ vector<Point> retain_top(const vector<Point>& points, const size_t n)
     return sorted;
 }
 
-/// Classify \c points by monotonicity.
-/// \param points Input points, <b>sorted by increasing x-value</b>
 Monotonicity monotonicity(const std::vector<Point>& points)
 {
     assert(points.size() > 1);
@@ -113,12 +104,6 @@ Monotonicity monotonicity(const std::vector<Point>& points)
     throw runtime_error("Monotonicity reached end of function.");
 }
 
-/// Fit the BSM
-/// \param log_like Function returning the actual log-likelihood of a branch length
-/// \param init_model Initial model. <i>will be scaled to speed fit</i>
-/// \param sample_points Initial points to sample. {0.1,0.15,0.5} has given good results. More points will be added ot
-/// ensure that the function is non-monotonic on the interval.
-/// \param max_points Maximum number of points to sample. Passed to lcfit::select_points.
 LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like, const bsm_t& init_model, const std::vector<double>& sample_points, const size_t max_points)
 {
     bsm_t model = init_model;

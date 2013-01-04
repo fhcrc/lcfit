@@ -1,4 +1,4 @@
-.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test
+.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc
 
 BUILD := _build
 CMAKE_BUILD_TYPE ?= Debug
@@ -28,6 +28,9 @@ setup-cmake:
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+doc:
+	doxygen
 
 style:
 	astyle  -A3 \
