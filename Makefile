@@ -1,10 +1,16 @@
-.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc
+.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc release debug
 
 BUILD := _build
-CMAKE_BUILD_TYPE ?= Debug
-BUILD_DIR := $(BUILD)/$(CMAKE_BUILD_TYPE)
 
-all: lcfit-compare lcfit-test
+all: release
+
+release: CMAKE_BUILD_TYPE=Release
+release: BUILD_DIR=$(BUILD)/release
+release: lcfit-compare test
+
+debug: CMAKE_BUILD_TYPE=Debug
+debug: BUILD_DIR=$(BUILD)/debug
+debug: lcfit-compare test
 
 data.pdf: data.csv
 	Rscript plot_fits.R data.csv data.maxima.csv data.fit.csv data.pdf
@@ -27,7 +33,7 @@ setup-cmake:
 	cd $(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) ../..
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD)
 
 doc:
 	doxygen

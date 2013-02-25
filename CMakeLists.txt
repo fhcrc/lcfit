@@ -20,7 +20,7 @@ add_library(lcfit-cpp-static STATIC
   ${LCFIT_LIB_C_FILES})
 
 # Comparison
-project(lcfit CXX)
+project(lcfit C CXX)
 set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
 
 set(LCFIT_COMPARE_CPP ${CMAKE_CURRENT_SOURCE_DIR}/src/compare.cc)

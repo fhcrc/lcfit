@@ -9,6 +9,7 @@ from SCons.Script import Environment
 
 env = Environment(ENV=os.environ.copy())
 env.PrependENVPath('PATH', '../_build/Debug')
+env.PrependENVPath('PATH', '../_build/Release')
 env.PrependENVPath('PATH', '..')
 
 n = Nest(base_dict={'n_sites': 1000})
