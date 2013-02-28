@@ -1,6 +1,8 @@
 .PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc release debug
 
 BUILD := _build
+CMAKE_BUILD_TYPE = Debug
+BUILD_DIR = $(BUILD)/$(CMAKE_BUILD_TYPE)
 
 all: release
 
