@@ -1,4 +1,4 @@
-.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc release debug
+.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc release debug build-all
 
 BUILD := _build
 CMAKE_BUILD_TYPE = Debug
@@ -8,11 +8,21 @@ all: release
 
 release: CMAKE_BUILD_TYPE=Release
 release: BUILD_DIR=$(BUILD)/release
-release: lcfit-compare test
+release: build-all
 
 debug: CMAKE_BUILD_TYPE=Debug
 debug: BUILD_DIR=$(BUILD)/debug
-debug: lcfit-compare test
+debug: build-all
+
+build-all: setup-cmake
+	make -C $(BUILD_DIR)
+
+test: CMAKE_BUILD_TYPE=Debug
+test: BUILD_DIR=$(BUILD)/debug
+test: lcfit-test
+	make -C $(BUILD_DIR) lcfit-shared
+	$(BUILD_DIR)/$<
+	python test/test_lcfit.py
 
 data.pdf: data.csv
 	Rscript plot_fits.R data.csv data.maxima.csv data.fit.csv data.pdf
@@ -26,9 +36,6 @@ lcfit-compare: setup-cmake
 
 lcfit-test: setup-cmake
 	+make -C$(BUILD_DIR) $@
-
-test: lcfit-test
-	$(BUILD_DIR)/$<
 
 setup-cmake:
 	mkdir -p $(BUILD_DIR)
