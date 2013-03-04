@@ -12,6 +12,8 @@
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
 
+const bsm_t DEFAULT_INIT = {1500.0, 1000.0, 1.0, 0.5};
+
 double lcfit_bsm_log_like(const double t, const bsm_t* m)
 {
     double expterm = exp(-m->r * (t + m->b));
@@ -34,6 +36,13 @@ double lcfit_bsm_scale_factor(const double t, const double l, const bsm_t* m)
 {
     double result = l / lcfit_bsm_log_like(t, m);
     return result;
+}
+
+void lcfit_bsm_rescale(const double t, const double l, bsm_t* m)
+{
+    double scale = lcfit_bsm_scale_factor(t, l, m);
+    m->c *= scale;
+    m->m *= scale;
 }
 
 /* Next, the data to fit such a log likelihood function. */

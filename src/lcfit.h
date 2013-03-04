@@ -1,9 +1,10 @@
-/* http://www.gnu.org/software/gsl/manual/html_node/Nonlinear-Least_002dSquares-Fitting.html */
 /**
  * \file lcfit.h
  * \brief lcfit C-API
  *
- * Fit the binary-symmetric model
+ * Fit the binary-symmetric model using Levenberg-Marquardt.
+ * See http://www.gnu.org/software/gsl/manual/html_node/Nonlinear-Least_002dSquares-Fitting.html
+ * for method details.
  */
 #ifndef LCFIT_H
 #define LCFIT_H
@@ -27,7 +28,7 @@ typedef struct {
 } bsm_t;
 
 /** \brief Default initial conditions */
-const bsm_t DEFAULT_INIT = {1500.0, 1000.0, 1.0, 0.5};
+extern const bsm_t DEFAULT_INIT;
 
 /** \brief The log likelihood for the Binary Symmetric Model at a given branch length
  *
@@ -60,6 +61,17 @@ double lcfit_bsm_ml_t(const bsm_t* m);
  * \return A value \c v, such that the likelihood curve for the model <c>{c / v, m / v, r, b}</c> intersects with \f$(t, l)\f$
  */
 double lcfit_bsm_scale_factor(const double t, const double l, const bsm_t* m);
+
+/**
+ * \brief Rescale \c m to intersect with \f$(t, l)\f$.
+ *
+ * \see lcfit_bsm_scale_factor
+ *
+ * \param t Branch length
+ * \param l Log-likelihood
+ * \param m Model - updated
+ */
+void lcfit_bsm_rescale(const double t, const double l, bsm_t* m);
 
 /** \brief Fit the BSM
  *
