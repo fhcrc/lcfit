@@ -33,8 +33,18 @@ monotonicity(const point_t points[], const size_t n)
     return MONO_UNKNOWN;
 }
 
+/**
+ * \brief Select points to use in fitting the BSM
+ *
+ * \param log_like Log-likelihood function
+ * \param starting_pts Initial branch lengths to use - *ordered*
+ * \param num_pts Number of points in \c starting_points. The number of points returned is stored here.
+ * \param max_pts Maximum number of points to add
+ * \param args additional arguments to pass to \c log_like
+ * \return Points enclosing a maximum.
+ */
 point_t*
-select_points(log_like_function_t log_like, const double* starting_pts, size_t *num_pts, const size_t max_pts, void* args)
+select_points(log_like_function_t log_like, const double *starting_pts, size_t *num_pts, const size_t max_pts, void *args)
 {
     point_t* points = malloc(sizeof(point_t) * (max_pts));
     size_t i, n = *num_pts;
@@ -49,7 +59,7 @@ select_points(log_like_function_t log_like, const double* starting_pts, size_t *
 
     /* Add additional samples until the evaluated branch lengths enclose a
      * maximum. */
-    size_t offset = 0;  /* Position */
+    size_t offset = 0;  /* Position to maintain sort order */
     double d = 0.0;     /* Branch length */
 
     monotonicity_t c = monotonicity(points, n);
