@@ -5,10 +5,10 @@ import unittest
 
 liblcfit = ctypes.cdll.LoadLibrary("_build/debug/liblcfit-shared.so")
 
-
+# Definitions
 class point_t(ctypes.Structure):
-    _fields_ = [("x", ctypes.c_double),
-                ("y", ctypes.c_double)]
+    _fields_ = [("t", ctypes.c_double),
+                ("ll", ctypes.c_double)]
 
 MONO_UNKNOWN = 0
 MONO_INC = 1
@@ -59,7 +59,8 @@ class ChoosePointsTestCase(unittest.TestCase):
         cls.select_points = liblcfit.select_points
         cls.select_points.restype = ctypes.POINTER(point_t)
         cls.select_points.argtypes = [LL_FUNC, ctypes.POINTER(ctypes.c_double),
-                                      ctypes.POINTER(ctypes.c_ulong), ctypes.c_ulong,
+                                      ctypes.POINTER(ctypes.c_ulong),
+                                      ctypes.c_ulong,
                                       ctypes.POINTER(None)]
 
     def test_basic(self):
@@ -74,25 +75,39 @@ class ChoosePointsTestCase(unittest.TestCase):
         self.assertEqual(5, n.value)
         expected_x = [0.5, 1.0, 1.1, 2.2, 4.4]
         for i in xrange(n.value):
-            self.assertAlmostEqual(expected_x[i], points[i].x)
-            self.assertAlmostEqual(py_ll(expected_x[i]), points[i].y)
+            self.assertAlmostEqual(expected_x[i], points[i].t)
+            self.assertAlmostEqual(py_ll(expected_x[i]), points[i].ll)
 
 
 class SortPointsTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Define functions
         cls.sort_by_like = liblcfit.sort_by_like
         cls.sort_by_like.restype = None
         cls.sort_by_like.argtypes = [ctypes.POINTER(point_t), ctypes.c_ulong]
 
-    def test_sort(self):
-        n = 4
-        array_t = point_t * n
-        arr = array_t((1, -4), (0.5, -500), (0.75, -0.75), (2.0, -28))
-        self.sort_by_like(arr, n)
+        cls.sort_by_t = liblcfit.sort_by_t
+        cls.sort_by_t.restype = None
+        cls.sort_by_t.argtypes = [ctypes.POINTER(point_t), ctypes.c_ulong]
 
-        t = [(float(i.x), float(i.y)) for i in arr]
+    def setUp(self):
+        self.n = 4
+        self.array_t = point_t * self.n
+
+    def test_sort_like(self):
+        arr = self.array_t((1, -4), (0.5, -500), (0.75, -0.75), (2.0, -28))
+        self.sort_by_like(arr, self.n)
+
+        t = [(float(i.t), float(i.ll)) for i in arr]
         self.assertEqual(sorted(t, key=lambda x: x[1], reverse=True), t)
+
+    def test_sort_t(self):
+        arr = self.array_t((1, -4), (0.5, -500), (0.75, -0.75), (2.0, -28))
+        self.sort_by_t(arr, self.n)
+
+        t = [(float(i.t), float(i.ll)) for i in arr]
+        self.assertEqual(sorted(t, key=lambda x: x[0]), t)
 
 if __name__ == '__main__':
     unittest.main()
