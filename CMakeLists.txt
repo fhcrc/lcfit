@@ -43,4 +43,4 @@ set(PHYML_SOURCES
 include_directories(${PHYML_SRC})
 add_executable(phyml
   ${PHYML_SOURCES})
-target_link_libraries(phyml m)
+target_link_libraries(phyml m lcfit-static gsl gslcblas)
