@@ -15,7 +15,6 @@ the GNU public licence.  See http://www.opensource.org for details.
 #include "lcfit_select.h"
 #include <assert.h>
 #include <stdio.h>
-const double LCFIT_TOLERANCE = 1e-3;
 #endif
 
 
@@ -569,7 +568,7 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
   log_like.args = (void*) &p;
   double t[4] = {0.01, 0.1, 0.5, 1.0};
   bsm_t model = DEFAULT_INIT;
-  const double ml_bl = estimate_ml_t(&log_like, t, 4, LCFIT_TOLERANCE, &model);
+  const double ml_bl = estimate_ml_t(&log_like, t, 4, tree->mod->s_opt->min_diff_lk_local, &model);
 
   if(isnan(ml_bl)) {
     /* Fall back on brent */
