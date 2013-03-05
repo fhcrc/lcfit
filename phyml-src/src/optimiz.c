@@ -11,6 +11,12 @@ the GNU public licence.  See http://www.opensource.org for details.
 */
 
 #include "optimiz.h"
+#ifdef USE_LCFIT
+#include "lcfit_select.h"
+#include <assert.h>
+#include <stdio.h>
+const double LCFIT_TOLERANCE = 1e-3;
+#endif
 
 
 //////////////////////////////////////////////////////////////
@@ -489,6 +495,36 @@ phydbl Br_Len_Brent_Default(t_edge *b_fcus, t_tree *tree)
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 
+#ifdef USE_LCFIT
+typedef struct {
+  t_edge *edge;
+  t_tree *tree;
+  supert_tree *stree;
+} t_lcfit_param;
+
+/**
+ * \brief Log-Likelihood for a given branch length.
+ *
+ * **Modifies tree!**
+ *
+ * \param bl Branch length
+ * \param params cast to #t_lcfit_param.
+ * \return log-likelihood
+ */
+double Lk_Lcfit(double bl, void* params) {
+  t_lcfit_param* p =(t_lcfit_param*)params;
+
+  p->edge->l->v = bl;
+  const phydbl result = Wrap_Lk_At_Given_Edge(p->edge, p->tree, p->stree);
+  /*p->edge->l->v = orig_bl;*/
+  /*p->tree->c_lnL = orig_lnl;*/
+
+  /*fprintf(stderr, "%x %x - %f = %f\n", p->tree, p->edge, bl, result);*/
+
+  return result;
+}
+#endif
+
 phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tree)
 {
   t_tree *loc_tree;
@@ -517,6 +553,43 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
 
   if(b_fcus->l->onoff == OFF) return loc_tree->c_lnL;
 
+#ifdef USE_LCFIT
+  /*
+   * Edge length stored in b_fcus->l->v.
+   * Function being optimized is Wrap_Lk_At_Given_Edge.
+   * Returns log-likelihood.
+   */
+  /* For rollback */
+  const phydbl orig_bl = b_fcus->l->v;
+  const phydbl orig_lnl = tree->c_lnL;
+
+  t_lcfit_param p = {loc_b, loc_tree, NULL};
+  log_like_function_t log_like;
+  log_like.fn = Lk_Lcfit;
+  log_like.args = (void*) &p;
+  double t[4] = {0.01, 0.1, 0.5, 1.0};
+  bsm_t model = DEFAULT_INIT;
+  const double ml_bl = estimate_ml_t(&log_like, t, 4, LCFIT_TOLERANCE, &model);
+
+  if(isnan(ml_bl)) {
+    /* Fall back on brent */
+    Generic_Brent_Lk(&(b_fcus->l->v),
+        b_fcus->l->v*prop_min,
+        b_fcus->l->v*prop_max,
+        tree->mod->s_opt->min_diff_lk_local,
+        tree->mod->s_opt->brent_it_max,
+        tree->mod->s_opt->quickdirty,
+        Wrap_Lk_At_Given_Edge,
+        loc_b,loc_tree,NULL);
+  } else {
+    if(tree->c_lnL < orig_lnl - tree->mod->s_opt->min_diff_lk_local) {
+      /* Move did not improve log-likelihood sufficiently - reject */
+      loc_b->l->v = orig_bl;
+      loc_tree->c_lnL = orig_lnl;
+      Lk(loc_b, loc_tree);
+    }
+  }
+#else
   Generic_Brent_Lk(&(b_fcus->l->v),
                    b_fcus->l->v*prop_min,
                    b_fcus->l->v*prop_max,
@@ -525,7 +598,7 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
                    tree->mod->s_opt->quickdirty,
                    Wrap_Lk_At_Given_Edge,
                    loc_b,loc_tree,NULL);
-
+#endif
 
 
   /* if(tree->mod->gamma_mgf_bl == YES) */
