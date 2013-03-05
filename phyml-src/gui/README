@@ -1,0 +1,4 @@
+# Compilation options
+
+javac  -sourcepath src/ -classpath class/ src/*.java -d class
+java -classpath class/ PhymlMain
