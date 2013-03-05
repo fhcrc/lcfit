@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-from ctypes import c_double, c_ulong, POINTER, pointer, byref, Structure, cdll, CFUNCTYPE, cast
+from ctypes import c_double, c_ulong, POINTER, byref, Structure, cdll, CFUNCTYPE
 import math
 import unittest
 
-liblcfit = cdll.LoadLibrary("_build/debug/liblcfit-shared.so")
-
+liblcfit = cdll.LoadLibrary("_build/debug/lcfit_src/liblcfit-shared.so")
 
 # Definitions
 class bsm_t(Structure):

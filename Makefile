@@ -20,8 +20,8 @@ build-all: setup-cmake
 test: CMAKE_BUILD_TYPE=Debug
 test: BUILD_DIR=$(BUILD)/debug
 test: lcfit-test
-	make -C $(BUILD_DIR) lcfit-shared
-	$(BUILD_DIR)/$<
+	$(BUILD_DIR)/lcfit_cpp_src/$<
+	make -C$(BUILD_DIR) lcfit-shared
 	python test/test_lcfit.py
 
 data.pdf: data.csv
