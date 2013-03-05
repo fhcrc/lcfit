@@ -41,6 +41,12 @@ set(PHYML_SOURCES
   ${PHYML_SRC}/main.c
 )
 include_directories(${PHYML_SRC})
+
+# LCFIT
+add_definitions(-DUSE_LCFIT)
+include_directories(lcfit_src)
+# END LCFIT
+
 add_executable(phyml
   ${PHYML_SOURCES})
 target_link_libraries(phyml m lcfit-static gsl gslcblas)

@@ -4,7 +4,7 @@ BUILD := _build
 CMAKE_BUILD_TYPE = Debug
 BUILD_DIR = $(BUILD)/$(CMAKE_BUILD_TYPE)
 
-all: release
+all: debug
 
 release: CMAKE_BUILD_TYPE=Release
 release: BUILD_DIR=$(BUILD)/release

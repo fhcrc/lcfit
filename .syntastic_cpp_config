@@ -1,3 +1,5 @@
 -std=c++0x
+-Wall
+-Wextra
 -Isrc
--Ists/lib/include
+-Iphyml-src/src
