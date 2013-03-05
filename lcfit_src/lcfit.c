@@ -14,7 +14,7 @@
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
 
-const bsm_t DEFAULT_INIT = {1500.0, 1000.0, 1.0, 0.5};
+const bsm_t DEFAULT_INIT = {1500.0, 400.0, 1.0, 0.5};
 
 double lcfit_bsm_log_like(const double t, const bsm_t* m)
 {
