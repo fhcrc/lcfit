@@ -8,6 +8,10 @@
 #include <math.h>
 #include <string.h>
 
+#ifdef LCFIT_DEBUG
+#include <stdio.h>
+#endif
+
 #define FALSE 0
 #define TRUE 1
 
@@ -209,7 +213,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             sort_by_t(points, n_pts);
         }
 
-
         /* Allocate an extra point for scratch */
         points = realloc(points, sizeof(point_t) * (n_pts + 1));
     }
@@ -236,6 +239,20 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
           ml_t = 1e-8;
           break;
         }
+
+#ifdef LCFIT_DEBUG
+        if(isnan(ml_t)) {
+          size_t i;
+          fprintf(stderr, "NaN ml_t:\nlet m = {c=%f;m=%f;r=%f;b=%f};;\n", model->c, model->m, model->r, model->b);
+          fprintf(stderr, "let points = [|");
+          for(i = 0; i < n_pts; i++) {
+            fprintf(stderr, "(%f, %f); ", t[i], l[i]);
+          }
+          fprintf(stderr, "|];;\n");
+          break;
+        }
+#endif
+
         points[n_pts].t = ml_t;
         points[n_pts].ll = log_like->fn(ml_t, log_like->args);
 
