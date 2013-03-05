@@ -13,6 +13,7 @@ the GNU public licence. See http://www.opensource.org for details.
 #include "lk.h"
 
 int n_sec2 = 0;
+unsigned long n_like_calls = 0;
 /* int    LIM_SCALE; */
 /* phydbl LIM_SCALE_VAL; */
 /* phydbl BIG; */
@@ -374,6 +375,7 @@ void Pre_Order_Lk(t_node *a, t_node *d, t_tree *tree)
 
 phydbl Lk(t_edge *b, t_tree *tree)
 {
+  n_like_calls++;
   int br;
   int n_patterns,ambiguity_check,state;
   int i;

@@ -332,6 +332,7 @@ int main(int argc, char **argv)
 #ifdef MPI
   MPI_Finalize();
 #endif
+  fprintf(stderr, "== Total number of likelihood calls: %zu\n", n_like_calls);
 
   return 0;
 }

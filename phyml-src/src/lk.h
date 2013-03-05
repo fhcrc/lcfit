@@ -22,6 +22,9 @@ the GNU public licence.  See http://www.opensource.org for details.
 #include "times.h"
 #include "mixt.h"
 
+
+extern unsigned long n_like_calls;
+
 void Init_Tips_At_One_Site_Nucleotides_Float(char state, int pos, phydbl *p_lk);
 void Init_Tips_At_One_Site_AA_Float(char aa, int pos, phydbl *p_lk);
 void Get_All_Partial_Lk(t_tree *tree,t_edge *b_fcus,t_node *a,t_node *d);
