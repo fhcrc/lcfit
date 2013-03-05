@@ -6,7 +6,9 @@
 
 #include "lcfit.h"
 
+#include <assert.h>
 #include <stdlib.h>
+
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlin.h>
@@ -134,8 +136,6 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
 */
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
 {
-    const gsl_multifit_fdfsolver_type* T;
-    gsl_multifit_fdfsolver* s;
     double x[4] = {m->c, m->m, m->r, m->b};
 
     int status;
@@ -155,8 +155,9 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
     fdf.p = 4; /* 4 parameters */
     fdf.params = &d;
 
-    T = gsl_multifit_fdfsolver_lmsder;
-    s = gsl_multifit_fdfsolver_alloc(T, n, 4);
+    const gsl_multifit_fdfsolver_type *T = gsl_multifit_fdfsolver_lmsder;
+    gsl_multifit_fdfsolver* s = gsl_multifit_fdfsolver_alloc(T, n, 4);
+    assert(s != NULL && "Solver allocation failed!");
     gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
     do {

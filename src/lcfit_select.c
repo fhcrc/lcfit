@@ -92,7 +92,7 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
         points[offset].ll = l;
 
         c = monotonicity(points, n++);
-    } while(n <= max_pts && c != NON_MONOTONIC);
+    } while(n < max_pts && c != NON_MONOTONIC);
 
     *num_pts = n;
 
@@ -153,6 +153,7 @@ max_point(const point_t p[], const size_t n)
     return m;
 }
 
+/* Fill points by evaluating log_like for each value in ts */
 static inline void
 evaluate_ll(log_like_function_t *log_like, const double *ts,
             const size_t n_pts, point_t *points)
@@ -208,14 +209,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             sort_by_t(points, n_pts);
         }
 
-        /* Re-fit */
-        max_pt = max_point(points, n_pts);
-
-        lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
-        t = malloc(sizeof(double) * n_pts);
-        l = malloc(sizeof(double) * n_pts);
-        blit_points_to_arrays(points, n_pts, t, l);
-        lcfit_fit_bsm(n_pts, t, l, model);
 
         /* Allocate an extra point for scratch */
         points = realloc(points, sizeof(point_t) * (n_pts + 1));
@@ -223,6 +216,11 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
     max_pt = max_point(points, n_pts);
     double ml_t = -DBL_MAX;
+
+    /* Re-fit */
+    lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
+    blit_points_to_arrays(points, n_pts, t, l);
+    lcfit_fit_bsm(n_pts, t, l, model);
 
     /* TODO: factor out magic number for max iters */
     for(iter = 0; iter < 100; iter++) {
@@ -234,6 +232,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         }
 
         /* Add ml_t estimate */
+        if(ml_t < 0) {
+          ml_t = 1e-8;
+          break;
+        }
         points[n_pts].t = ml_t;
         points[n_pts].ll = log_like->fn(ml_t, log_like->args);
 
