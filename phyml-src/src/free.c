@@ -26,7 +26,13 @@ void Free_All_Nodes_Light(t_tree *mixt_tree)
     {
       For(i,2*tree->n_otu-1) Free_Node(tree->a_nodes[i]);
       Free(tree->a_nodes);
+#ifdef USE_LCFIT
+      Free(tree->lcfit_fit_points);
+      Free(tree->lcfit_models);
+#endif
+
       tree = tree->next;
+
     }
   while(tree);
 

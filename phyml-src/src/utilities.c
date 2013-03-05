@@ -7309,6 +7309,21 @@ void Prepare_Tree_For_Lk(t_tree *tree)
   Init_Triplet_Struct(tree->triplet_struct);
   Make_Spr_List(tree);
   Make_Best_Spr(tree);   
+#ifdef USE_LCFIT
+  size_t i, j;
+  const size_t n_edges = 2*tree->n_otu - 3;
+  tree->lcfit_models = malloc(sizeof(bsm_t) * n_edges);
+  for(i = 0; i < n_edges; i++) {
+    tree->lcfit_models[i] = DEFAULT_INIT;
+  }
+
+  tree->lcfit_fit_points = malloc(sizeof(double) * 4 * n_edges);
+  double default_points[4] = {0.01, 0.1, 0.5, 1.0};
+  for(i = 0; i < n_edges * 4; i += 4) {
+    for(j = 0; j < 4; ++j)
+      tree->lcfit_fit_points[i + j] = default_points[j];
+  }
+#endif
 
   if(tree->is_mixt_tree) MIXT_Prepare_Tree_For_Lk(tree);
 }

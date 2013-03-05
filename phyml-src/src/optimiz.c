@@ -566,9 +566,11 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
   log_like_function_t log_like;
   log_like.fn = Lk_Lcfit;
   log_like.args = (void*) &p;
-  double t[4] = {0.01, 0.1, 0.5, 1.0};
-  bsm_t model = DEFAULT_INIT;
-  const double ml_bl = estimate_ml_t(&log_like, t, 4, tree->mod->s_opt->min_diff_lk_local, &model);
+  assert(b_fcus->num <= 2*tree->n_otu - 3);
+  double *t = &(tree->lcfit_fit_points[4 * b_fcus->num]);
+
+  bsm_t *model = &(tree->lcfit_models[b_fcus->num]);
+  const double ml_bl = estimate_ml_t(&log_like, t, 4, tree->mod->s_opt->min_diff_lk_local, model);
 
   if(isnan(ml_bl)) {
     /* Fall back on brent */
