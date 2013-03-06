@@ -82,6 +82,22 @@ double
 estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model);
 
+/**
+ * \brief Choose the top \c k points by log-likelihood while maintaining monotonicity.
+ *
+ * Choose the point with maximum log-likelihood, as well as the point on either side.
+ * Then choose the \f$k - 3\f$ additional points with maximum log-likelihood.
+ *
+ * Exposed for testing.
+ *
+ * \param p Points, ordered by t
+ * \param n Number of points in #p
+ * \param k Number of points to retain.
+ */
+void
+subset_points(point_t p[], const size_t n, const size_t k);
+
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
