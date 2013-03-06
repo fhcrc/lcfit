@@ -6,16 +6,16 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
 #ifdef LCFIT_DEBUG
 #include <stdio.h>
 #endif
 
-#define FALSE 0
-#define TRUE 1
+const static size_t MAX_ITERS = 30;
 
-static int is_initialized = FALSE;
+static int is_initialized = false;
 static size_t ml_likelihood_calls = 0;
 static size_t bracket_likelihood_calls = 0;
 
@@ -29,7 +29,7 @@ void show_likelihood_calls(void)
 void lcfit_select_initialize(void)
 {
   if(!is_initialized) {
-    is_initialized = TRUE;
+    is_initialized = true;
     atexit(show_likelihood_calls);
   }
 }
@@ -60,7 +60,7 @@ monotonicity(const point_t points[], const size_t n)
     if(!maybe_inc && !maybe_dec) return NON_MONOTONIC;
     else if(maybe_inc) return MONO_INC;
     else if(maybe_dec) return MONO_DEC;
-    assert(FALSE && "Unknown monotonicity");
+    assert(false && "Unknown monotonicity");
     return MONO_UNKNOWN;
 }
 
@@ -108,7 +108,7 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
                 memmove(points + 1, points, sizeof(point_t) * n);
                 break;
             default:
-                assert(FALSE);
+                assert(false);
         }
 
         const double l = log_like->fn(d, log_like->args);
@@ -242,8 +242,10 @@ blit_points_to_arrays(const point_t points[], const size_t n,
 
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
-              const size_t n_pts, const double tolerance, bsm_t* model)
+              const size_t n_pts, const double tolerance, bsm_t* model,
+              bool* success)
 {
+    *success = false;
     size_t iter = 0;
     const point_t *max_pt;
     double *l = malloc(sizeof(double) * n_pts);
@@ -267,6 +269,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         m = monotonicity(points, n);
         if(m == MONO_DEC) {
           double ml_t = points[0].t;
+          *success = true;
           free(points);
           free(l);
           return ml_t;
@@ -282,43 +285,41 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     }
 
     max_pt = max_point(points, n_pts);
-    double ml_t = -DBL_MAX;
+    double ml_t = max_pt->t;
 
     /* Re-fit */
     lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
     blit_points_to_arrays(points, n_pts, t, l);
     lcfit_fit_bsm(n_pts, t, l, model);
 
-    /* TODO: factor out magic number for max iters */
-    for(iter = 0; iter < 100; iter++) {
+    for(iter = 0; iter < MAX_ITERS; iter++) {
         ml_t = lcfit_bsm_ml_t(model);
 
         if(isnan(ml_t)) {
-          break;
+            *success = false;
+            break;
         }
 
         /* convergence check */
         if(fabs(ml_t - max_pt->t) <= tolerance) {
+            *success = true;
+            break;
+        }
+
+        /* Check for nonsensical ml_t - if the value is outside the bracketed
+         * window, give up. */
+        size_t max_idx = max_pt - points;
+        if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
+            *success = false;
+            ml_t = NAN;
             break;
         }
 
         /* Add ml_t estimate */
         if(ml_t < 0) {
+            *success = true;
             ml_t = 1e-8;
             break;
-        }
-
-        if(isnan(ml_t)) {
-#ifdef LCFIT_DEBUG
-             size_t i;
-             fprintf(stderr, "NaN ml_t:\nlet m = {c=%f;m=%f;r=%f;b=%f};;\n", model->c, model->m, model->r, model->b);
-             fprintf(stderr, "let points = [|");
-             for(i = 0; i < n_pts; i++) {
-               fprintf(stderr, "(%f, %f); ", t[i], l[i]);
-             }
-             fprintf(stderr, "|];;\n");
-             break;
-#endif
         }
 
         points[n_pts].t = ml_t;
@@ -333,6 +334,9 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         lcfit_fit_bsm(n_pts, t, l, model);
         max_pt = max_point(points, n_pts);
     }
+
+    if(iter == MAX_ITERS)
+      *success = false;
 
     free(l);
     free(points);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from ctypes import c_double, c_ulong, POINTER, byref, Structure, cdll, CFUNCTYPE
+from ctypes import c_double, c_ulong, POINTER, byref, Structure, cdll, CFUNCTYPE, c_bool
 import math
 import unittest
 
@@ -137,7 +137,8 @@ class EstimateMLTestCase(unittest.TestCase):
                                       POINTER(c_double),
                                       c_ulong,
                                       c_double,
-                                      POINTER(bsm_t)]
+                                      POINTER(bsm_t),
+                                      POINTER(c_bool)]
         cls.lcfit_bsm_ml_t = liblcfit.lcfit_bsm_ml_t
         cls.lcfit_bsm_ml_t.restype = c_double
         cls.lcfit_bsm_ml_t.argtypes = [POINTER(bsm_t)]
@@ -146,7 +147,9 @@ class EstimateMLTestCase(unittest.TestCase):
         n = 4
         bsm = bsm_t(1800.0, 400.0, 1.0, 0.5)
         pts = (c_double * n)(0.1, 0.5, 1.0, 1.5)
-        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm))
+        success = c_bool()
+        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm), byref(success))
+        self.assertEqual(True, bool(success))
 
         self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(DEFAULT_MODEL)), r, places=2)
 
@@ -154,7 +157,9 @@ class EstimateMLTestCase(unittest.TestCase):
         n = 4
         bsm = bsm_t(1800.0, 400.0, 1.0, 0.5)
         pts = (c_double * n)(1.0, 1.1, 1.4, 1.5)
-        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm))
+        success = c_bool()
+        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm), byref(success))
+        self.assertEqual(True, bool(success))
         self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(bsm)), r, places=2)
 
 class SubsetPointsTestCase(unittest.TestCase):

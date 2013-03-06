@@ -571,14 +571,14 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
   double *t = &(tree->lcfit_fit_points[4 * b_fcus->num]);
 
   bsm_t *model = &(tree->lcfit_models[b_fcus->num]);
-  /*for(int i = 0; i < 4; i++)*/
-  /*fprintf(stderr, "%f\t", t[i]);*/
-  /*fprintf(stderr, "model: {c=%f,m=%f,r=%f,b=%f}\n", model->c, model->m, model->r, model->b);*/
-  const double ml_bl = estimate_ml_t(&log_like, t, 4, tree->mod->s_opt->min_diff_lk_local, model);
+  bool success = false;
+  const double ml_bl = estimate_ml_t(&log_like, t, 4, tree->mod->s_opt->min_diff_lk_local, model, &success);
 
-  if(isnan(ml_bl)) {
-    *model = DEFAULT_INIT;
+  if(!success) {
     /* Fall back on brent */
+    *model = DEFAULT_INIT;
+    loc_b->l->v = orig_bl;
+    Lk(loc_b, loc_tree);
     Generic_Brent_Lk(&(b_fcus->l->v),
         b_fcus->l->v*prop_min,
         b_fcus->l->v*prop_max,
@@ -587,13 +587,6 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
         tree->mod->s_opt->quickdirty,
         Wrap_Lk_At_Given_Edge,
         loc_b,loc_tree,NULL);
-    PhyML_Fprintf(stderr, ". LCFIT: NaN ml_t. Brent BL: %e\n", b_fcus->l->v);
-    size_t i;
-    for(i = 0; i < 4; ++i) {
-      PhyML_Fprintf(stderr, "%f\t", t[i]);
-    }
-    PhyML_Fprintf(stderr, "\n");
-    PhyML_Fprintf(stderr, "c=%f m=%f r=%f b=%f\n", model->c, model->m, model->r, model->b);
   } else {
     if(tree->c_lnL < orig_lnl - tree->mod->s_opt->min_diff_lk_local) {
       /* Move did not improve log-likelihood sufficiently - reject */
