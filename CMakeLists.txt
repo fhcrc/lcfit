@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 2.8.1)
 
+add_definitions(-DUSE_LCFIT -DLCFIT_DEBUG)
 add_subdirectory(lcfit_src)
 add_subdirectory(lcfit_cpp_src)
 
@@ -43,7 +44,6 @@ set(PHYML_SOURCES
 include_directories(${PHYML_SRC})
 
 # LCFIT
-add_definitions(-DUSE_LCFIT -DLCFIT_DEBUG)
 include_directories(lcfit_src)
 # END LCFIT
 

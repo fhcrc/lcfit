@@ -518,7 +518,7 @@ double Lk_Lcfit(double bl, void* params) {
   /*p->edge->l->v = orig_bl;*/
   /*p->tree->c_lnL = orig_lnl;*/
 
-  /*fprintf(stderr, "%x %x - %f = %f\n", p->tree, p->edge, bl, result);*/
+  /*fprintf(stderr, "%d - %f = %f\n", p->edge->num, bl, result);*/
 
   return result;
 }

@@ -15,6 +15,10 @@ the GNU public licence. See http://www.opensource.org for details.
 #ifndef UTILITIES_H
 #define UTILITIES_H
 
+#ifdef USE_LCFIT
+#include "lcfit.h"
+#endif
+
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -576,6 +580,11 @@ typedef struct __Tree{
   int                           max_spr_depth;
   
   short int                  apply_lk_scaling; /*! Applying scaling of likelihoods. YES/NO */
+
+#ifdef USE_LCFIT
+  double                    *lcfit_fit_points;
+  bsm_t                         *lcfit_models;
+#endif
 
 }t_tree;
 
