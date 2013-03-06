@@ -587,7 +587,13 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
         tree->mod->s_opt->quickdirty,
         Wrap_Lk_At_Given_Edge,
         loc_b,loc_tree,NULL);
-    fprintf(stderr,"NaN ml_t. Brent BL: %e\n", b_fcus->l->v);
+    PhyML_Fprintf(stderr, ". LCFIT: NaN ml_t. Brent BL: %e\n", b_fcus->l->v);
+    size_t i;
+    for(i = 0; i < 4; ++i) {
+      PhyML_Fprintf(stderr, "%f\t", t[i]);
+    }
+    PhyML_Fprintf(stderr, "\n");
+    PhyML_Fprintf(stderr, "c=%f m=%f r=%f b=%f\n", model->c, model->m, model->r, model->b);
   } else {
     if(tree->c_lnL < orig_lnl - tree->mod->s_opt->min_diff_lk_local) {
       /* Move did not improve log-likelihood sufficiently - reject */
@@ -606,7 +612,6 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
                    Wrap_Lk_At_Given_Edge,
                    loc_b,loc_tree,NULL);
 #endif
-
 
   /* if(tree->mod->gamma_mgf_bl == YES) */
   /*   { */

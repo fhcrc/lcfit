@@ -10,6 +10,10 @@ the GNU public licence. See http://www.opensource.org for details.
 
 */
 
+#ifdef LCFIT_DEBUG
+#include "lcfit_select.h"
+#endif
+
 #include "utilities.h"
 
 //////////////////////////////////////////////////////////////
@@ -7258,11 +7262,13 @@ void Init_Tree_For_Lcfit(t_tree *tree)
   }
 
   tree->lcfit_fit_points = malloc(sizeof(double) * 4 * n_edges);
-  double default_points[4] = {0.01, 0.1, 0.5, 1.0};
+  double default_points[4] = {0.1, 0.25, 0.5, 1.0};
   for(i = 0; i < n_edges * 4; i += 4) {
     for(j = 0; j < 4; ++j)
       tree->lcfit_fit_points[i + j] = default_points[j];
   }
+
+  lcfit_select_initialize();
 }
 #endif
 

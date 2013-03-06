@@ -15,6 +15,26 @@
 #define FALSE 0
 #define TRUE 1
 
+static int is_initialized = FALSE;
+static size_t ml_likelihood_calls = 0;
+static size_t bracket_likelihood_calls = 0;
+
+#ifdef LCFIT_DEBUG
+void show_likelihood_calls(void)
+{
+    fprintf(stdout, "LCFIT ML Estimation LL calls: %zu\n", ml_likelihood_calls);
+    fprintf(stdout, "LCFIT Bracketing LL calls: %zu\n", bracket_likelihood_calls);
+}
+
+void lcfit_select_initialize(void)
+{
+  if(!is_initialized) {
+    is_initialized = TRUE;
+    atexit(show_likelihood_calls);
+  }
+}
+#endif
+
 static const double DEFAULT_START[] = {0.1, 0.5, 1.0};
 static const size_t N_DEFAULT_START = 3;
 /** Default maximum number of points to evaluate in select_points */
@@ -94,6 +114,7 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
         const double l = log_like->fn(d, log_like->args);
         points[offset].t = d;
         points[offset].ll = l;
+        bracket_likelihood_calls++;
 
         c = monotonicity(points, n++);
     } while(n < max_pts && c != NON_MONOTONIC);
@@ -203,6 +224,7 @@ evaluate_ll(log_like_function_t *log_like, const double *ts,
     for(i = 0; i < n_pts; ++i, ++p) {
         p->t = *ts++;
         p->ll = log_like->fn(p->t, log_like->args);
+        ml_likelihood_calls++;
     }
 }
 
@@ -301,6 +323,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
         points[n_pts].t = ml_t;
         points[n_pts].ll = log_like->fn(ml_t, log_like->args);
+        ml_likelihood_calls++;
 
         /* Retain top n_pts by log-likelihood */
         sort_by_t(points, n_pts + 1);

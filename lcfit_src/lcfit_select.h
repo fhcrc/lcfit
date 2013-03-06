@@ -97,6 +97,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 void
 subset_points(point_t p[], const size_t n, const size_t k);
 
+#ifdef LCFIT_DEBUG
+void
+lcfit_select_initialize(void);
+#endif
 
 #ifdef __cplusplus
 } // extern "C"

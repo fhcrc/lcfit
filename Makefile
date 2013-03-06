@@ -1,4 +1,5 @@
-.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc release debug build-all
+.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test \
+	doc release debug build-all time
 
 BUILD := _build
 CMAKE_BUILD_TYPE = Debug
@@ -58,3 +59,7 @@ style:
 	        --lineend=linux \
 					--align-pointer=type \
 	        `find src -regextype posix-extended -regex ".*\.(cc|h|hpp)$$"`
+
+time: release
+	/usr/bin/time -o test/all_seq_phyml.timing \
+		_build/release/phyml -i test/all_seq.phy -b 0 --run_id=lcfit -a 0.5 -c 4
