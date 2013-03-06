@@ -1,8 +1,10 @@
 cmake_minimum_required (VERSION 2.8.1)
 
+if(NOT NO_LCFIT)
 add_definitions(-DUSE_LCFIT -DLCFIT_DEBUG)
 add_subdirectory(lcfit_src)
 add_subdirectory(lcfit_cpp_src)
+endif()
 
 project(phyml C)
 set(CMAKE_C_FLAGS "-ansi -pedantic -Wall -std=c99")
@@ -43,10 +45,10 @@ set(PHYML_SOURCES
 )
 include_directories(${PHYML_SRC})
 
-# LCFIT
-include_directories(lcfit_src)
-# END LCFIT
-
 add_executable(phyml
   ${PHYML_SOURCES})
+
+if(NOT NO_LCFIT)
 target_link_libraries(phyml m lcfit-static gsl gslcblas)
+include_directories(lcfit_src)
+endif()
