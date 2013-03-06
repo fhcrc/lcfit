@@ -149,8 +149,44 @@ max_point(const point_t p[], const size_t n)
         if(p->ll > m->ll) {
             m = p;
         }
+        ++p;
     }
     return m;
+}
+
+static inline size_t
+point_max_index(const point_t p[], const size_t n)
+{
+    assert(n > 0 && "Cannot take max_index of 0 points");
+    if(n == 1) return 0;
+    size_t i, max_i = 0;
+    for(i = 1; i < n; ++i) {
+        if(p[i].ll > p[max_i].ll)
+            max_i = i;
+    }
+    return max_i;
+}
+
+void
+subset_points(point_t p[], const size_t n, const size_t k)
+{
+    assert(monotonicity(p, n) == NON_MONOTONIC);
+    if(k == n) return;
+    assert(k <= n);
+    size_t max_idx = point_max_index(p, n);
+
+    if(max_idx != 1) {
+        /* Always keep the points before and after max_idx */
+        const size_t n_before = max_idx - 1;
+        const size_t s = n_before * sizeof(point_t);
+        point_t *buf = malloc(s);
+        memcpy(buf, p, s);
+        memmove(p, p + max_idx - 1, sizeof(point_t) * 3);
+        memcpy(p + 3, buf, s);
+        free(buf);
+    }
+    sort_by_like(p + 3, n - 3);
+    sort_by_t(p, k);
 }
 
 /* Fill points by evaluating log_like for each value in ts */
@@ -202,11 +238,17 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         evaluate_ll(log_like, DEFAULT_START, n, start_pts);
         points = select_points(log_like, start_pts, &n, DEFAULT_MAX_POINTS);
         free(start_pts);
+        m = monotonicity(points, n);
+        if(m == MONO_DEC) {
+          double ml_t = points[0].t;
+          free(points);
+          free(l);
+          return ml_t;
+        }
         assert(n >= n_pts);
         if(n > n_pts) {
             /* Subset to top n_pts */
-            sort_by_like(points, n);
-            sort_by_t(points, n_pts);
+            subset_points(points, n, n_pts);
         }
 
 
@@ -226,6 +268,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     for(iter = 0; iter < 100; iter++) {
         ml_t = lcfit_bsm_ml_t(model);
 
+        if(isnan(ml_t)) {
+          break;
+        }
+
         /* convergence check */
         if(fabs(ml_t - max_pt->t) <= tolerance) {
             break;
@@ -240,11 +286,12 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         points[n_pts].ll = log_like->fn(ml_t, log_like->args);
 
         /* Retain top n_pts by log-likelihood */
-        sort_by_like(points, n_pts + 1);
-        sort_by_t(points, n_pts);
+        sort_by_t(points, n_pts + 1);
+        subset_points(points, n_pts + 1, n_pts);
 
         blit_points_to_arrays(points, n_pts, t, l);
         lcfit_fit_bsm(n_pts, t, l, model);
+        max_pt = max_point(points, n_pts);
     }
 
     free(l);

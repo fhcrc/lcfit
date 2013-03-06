@@ -93,6 +93,7 @@ class ChoosePointsTestCase(unittest.TestCase):
         for i in xrange(n_pts.value):
             self.assertAlmostEqual(expected_x[i], points[i].t)
             self.assertAlmostEqual(py_ll(expected_x[i]), points[i].ll)
+        liblcfit.free(points)
 
 
 class SortPointsTestCase(unittest.TestCase):
@@ -147,14 +148,52 @@ class EstimateMLTestCase(unittest.TestCase):
         pts = (c_double * n)(0.1, 0.5, 1.0, 1.5)
         r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm))
 
-        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(DEFAULT_MODEL)), r, places=3)
+        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(DEFAULT_MODEL)), r, places=2)
 
     def test_no_max_enclosed(self):
         n = 4
         bsm = bsm_t(1800.0, 400.0, 1.0, 0.5)
         pts = (c_double * n)(1.0, 1.1, 1.4, 1.5)
         r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm))
-        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(bsm)), r, places=3)
+        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(bsm)), r, places=2)
+
+class SubsetPointsTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.subset_points = liblcfit.subset_points
+        cls.subset_points.restype = None
+        cls.subset_points.argtypes = [POINTER(point_t), c_ulong, c_ulong]
+
+    def _test(self, expected, points, k):
+        n = len(points)
+        assert len(expected) >= k
+        arr = (point_t * n)(*points)
+        self.subset_points(arr, n, k)
+        res = [(arr[i].t, arr[i].ll) for i in xrange(n)]
+        self.assertEqual(expected, res)
+
+    def test_n_equals_k(self):
+        pts = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.6), (0.4, 0.1)]
+        self._test(pts, pts, len(pts))
+
+    def test_n_lt_k1(self):
+        p = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.6), (0.4, 0.1)]
+        expected_order = [1,2,3,0]
+        expected = [p[i] for i in expected_order]
+        self._test(expected, p, 3)
+
+    def test_n_lt_k2(self):
+        p = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.3), (0.4, 0.1)]
+        expected_order = [0,1,2,3]
+        expected = [p[i] for i in expected_order]
+        self._test(expected, p, 3)
+
+    def test_n_lt_k3(self):
+        p = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.6), (0.4, 0.8), (0.45, 0.74), (0.5, 0.6)]
+        expected_order = [2,3,4,5,1,0]
+        expected = [p[i] for i in expected_order]
+        self._test(expected, p, 4)
+
 
 
 if __name__ == '__main__':
