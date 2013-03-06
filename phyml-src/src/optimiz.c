@@ -566,13 +566,18 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
   log_like_function_t log_like;
   log_like.fn = Lk_Lcfit;
   log_like.args = (void*) &p;
+  /*fprintf(stderr, "Edge %d:\t", b_fcus->num);*/
   assert(b_fcus->num <= 2*tree->n_otu - 3);
   double *t = &(tree->lcfit_fit_points[4 * b_fcus->num]);
 
   bsm_t *model = &(tree->lcfit_models[b_fcus->num]);
+  /*for(int i = 0; i < 4; i++)*/
+    /*fprintf(stderr, "%f\t", t[i]);*/
+  /*fprintf(stderr, "model: {c=%f,m=%f,r=%f,b=%f}\n", model->c, model->m, model->r, model->b);*/
   const double ml_bl = estimate_ml_t(&log_like, t, 4, tree->mod->s_opt->min_diff_lk_local, model);
 
   if(isnan(ml_bl)) {
+    *model = DEFAULT_INIT;
     /* Fall back on brent */
     Generic_Brent_Lk(&(b_fcus->l->v),
         b_fcus->l->v*prop_min,
@@ -582,6 +587,7 @@ phydbl Br_Len_Brent(phydbl prop_min, phydbl prop_max, t_edge *b_fcus, t_tree *tr
         tree->mod->s_opt->quickdirty,
         Wrap_Lk_At_Given_Edge,
         loc_b,loc_tree,NULL);
+    fprintf(stderr,"NaN ml_t. Brent BL: %e\n", b_fcus->l->v);
   } else {
     if(tree->c_lnL < orig_lnl - tree->mod->s_opt->min_diff_lk_local) {
       /* Move did not improve log-likelihood sufficiently - reject */
