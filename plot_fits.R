@@ -6,20 +6,15 @@ library(plyr)
 library(reshape2)
 
 # Setup theme
-setup_theme <- function(size=19) {
-  theme_set(theme_grey(size) %+replace%
+setup_theme <- function(size=28) {
+  theme_set(theme_bw(base_size=size) %+replace%
       theme(panel.background  = element_rect(fill = "white", colour = NA),
         panel.border      = element_rect(fill = NA, colour = "grey50"),
         panel.grid.major  = element_line(colour = "grey90", size = 0.2),
-        panel.grid.minor  = element_line(colour = "grey98", size = 0.5)))
-  theme <- theme_update(legend.key=element_blank(),
-          legend.title=element_text(size=rel(1.1)),
-          strip.background=element_blank())
-  #theme <- modifyList(theme, list(
-          #legend.key=element_blank(),
-          #strip.background=element_blank(),
-          #legend.title=element_text(size=20)))
-  theme_set(theme)
+        panel.grid.minor  = element_line(colour = "grey98", size = 0.5),
+        legend.key=element_blank(),
+        legend.title=element_text(size=rel(1.1)),
+        strip.background=element_blank()))
 }
 
 animate_node_fit <- function(fit_log, fit_points, bpp_ll, outfile) {
@@ -35,18 +30,21 @@ animate_node_fit <- function(fit_log, fit_points, bpp_ll, outfile) {
          r <- range(subset(bpp_ll, branch_length <=1, select=value))
          r_diff = diff(r) * 0.05
          iter_fit <- data.frame(branch_length=x, ll=cfn_loglike(x, row$c, row$m, row$r, row$b), name='lcfit')
-         p <- ggplot(bpp_ll, aes(color=name, linetype=name)) +
-           geom_line(aes(x=branch_length, y=value), data=bpp_ll) +
-           geom_point(aes(x=branch_length, y=ll), data=fit_points) +
-           geom_line(aes(x=branch_length, y=ll), data=iter_fit) +
-           theme_bw() + ylim(r[1]-r_diff, r[2]+r_diff) +
+         s <- 1.6
+         p <- ggplot(bpp_ll, aes(color=name)) +
+           geom_line(aes(x=branch_length, y=value), data=bpp_ll, size=s) +
+           geom_point(aes(x=branch_length, y=ll), data=fit_points, size=2*s) +
+           geom_line(aes(x=branch_length, y=ll), data=iter_fit, size=s) +
+           scale_color_discrete(name='') +
+           ylim(r[1]-r_diff, r[2]+r_diff) +
            xlab("t") + ylab("Log-likelihood") +
            ggtitle(paste("Iteration", row$iter))
+
          print(p)
          # Double down on the last frame
          if(i == nrow(fit_log)) print(p)
       }
-  }, interval=0.4, movie.name=fname, ani.width = 600, ani.height = 600, outdir=getwd())
+  }, interval=0.7, movie.name=fname, ani.width = 600, ani.height = 500, outdir=getwd())
 }
 
 read_fit_log <- function(path) {
@@ -80,10 +78,10 @@ main <- function(input_bls, input_maxima, input_fit, input_fit_log, outfile) {
   pdf(outfile)
   p <- ggplot(maxima, aes(x=brent_t, y=lcfit_t)) +
     geom_abline(intercept=0, slope=1, linetype='dashed', color='grey80') +
-    geom_point() +
+    geom_point(size=3) +
     #ggtitle("ML branch length: lcfit vs. Brent") +
     xlab(expression(t[brent])) +
-    ylab(expression(t[lcfit]))
+    ylab(expression(hat(t)[lcfit]))
 
   svg(sub('.pdf', '_ml_len.svg', outfile))
   print(p)
@@ -91,7 +89,7 @@ main <- function(input_bls, input_maxima, input_fit, input_fit_log, outfile) {
 
   p <- ggplot(maxima, aes(x=brent_t, y=lcfit_fit_t)) +
     geom_abline(intercept=0, slope=1, linetype='dashed', color='grey80') +
-    geom_point() +
+    geom_point(size=3) +
     #ggtitle("ML branch length: lcfit vs. Brent") +
     xlab(expression(t[brent])) +
     ylab(expression(hat(t)[lcfit]))
