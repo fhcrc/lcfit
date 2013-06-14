@@ -19,10 +19,9 @@ build-all: setup-cmake
 
 test: CMAKE_BUILD_TYPE=Debug
 test: BUILD_DIR=$(BUILD)/debug
-test: lcfit-test
-	$(BUILD_DIR)/lcfit_cpp_src/$<
+test: setup-cmake
 	make -C$(BUILD_DIR) lcfit-shared
-	python test/test_lcfit.py
+	python test/test_lcfit.py -v
 
 data.pdf: data.csv
 	Rscript plot_fits.R data.csv data.maxima.csv data.fit.csv data.pdf

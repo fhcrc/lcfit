@@ -8,7 +8,7 @@ The lcfit C-library requires the [GNU Scientific Library][2] (`libgsl0-dev` on d
 
 The `lcfit-compare` tool requires a C++11-compatible compiler, and the `bpp-core`, `bpp-seq`, and `bpp-phyl` libraries from the [Bio++ suite][3] (`libbpp-{core,seq,phyl}-dev` on debian).
 
-Running the unit tests requires a C++11-compatible compiler.
+Running the unit tests requires python.
 
 ## Compiling
 
