@@ -30,7 +30,7 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
     p <- ggplot(piece, aes(color=name, linetype=name)) +
         geom_line(aes(x=branch_length,
                       y=value), data=piece) +
-        opts(title=sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
+        ggtitle(sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
                            maximum$c, maximum$m, maximum$r, maximum$b)) +
         geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
         geom_point(aes(x=branch_length, y=ll), data=f) +
@@ -41,16 +41,6 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
   dev.off()
 
   write.table(rss, sub('\\.pdf$', '\\.txt', output), sep='\t', row.names=FALSE)
-
-  ## Norms
-  #norms <- ddply(d, .(node_id), function(piece) {
-    #node_id <- piece$node_id[1]
-    #bl <- piece$branch_length[1]
-    #l1 <- with(piece, sum(abs(bpp_ll - fit_ll)))
-    #l2 <- with(piece, sum((bpp_ll - fit_ll)^2))
-    #data.frame(node_id=node_id, branch_length=bl,
-               #l1=l1, l2=l2)
-  #})
 }
 
 if(!interactive()) {
