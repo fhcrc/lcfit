@@ -10,7 +10,7 @@ project(phyml C)
 set(CMAKE_C_FLAGS "-ansi -pedantic -Wall -std=c99")
 set(CMAKE_C_FLAGS_RELEASE
   "${CMAKE_CFLAGS_RELEASE} -msse -fomit-frame-pointer -funroll-loops")
-set(PHYML_SRC phyml-src/src)
+set(PHYML_SRC phyml_src/src)
 set(PHYML_SOURCES
   ${PHYML_SRC}/utilities.c
   ${PHYML_SRC}/optimiz.c
