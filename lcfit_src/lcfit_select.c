@@ -273,6 +273,11 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
           free(points);
           free(l);
           return ml_t;
+        } else if (m == MONO_INC) {
+          *success = false;
+          free(points);
+          free(l);
+          return NAN;
         }
         assert(n >= n_pts);
         if(n > n_pts) {
