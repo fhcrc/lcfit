@@ -110,6 +110,9 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
                 /* shift */
                 memmove(points + 1, points, sizeof(point_t) * n);
                 break;
+            case MONO_UNKNOWN:
+                free(points);
+                return NULL;
             default:
                 assert(false);
         }
@@ -268,6 +271,11 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         point_t *start_pts = malloc(sizeof(point_t) * n);
         evaluate_ll(log_like, DEFAULT_START, n, start_pts);
         points = select_points(log_like, start_pts, &n, DEFAULT_MAX_POINTS);
+        if(points == NULL) {
+            free(l);
+            *success = false;
+            return NAN;
+        }
         free(start_pts);
         m = monotonicity(points, n);
         if(m == MONO_DEC) {
