@@ -19,6 +19,8 @@ static int is_initialized = false;
 static size_t ml_likelihood_calls = 0;
 static size_t bracket_likelihood_calls = 0;
 
+const static double THRESHOLD = 1e-8;
+
 #ifdef LCFIT_DEBUG
 void show_likelihood_calls(void)
 {
@@ -44,24 +46,25 @@ monotonicity_t
 monotonicity(const point_t points[], const size_t n)
 {
     const point_t *p = points;
-    short maybe_inc = 1, maybe_dec = 1;
+    bool maybe_inc = true, maybe_dec = true;
     size_t i;
 
     const point_t *last = p++;
     for(i = 1; i < n; ++i, ++p) {
         assert(p->t >= last->t && "Points not sorted!");
-        if(p->ll > last->ll)
-            maybe_dec = 0;
-        else if(p->ll < last->ll)
-            maybe_inc = 0;
+        if(p->ll - last->ll > THRESHOLD) {
+            maybe_dec = false;
+        } else if(last->ll - p->ll > THRESHOLD) {
+            maybe_inc = false;
+        }
         last = p;
     }
 
     if(!maybe_inc && !maybe_dec) return NON_MONOTONIC;
+    if(maybe_inc && maybe_dec) return MONO_UNKNOWN;
     else if(maybe_inc) return MONO_INC;
     else if(maybe_dec) return MONO_DEC;
-    assert(false && "Unknown monotonicity");
-    return MONO_UNKNOWN;
+    assert(false && "Unknown?");
 }
 
 point_t*
@@ -333,6 +336,12 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
         /* Retain top n_pts by log-likelihood */
         sort_by_t(points, n_pts + 1);
+
+        if(monotonicity(points, n_pts + 1) != NON_MONOTONIC) {
+            *success = false;
+            ml_t = NAN;
+            break;
+        }
         subset_points(points, n_pts + 1, n_pts);
 
         blit_points_to_arrays(points, n_pts, t, l);

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
-from ctypes import c_double, c_ulong, POINTER, byref, Structure, cdll, CFUNCTYPE, c_bool
+from ctypes import c_double, c_ulong, POINTER, byref, Structure, cdll, \
+        CFUNCTYPE, c_bool
 import math
 import unittest
 
 liblcfit = cdll.LoadLibrary("_build/debug/lcfit_src/liblcfit-shared.so")
+
 
 # Definitions
 class bsm_t(Structure):
@@ -40,6 +42,25 @@ class MonotonicityTestCase(unittest.TestCase):
         result = liblcfit.monotonicity(p, self.n)
         self.assertEqual(result, MONO_DEC)
 
+    def test_decreasing2(self):
+        p = self.point_array((0.0, 1.0), (1.0, 1.0), (2.0, 1.0), (3.0, 0.0))
+        result = liblcfit.monotonicity(p, self.n)
+        self.assertEqual(result, MONO_DEC)
+
+    def test_decreasing3(self):
+        n = 8
+        point_array = point_t * n
+        p = point_array((1.0000000000000001e-05, -33047.506890500852),
+                        (0.0001, -33047.506890500852),
+                        (0.001, -33047.506890500852),
+                        (0.01, -33047.506890500852),
+                        (0.10000000000000001, -33047.506890500867),
+                        (0.30000000000000004, -33047.50689050091),
+                        (0.5, -33047.506890500918),
+                        (1, -33047.506890500888))
+        result = liblcfit.monotonicity(p, n)
+        self.assertEqual(result, MONO_UNKNOWN)
+
     def test_increasing(self):
         p = self.point_array((0.0, 1.0), (1.0, 10), (2.0, 100), (3.0, 1000.0))
         result = liblcfit.monotonicity(p, self.n)
@@ -51,6 +72,7 @@ class MonotonicityTestCase(unittest.TestCase):
         self.assertEqual(result, NON_MONOTONIC)
 
 DEFAULT_MODEL = bsm_t(1200, 300, 1, 0.2)
+
 
 def py_ll(t, v=None):
     """
@@ -64,7 +86,6 @@ def py_ll(t, v=None):
 
     expterm = math.exp(-r * (t + b))
     return c * math.log((1 + expterm) / 2.) + m * math.log((1 - expterm) * 2.)
-
 
 
 class ChoosePointsTestCase(unittest.TestCase):
@@ -148,19 +169,23 @@ class EstimateMLTestCase(unittest.TestCase):
         bsm = bsm_t(1800.0, 400.0, 1.0, 0.5)
         pts = (c_double * n)(0.1, 0.5, 1.0, 1.5)
         success = c_bool()
-        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm), byref(success))
+        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm),
+                               byref(success))
         self.assertEqual(True, bool(success))
-
-        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(DEFAULT_MODEL)), r, places=2)
+        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(DEFAULT_MODEL)), r,
+                               places=2)
 
     def test_no_max_enclosed(self):
         n = 4
         bsm = bsm_t(1800.0, 400.0, 1.0, 0.5)
         pts = (c_double * n)(1.0, 1.1, 1.4, 1.5)
         success = c_bool()
-        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm), byref(success))
+        r = self.estimate_ml_t(self.ll, pts, n, 1e-3, byref(bsm),
+                               byref(success))
         self.assertEqual(True, bool(success))
-        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(bsm)), r, places=2)
+        self.assertAlmostEqual(self.lcfit_bsm_ml_t(byref(bsm)), r,
+                               places=2)
+
 
 class SubsetPointsTestCase(unittest.TestCase):
     @classmethod
@@ -183,23 +208,22 @@ class SubsetPointsTestCase(unittest.TestCase):
 
     def test_n_lt_k1(self):
         p = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.6), (0.4, 0.1)]
-        expected_order = [1,2,3,0]
+        expected_order = [1, 2, 3, 0]
         expected = [p[i] for i in expected_order]
         self._test(expected, p, 3)
 
     def test_n_lt_k2(self):
         p = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.3), (0.4, 0.1)]
-        expected_order = [0,1,2,3]
+        expected_order = [0, 1, 2, 3]
         expected = [p[i] for i in expected_order]
         self._test(expected, p, 3)
 
     def test_n_lt_k3(self):
-        p = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.6), (0.4, 0.8), (0.45, 0.74), (0.5, 0.6)]
-        expected_order = [2,3,4,5,1,0]
+        p = [(0.1, 0.4), (0.2, 0.5), (0.3, 0.6), (0.4, 0.8),
+             (0.45, 0.74), (0.5, 0.6)]
+        expected_order = [2, 3, 4, 5, 1, 0]
         expected = [p[i] for i in expected_order]
         self._test(expected, p, 4)
-
-
 
 if __name__ == '__main__':
     unittest.main()
