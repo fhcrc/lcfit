@@ -5,6 +5,7 @@
 #ifndef LCFIT_SELECT_H
 #define LCFIT_SELECT_H
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "lcfit.h"
 
@@ -80,7 +81,8 @@ sort_by_like(point_t points[], const size_t n);
  */
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
-              const size_t n_pts, const double tolerance, bsm_t* model);
+              const size_t n_pts, const double tolerance, bsm_t* model,
+              bool* success);
 
 /**
  * \brief Choose the top \c k points by log-likelihood while maintaining monotonicity.
@@ -97,6 +99,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 void
 subset_points(point_t p[], const size_t n, const size_t k);
 
+#ifdef LCFIT_DEBUG
+void
+lcfit_select_initialize(void);
+#endif
 
 #ifdef __cplusplus
 } // extern "C"

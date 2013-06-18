@@ -6,10 +6,36 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
 
-#define FALSE 0
-#define TRUE 1
+#ifdef LCFIT_DEBUG
+#include <stdio.h>
+#endif
+
+const static size_t MAX_ITERS = 30;
+
+static int is_initialized = false;
+static size_t ml_likelihood_calls = 0;
+static size_t bracket_likelihood_calls = 0;
+
+const static double THRESHOLD = 1e-8;
+
+#ifdef LCFIT_DEBUG
+void show_likelihood_calls(void)
+{
+    fprintf(stdout, "LCFIT ML Estimation LL calls: %zu\n", ml_likelihood_calls);
+    fprintf(stdout, "LCFIT Bracketing LL calls: %zu\n", bracket_likelihood_calls);
+}
+
+void lcfit_select_initialize(void)
+{
+  if(!is_initialized) {
+    is_initialized = true;
+    atexit(show_likelihood_calls);
+  }
+}
+#endif
 
 static const double DEFAULT_START[] = {0.1, 0.5, 1.0};
 static const size_t N_DEFAULT_START = 3;
@@ -20,24 +46,25 @@ monotonicity_t
 monotonicity(const point_t points[], const size_t n)
 {
     const point_t *p = points;
-    short maybe_inc = 1, maybe_dec = 1;
+    bool maybe_inc = true, maybe_dec = true;
     size_t i;
 
     const point_t *last = p++;
     for(i = 1; i < n; ++i, ++p) {
         assert(p->t >= last->t && "Points not sorted!");
-        if(p->ll > last->ll)
-            maybe_dec = 0;
-        else if(p->ll < last->ll)
-            maybe_inc = 0;
+        if(p->ll - last->ll > THRESHOLD) {
+            maybe_dec = false;
+        } else if(last->ll - p->ll > THRESHOLD) {
+            maybe_inc = false;
+        }
         last = p;
     }
 
     if(!maybe_inc && !maybe_dec) return NON_MONOTONIC;
+    if(maybe_inc && maybe_dec) return MONO_UNKNOWN;
     else if(maybe_inc) return MONO_INC;
     else if(maybe_dec) return MONO_DEC;
-    assert(FALSE && "Unknown monotonicity");
-    return MONO_UNKNOWN;
+    assert(false && "Unknown?");
 }
 
 point_t*
@@ -87,12 +114,13 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
                 free(points);
                 return NULL;
             default:
-                assert(FALSE);
+                assert(false);
         }
 
         const double l = log_like->fn(d, log_like->args);
         points[offset].t = d;
         points[offset].ll = l;
+        bracket_likelihood_calls++;
 
         c = monotonicity(points, n++);
     } while(n < max_pts && c != NON_MONOTONIC);
@@ -202,6 +230,7 @@ evaluate_ll(log_like_function_t *log_like, const double *ts,
     for(i = 0; i < n_pts; ++i, ++p) {
         p->t = *ts++;
         p->ll = log_like->fn(p->t, log_like->args);
+        ml_likelihood_calls++;
     }
 }
 
@@ -219,8 +248,10 @@ blit_points_to_arrays(const point_t points[], const size_t n,
 
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
-              const size_t n_pts, const double tolerance, bsm_t* model)
+              const size_t n_pts, const double tolerance, bsm_t* model,
+              bool* success)
 {
+    *success = false;
     size_t iter = 0;
     const point_t *max_pt;
     double *l = malloc(sizeof(double) * n_pts);
@@ -249,9 +280,15 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         m = monotonicity(points, n);
         if(m == MONO_DEC) {
           double ml_t = points[0].t;
+          *success = true;
           free(points);
           free(l);
           return ml_t;
+        } else if (m == MONO_INC) {
+          *success = false;
+          free(points);
+          free(l);
+          return NAN;
         }
         assert(n >= n_pts);
         if(n > n_pts) {
@@ -259,48 +296,69 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             subset_points(points, n, n_pts);
         }
 
-
         /* Allocate an extra point for scratch */
         points = realloc(points, sizeof(point_t) * (n_pts + 1));
     }
 
     max_pt = max_point(points, n_pts);
-    double ml_t = -DBL_MAX;
+    double ml_t = max_pt->t;
 
     /* Re-fit */
     lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
     blit_points_to_arrays(points, n_pts, t, l);
     lcfit_fit_bsm(n_pts, t, l, model);
 
-    /* TODO: factor out magic number for max iters */
-    for(iter = 0; iter < 100; iter++) {
+    for(iter = 0; iter < MAX_ITERS; iter++) {
         ml_t = lcfit_bsm_ml_t(model);
 
         if(isnan(ml_t)) {
-          break;
+            *success = false;
+            break;
         }
 
         /* convergence check */
         if(fabs(ml_t - max_pt->t) <= tolerance) {
+            *success = true;
+            break;
+        }
+
+        /* Check for nonsensical ml_t - if the value is outside the bracketed
+         * window, give up. */
+        size_t max_idx = max_pt - points;
+        if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
+            *success = false;
+            ml_t = NAN;
             break;
         }
 
         /* Add ml_t estimate */
         if(ml_t < 0) {
-          ml_t = 1e-8;
-          break;
+            *success = true;
+            ml_t = 1e-8;
+            break;
         }
+
         points[n_pts].t = ml_t;
         points[n_pts].ll = log_like->fn(ml_t, log_like->args);
+        ml_likelihood_calls++;
 
         /* Retain top n_pts by log-likelihood */
         sort_by_t(points, n_pts + 1);
+
+        if(monotonicity(points, n_pts + 1) != NON_MONOTONIC) {
+            *success = false;
+            ml_t = NAN;
+            break;
+        }
         subset_points(points, n_pts + 1, n_pts);
 
         blit_points_to_arrays(points, n_pts, t, l);
         lcfit_fit_bsm(n_pts, t, l, model);
         max_pt = max_point(points, n_pts);
     }
+
+    if(iter == MAX_ITERS)
+      *success = false;
 
     free(l);
     free(points);
