@@ -54,7 +54,7 @@ monotonicity(const point_t[], const size_t);
  * \param num_pts **IN/OUT** Number of points in \c starting_points. The number of points
  * returned is stored here.
  * \param max_pts Maximum number of points to add
- * \return Points enclosing a maximum.
+ * \return Points enclosing a maximum, or \c NULL if enclosing the maximum failed.
  */
 point_t*
 select_points(log_like_function_t *log_like, const point_t starting_pts[],
