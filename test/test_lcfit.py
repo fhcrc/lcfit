@@ -26,28 +26,39 @@ class log_like_func_t(Structure):
                 ("args", POINTER(None))]
 
 
-MONO_UNKNOWN = 0
-MONO_INC = 1
-MONO_DEC = 2
-NON_MONOTONIC = 3
+CRV_UNKNOWN, CRV_MONO_INC, CRV_MONO_DEC, CRV_ENC_MINIMA, CRV_ENC_MAXIMA = range(5)
 
-
-class MonotonicityTestCase(unittest.TestCase):
+class ClassifyCurveTestCase(unittest.TestCase):
     def setUp(self):
         self.n = 4
         self.point_array = point_t * self.n
 
     def test_decreasing(self):
         p = self.point_array((0.0, 1.0), (1.0, 0.8), (2.0, 0.3), (3.0, 0.0))
-        result = liblcfit.monotonicity(p, self.n)
-        self.assertEqual(result, MONO_DEC)
+        result = liblcfit.classify_curve(p, self.n)
+        self.assertEqual(result, CRV_MONO_DEC)
 
     def test_decreasing2(self):
         p = self.point_array((0.0, 1.0), (1.0, 1.0), (2.0, 1.0), (3.0, 0.0))
-        result = liblcfit.monotonicity(p, self.n)
-        self.assertEqual(result, MONO_DEC)
+        result = liblcfit.classify_curve(p, self.n)
+        self.assertEqual(result, CRV_MONO_DEC)
 
-    def test_decreasing3(self):
+    def test_increasing(self):
+        p = self.point_array((0.0, 1.0), (1.0, 10), (2.0, 100), (3.0, 1000.0))
+        result = liblcfit.classify_curve(p, self.n)
+        self.assertEqual(result, CRV_MONO_INC)
+
+    def test_enc_maxima(self):
+        p = self.point_array((0.0, 1.0), (1.0, 10), (2.0, 100), (3.0, 10))
+        result = liblcfit.classify_curve(p, self.n)
+        self.assertEqual(result, CRV_ENC_MAXIMA)
+
+    def test_enc_minima1(self):
+        p = self.point_array((0.0, -1.0), (1.0, -10), (2.0, -100), (3.0, 10))
+        result = liblcfit.classify_curve(p, self.n)
+        self.assertEqual(result, CRV_ENC_MINIMA)
+
+    def test_enc_minima2(self):
         n = 8
         point_array = point_t * n
         p = point_array((1.0000000000000001e-05, -33047.506890500852),
@@ -58,18 +69,9 @@ class MonotonicityTestCase(unittest.TestCase):
                         (0.30000000000000004, -33047.50689050091),
                         (0.5, -33047.506890500918),
                         (1, -33047.506890500888))
-        result = liblcfit.monotonicity(p, n)
-        self.assertEqual(result, MONO_UNKNOWN)
+        result = liblcfit.classify_curve(p, n)
+        self.assertEqual(result, CRV_ENC_MINIMA)
 
-    def test_increasing(self):
-        p = self.point_array((0.0, 1.0), (1.0, 10), (2.0, 100), (3.0, 1000.0))
-        result = liblcfit.monotonicity(p, self.n)
-        self.assertEqual(result, MONO_INC)
-
-    def test_non_monotonic(self):
-        p = self.point_array((0.0, 1.0), (1.0, 10), (2.0, 100), (3.0, 10))
-        result = liblcfit.monotonicity(p, self.n)
-        self.assertEqual(result, NON_MONOTONIC)
 
 DEFAULT_MODEL = bsm_t(1200, 300, 1, 0.2)
 

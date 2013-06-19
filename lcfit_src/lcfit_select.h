@@ -34,18 +34,20 @@ typedef struct
 
 typedef enum {
   /* Monotonicity unknown */
-  MONO_UNKNOWN = 0,
+  CRV_UNKNOWN = 0,
   /* Monotonically increasing */
-  MONO_INC,
+  CRV_MONO_INC = 1,
   /* Monotonically decreasing */
-  MONO_DEC,
-  /* Non-monotonic (points enclose an extremum) */
-  NON_MONOTONIC
-} monotonicity_t;
+  CRV_MONO_DEC = 2,
+  /* Encloses a minimum */
+  CRV_ENC_MINIMA = 3,
+  /* Encloses a maximum */
+  CRV_ENC_MAXIMA = 4
+} curve_type_t;
 
 /** Classify a set of points, *already sorted by increasing x* */
-monotonicity_t
-monotonicity(const point_t[], const size_t);
+curve_type_t
+classify_curve(const point_t[], const size_t);
 
 /**
  * \brief Select points to use in fitting the BSM
