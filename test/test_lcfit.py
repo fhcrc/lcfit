@@ -4,7 +4,7 @@ from ctypes import c_double, c_ulong, POINTER, byref, Structure, cdll, \
 import math
 import unittest
 
-liblcfit = cdll.LoadLibrary("_build/debug/lcfit_src/liblcfit-shared.so")
+liblcfit = cdll.LoadLibrary("_build/debug/lcfit_src/liblcfit.so")
 
 
 # Definitions

@@ -17,10 +17,7 @@ debug: build-all
 build-all: setup-cmake
 	make -C $(BUILD_DIR)
 
-test: CMAKE_BUILD_TYPE=Debug
-test: BUILD_DIR=$(BUILD)/debug
-test: setup-cmake
-	make -C$(BUILD_DIR) lcfit-shared
+test: debug
 	python test/test_lcfit.py -v
 
 example: release lcfit-compare
