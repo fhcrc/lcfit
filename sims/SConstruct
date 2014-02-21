@@ -8,8 +8,8 @@ from nestly.scons import SConsWrap
 from SCons.Script import Environment
 
 env = Environment(ENV=os.environ.copy())
-env.PrependENVPath('PATH', '../_build/Debug')
-env.PrependENVPath('PATH', '../_build/Release')
+env.PrependENVPath('PATH', '../_build/Debug/lcfit_cpp_src')
+env.PrependENVPath('PATH', '../_build/Release/lcfit_cpp_src')
 env.PrependENVPath('PATH', '..')
 
 n = Nest(base_dict={'n_sites': 1000})
@@ -18,11 +18,10 @@ w = SConsWrap(n, 'runs')
 models = {
         # Nucleotide models
         'JC': {'name': 'JC69', 'alphabet': 'DNA'},
-        'HKY85-2.0': {'name': 'HKY85(kappa=2.0,initFreqs=observed)', 'alphabet': 'DNA'},
+        'HKY85-2.0': {'name': 'HKY85(kappa=2.0, theta=0.5, theta1=0.5, theta2=0.5)', 'alphabet': 'DNA'},
 
         # Protein models
         'JTT92': {'name': 'JTT92', 'alphabet':'Protein'},
-        'WAG01': {'name': 'WAG01', 'alphabet':'Protein'},
         'LG08': {'name': 'LG08', 'alphabet':'Protein'},
 }
 
@@ -36,8 +35,15 @@ rdist = {
 #        'gamma4-1.0': 'Gamma(n=4, alpha=1.0)',
 }
 
-n.add('source_tree', [os.path.abspath(i) for i in glob.glob('trees/*.tre')],
-      label_func=stripext)
+n.add('branch_length_rate', [10, 100])
+n.add('seed', range(10))
+n.add('n_leaves', [10], create_dir=False)
+
+@w.add_target_with_env(env)
+def source_tree(env, outdir, control):
+    return env.Command('$OUTDIR/tree${seed}.tre',
+                       [],
+                       """R --slave -e "library(ape); set.seed($seed); write.tree(rtree($n_leaves, br = rexp, rate = $branch_length_rate), '$TARGET')" """)[0]
 
 n.add('model_name', models)
 n.add('model', lambda c: [models[c['model_name']]], create_dir=False)
@@ -52,7 +58,9 @@ def model_file(outdir, c):
         with open(str(target[0]), 'w') as fp:
             print >> fp, """alphabet={model[alphabet]}
 model={model[name]}
-rate_distribution={rdist}""".format(**c)
+rate_distribution={rdist}
+
+""".format(**c)
     target = os.path.join(outdir, 'model.bpp')
     return env.Command(target, [], write_model_action)[0]
 

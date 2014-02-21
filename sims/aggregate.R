@@ -16,7 +16,8 @@ p <- ggplot(maxima, aes(x=t, y=t_hat, color=model_name)) +
     geom_point(size=1.2) +
     geom_smooth(method='lm', se=FALSE) +
     geom_abline(slope=1, intercept=0, linetype='dashed', color='grey') +
-    labs(x='t', y=expression(hat(t))) +
+    xlab('t') +
+    ylab(expression(hat(t))) +
     ggtitle("lcfit versus ML branch length") +
     facet_wrap(~model_name) +
     theme(legend.position='none')

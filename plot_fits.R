@@ -30,8 +30,8 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
     p <- ggplot(piece, aes(color=name, linetype=name)) +
         geom_line(aes(x=branch_length,
                       y=value), data=piece) +
-        opts(title=sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
-                           maximum$c, maximum$m, maximum$r, maximum$b)) +
+        ggtitle(sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
+                        maximum$c, maximum$m, maximum$r, maximum$b)) +
         geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
         geom_point(aes(x=branch_length, y=ll), data=f) +
         xlim(0, max(c(max(f$branch_length), 1)))
