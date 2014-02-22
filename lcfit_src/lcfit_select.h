@@ -5,6 +5,7 @@
 #ifndef LCFIT_SELECT_H
 #define LCFIT_SELECT_H
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "lcfit.h"
 
@@ -54,7 +55,7 @@ monotonicity(const point_t[], const size_t);
  * \param num_pts **IN/OUT** Number of points in \c starting_points. The number of points
  * returned is stored here.
  * \param max_pts Maximum number of points to add
- * \return Points enclosing a maximum.
+ * \return Points enclosing a maximum, or \c NULL if enclosing the maximum failed.
  */
 point_t*
 select_points(log_like_function_t *log_like, const point_t starting_pts[],
@@ -80,7 +81,8 @@ sort_by_like(point_t points[], const size_t n);
  */
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
-              const size_t n_pts, const double tolerance, bsm_t* model);
+              const size_t n_pts, const double tolerance, bsm_t* model,
+              bool* success);
 
 /**
  * \brief Choose the top \c k points by log-likelihood while maintaining monotonicity.
@@ -97,6 +99,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 void
 subset_points(point_t p[], const size_t n, const size_t k);
 
+#ifdef LCFIT_DEBUG
+void
+lcfit_select_initialize(void);
+#endif
 
 #ifdef __cplusplus
 } // extern "C"

@@ -41,16 +41,6 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
   dev.off()
 
   write.table(rss, sub('\\.pdf$', '\\.txt', output), sep='\t', row.names=FALSE)
-
-  ## Norms
-  #norms <- ddply(d, .(node_id), function(piece) {
-    #node_id <- piece$node_id[1]
-    #bl <- piece$branch_length[1]
-    #l1 <- with(piece, sum(abs(bpp_ll - fit_ll)))
-    #l2 <- with(piece, sum((bpp_ll - fit_ll)^2))
-    #data.frame(node_id=node_id, branch_length=bl,
-               #l1=l1, l2=l2)
-  #})
 }
 
 if(!interactive()) {

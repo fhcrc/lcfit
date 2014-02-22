@@ -1,3 +1,7 @@
+# `lcfit`
+
+Likelihood curve fitting
+
 # Building
 
 ## Dependencies
@@ -12,7 +16,9 @@ Running the unit tests requires python.
 
 ## Compiling
 
-Run `make`
+Run `make` to obtain static and dynamic library.
+
+Run `make doc` to build documentation.
 
 ## Running unit tests
 

@@ -1,0 +1,5 @@
+input.tree.file=test.tre
+input.sequence.file=test.fasta
+lcfit.output.likelihoods_file=likelihoods.csv
+lcfit.output.maxima_file=likelihoods.maxima.csv
+lcfit.output.fit_file=likelihoods.fit.csv
