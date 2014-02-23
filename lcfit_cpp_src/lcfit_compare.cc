@@ -204,16 +204,23 @@ private:
 };
 
 // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
-vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const bsm_t& m, const double delta=0.01) {
+vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const bsm_t& m) {
     vector<Evaluation> evaluations;
-    const double t = tree.getDistanceToFather(node_id);
-    for(double t = delta; t <= 1.; t += delta) {
+    const double ml_t = tree.getDistanceToFather(node_id);
+
+    // Limits are from Bio++: minimum branch length which may be considered is 1e-6
+    const double lower = std::min(ml_t / 2, 1e-6);
+    const double upper = std::max(ml_t * 2, 1e-5);
+    const size_t n_samples = 100;
+    const double delta = (upper - lower) / static_cast<double>(n_samples - 1);
+    for(size_t i = 0; i < n_samples; i++) {
+        const double t = lower + (delta * i);
         tree.setDistanceToFather(node_id, t);
         double actual_ll = calc->calculate_log_likelihood(tree);
         double fit_ll = lcfit_bsm_log_like(t, &m);
         evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
     }
-    tree.setDistanceToFather(node_id, t);
+    tree.setDistanceToFather(node_id, ml_t);
     return evaluations;
 }
 
@@ -279,7 +286,7 @@ int run_main(int argc, char** argv)
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
         const bsm_t m = fit.fit_model(tree, node_id);
-        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, m, 0.01);
+        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, m);
         // Write to CSV
         std::for_each(begin(evals), end(evals),
             [&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
