@@ -185,6 +185,6 @@ def lcfit_plots(outdir, c):
 
 w.add_controls(env)
 
-agg_results = env.Command('kl.png',
+agg_results = env.Command(['hellinger.png', 'kl.png', 'agg.csv'],
                           [i['control'] for _, i in w],
-                          './aggregate.R $TARGET $SOURCES')
+                          './aggregate.R $SOURCES')
