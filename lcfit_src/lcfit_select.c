@@ -15,7 +15,9 @@
 
 const static size_t MAX_ITERS = 30;
 
+#ifdef LCFIT_DEBUG
 static int is_initialized = false;
+#endif
 static size_t ml_likelihood_calls = 0;
 static size_t bracket_likelihood_calls = 0;
 
