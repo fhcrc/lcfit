@@ -67,14 +67,17 @@ point_ll_minmax(const point_t points[], const size_t n,
 curve_type_t
 classify_curve(const point_t points[], const size_t n)
 {
-    const point_t *p = points;
-    size_t i, mini = n, maxi = n;
+    size_t mini = n, maxi = n;
 
+#ifndef NDEBUG
+    size_t i;
+    const point_t *p = points;
     const point_t *last = p++;
     for(i = 1; i < n; ++i, ++p) {
         assert(p->t >= last->t && "Points not sorted!");
         last = p;
     }
+#endif
 
     point_ll_minmax(points, n, &mini, &maxi);
     assert(mini < n);
