@@ -26,8 +26,7 @@ double lcfit_bsm_log_like(const double t, const bsm_t* m)
 double lcfit_bsm_ml_t(const bsm_t* m)
 {
     double t = ((log((m->c - m->m) / (m->c + m->m))) / (-m->r)) - m->b;
-    /* std::cout << "lcfit:" << ll(t, c, m, r) << "\n"; */
-    return t;
+    return t < 0.0 ? 0.0 : t;
 }
 
 /*

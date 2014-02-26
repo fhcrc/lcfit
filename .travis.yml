@@ -1,0 +1,11 @@
+language: c
+
+install:
+  - sudo apt-get install -q -y libgsl0-dev
+
+script:
+  - make test
+
+compiler:
+  - clang
+  - gcc

@@ -45,6 +45,9 @@ double lcfit_bsm_log_like(double t, const bsm_t* m);
 
 /** \brief The ML branch length for model \c m
  *
+ * The branch length is constrainted to be positive.
+ * If the maximum likelihood length under \c m is negative, this function returns 0.
+ *
  * \param m Model
  * \return The maximum-likelihood branch length under \c m
  */

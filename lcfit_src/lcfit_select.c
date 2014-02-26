@@ -9,13 +9,15 @@
 #include <stdbool.h>
 #include <string.h>
 
-#ifdef LCFIT_DEBUG
+//#ifdef LCFIT_DEBUG
 #include <stdio.h>
-#endif
+//#endif
 
 const static size_t MAX_ITERS = 30;
 
+#ifdef LCFIT_DEBUG
 static int is_initialized = false;
+#endif
 static size_t ml_likelihood_calls = 0;
 static size_t bracket_likelihood_calls = 0;
 
@@ -42,29 +44,54 @@ static const size_t N_DEFAULT_START = 3;
 /** Default maximum number of points to evaluate in select_points */
 static const size_t DEFAULT_MAX_POINTS = 8;
 
-monotonicity_t
-monotonicity(const point_t points[], const size_t n)
+static void
+point_ll_minmax(const point_t points[], const size_t n,
+                size_t* mini, size_t* maxi)
+{
+    assert(n > 0 && "No min/max of 0 points");
+    *mini = 0;
+    *maxi = 0;
+    size_t i;
+    const point_t* p = points;
+    for(i = 1, ++p; i < n; ++i, ++p) {
+        if(p->ll > points[*maxi].ll) {
+            *maxi = i;
+        }
+        if(p->ll < points[*mini].ll) {
+            *mini = i;
+        }
+    }
+}
+
+
+curve_type_t
+classify_curve(const point_t points[], const size_t n)
 {
     const point_t *p = points;
-    bool maybe_inc = true, maybe_dec = true;
-    size_t i;
+    size_t i, mini = n, maxi = n;
 
     const point_t *last = p++;
     for(i = 1; i < n; ++i, ++p) {
         assert(p->t >= last->t && "Points not sorted!");
-        if(p->ll - last->ll > THRESHOLD) {
-            maybe_dec = false;
-        } else if(last->ll - p->ll > THRESHOLD) {
-            maybe_inc = false;
-        }
         last = p;
     }
 
-    if(!maybe_inc && !maybe_dec) return NON_MONOTONIC;
-    if(maybe_inc && maybe_dec) return MONO_UNKNOWN;
-    else if(maybe_inc) return MONO_INC;
-    else if(maybe_dec) return MONO_DEC;
-    assert(false && "Unknown?");
+    point_ll_minmax(points, n, &mini, &maxi);
+    assert(mini < n);
+    assert(maxi < n);
+
+    const size_t end = n - 1;
+
+    if(mini == 0 && maxi == end) {
+        return CRV_MONO_INC;
+    } else if(mini == end && maxi == 0) {
+        return CRV_MONO_DEC;
+    } else if(mini != 0 && mini != end && (maxi == 0 || maxi == end)) {
+        return CRV_ENC_MINIMA;
+    } else if (maxi != 0 && maxi != end && (mini == 0 || mini == end)) {
+        return CRV_ENC_MAXIMA;
+    }
+    return CRV_UNKNOWN;
 }
 
 point_t*
@@ -87,10 +114,10 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
     size_t offset = 0;  /* Position to maintain sort order */
     double d = 0.0;     /* Branch length */
 
-    monotonicity_t c = monotonicity(points, n);
+    curve_type_t c = classify_curve(points, n);
     do {
         switch(c) {
-            case NON_MONOTONIC:
+            case CRV_ENC_MAXIMA:
                 /* Add a point between the first and second try */
                 d = points[0].t + ((points[1].t - points[0].t) / 2.0);
                 offset = 1;
@@ -98,23 +125,21 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
                 memmove(points + offset + 1, points + offset,
                         sizeof(point_t) * (n - offset));
                 break;
-            case MONO_INC:
+            case CRV_MONO_INC:
                 /* Double largest value */
                 d = points[n - 1].t * 2.0;
                 offset = n;
                 break;
-            case MONO_DEC:
+            case CRV_MONO_DEC:
                 /* Add new smallest value - order of magnitude lower */
                 d = points[0].t / 10.0;
                 offset = 0;
                 /* shift */
                 memmove(points + 1, points, sizeof(point_t) * n);
                 break;
-            case MONO_UNKNOWN:
+            default:
                 free(points);
                 return NULL;
-            default:
-                assert(false);
         }
 
         const double l = log_like->fn(d, log_like->args);
@@ -122,8 +147,8 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
         points[offset].ll = l;
         bracket_likelihood_calls++;
 
-        c = monotonicity(points, n++);
-    } while(n < max_pts && c != NON_MONOTONIC);
+        c = classify_curve(points, n++);
+    } while(n < max_pts && c != CRV_ENC_MAXIMA);
 
     *num_pts = n;
 
@@ -201,7 +226,7 @@ point_max_index(const point_t p[], const size_t n)
 void
 subset_points(point_t p[], const size_t n, const size_t k)
 {
-    assert(monotonicity(p, n) == NON_MONOTONIC);
+    assert(classify_curve(p, n) == CRV_ENC_MAXIMA);
     if(k == n) return;
     assert(k <= n);
     size_t max_idx = point_max_index(p, n);
@@ -261,10 +286,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     evaluate_ll(log_like, t, n_pts, points);
 
     /* First, classify points */
-    monotonicity_t m = monotonicity(points, n_pts);
+    curve_type_t m = classify_curve(points, n_pts);
 
-    /* If the function is no longer monotonic, start over */
-    if(m != NON_MONOTONIC) {
+    /* If the function no longer encloses a maximum, starto over */
+    if(m != CRV_ENC_MAXIMA) {
         free(points);
 
         size_t n = N_DEFAULT_START;
@@ -277,14 +302,14 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             return NAN;
         }
         free(start_pts);
-        m = monotonicity(points, n);
-        if(m == MONO_DEC) {
+        m = classify_curve(points, n);
+        if(m == CRV_MONO_DEC) {
           double ml_t = points[0].t;
           *success = true;
           free(points);
           free(l);
           return ml_t;
-        } else if (m == MONO_INC) {
+        } else if (m != CRV_ENC_MAXIMA) {
           *success = false;
           free(points);
           free(l);
@@ -345,7 +370,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         /* Retain top n_pts by log-likelihood */
         sort_by_t(points, n_pts + 1);
 
-        if(monotonicity(points, n_pts + 1) != NON_MONOTONIC) {
+        if(classify_curve(points, n_pts + 1) != CRV_ENC_MAXIMA) {
             *success = false;
             ml_t = NAN;
             break;
