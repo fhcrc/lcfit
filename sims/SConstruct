@@ -8,8 +8,8 @@ from nestly.scons import SConsWrap
 from SCons.Script import Environment
 
 env = Environment(ENV=os.environ.copy())
-env.PrependENVPath('PATH', '../_build/Debug/lcfit_cpp_src')
-env.PrependENVPath('PATH', '../_build/Release/lcfit_cpp_src')
+env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
+env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../example')
 
 n = Nest(base_dict={'n_sites': 1000})
