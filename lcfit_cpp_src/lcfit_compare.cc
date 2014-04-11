@@ -146,11 +146,13 @@ public:
         return like.getLogLikelihood();
     }
 
-    void set_branch_length(size_t node, double length)
+    void set_branch_length(const size_t node, double length)
     {
+        length = std::max(length, 1e-6);
         like.setParameterValue("BrLen" + std::to_string(node), length);
     }
-    void get_branch_length(size_t node, double length) const
+
+    void get_branch_length(const size_t node) const
     {
         like.getParameterValue("BrLen" + std::to_string(node));
     }
