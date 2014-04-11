@@ -130,36 +130,47 @@ inline size_t min_index(ForwardIterator first, const ForwardIterator last)
 class TreeLikelihoodCalculator
 {
 public:
-    TreeLikelihoodCalculator(bpp::SiteContainer* sites, bpp::SubstitutionModel* model, bpp::DiscreteDistribution* rate_dist) :
+    TreeLikelihoodCalculator(const bpp::Tree& tree, bpp::SiteContainer* sites, bpp::SubstitutionModel* model, bpp::DiscreteDistribution* rate_dist) :
         sites(sites),
         model(model),
-        rate_dist(rate_dist) {};
+        rate_dist(rate_dist),
+        like(tree, *sites, model, rate_dist, false, false, false)
+    {
+        like.initialize();
+    };
 
     /// Calculate log-likelihood
-    double calculate_log_likelihood(const Tree& tree)
+    double calculate_log_likelihood()
     {
-        bpp::RHomogeneousTreeLikelihood like(tree, *sites, model, rate_dist, false, false, false);
-        like.initialize();
         like.computeTreeLikelihood();
         return like.getLogLikelihood();
+    }
+
+    void set_branch_length(size_t node, double length)
+    {
+        like.setParameterValue("BrLen" + std::to_string(node), length);
+    }
+    void get_branch_length(size_t node, double length) const
+    {
+        like.getParameterValue("BrLen" + std::to_string(node));
     }
 private:
     bpp::SiteContainer* sites;
     bpp::SubstitutionModel* model;
     bpp::DiscreteDistribution* rate_dist;
+    bpp::RHomogeneousTreeLikelihood like;
 };
 
 /// Calculate the log likelihood of a node given a branch length
 struct NodeLogLikelihoodCalculator
 {
     TreeLikelihoodCalculator* calc;
-    Tree tree;
     const int node_id;
 
     double operator()(double d)
     {
-        tree.setDistanceToFather(node_id, d);
-        return calc->calculate_log_likelihood(tree);
+        calc->set_branch_length(node_id, d);
+        return calc->calculate_log_likelihood();
     };
 };
 
@@ -178,13 +189,11 @@ public:
     ///
     /// Given a set of starting points, attempts to add (branch_length, ll) points until the function is non-monotonic,
     /// then fits the BS model using these sampled points.
-    bsm_t fit_model(const Tree& tree, const int node_id)
+    bsm_t fit_model(const int node_id)
     {
-        const double original_dist = tree.getDistanceToFather(node_id);
         bsm_t m = {start[0], start[1], start[2], start[3]};
-        NodeLogLikelihoodCalculator ll{calc,tree,node_id};
+        NodeLogLikelihoodCalculator ll{calc,node_id};
         lcfit::LCFitResult fit_result = lcfit::fit_bsm_log_likelihood(ll, m, sample_points, 8);
-        assert(tree.getDistanceToFather(node_id) == original_dist);
 
         // Log fit
         if(csv_fit_out != nullptr) {
@@ -215,12 +224,12 @@ vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const
     const double delta = (upper - lower) / static_cast<double>(n_samples - 1);
     for(size_t i = 0; i < n_samples; i++) {
         const double t = lower + (delta * i);
-        tree.setDistanceToFather(node_id, t);
-        double actual_ll = calc->calculate_log_likelihood(tree);
+        calc->set_branch_length(node_id, t);
+        double actual_ll = calc->calculate_log_likelihood();
         double fit_ll = lcfit_bsm_log_like(t, &m);
         evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
     }
-    tree.setDistanceToFather(node_id, ml_t);
+    assert(tree.getDistanceToFather(node_id) == ml_t);
     return evaluations;
 }
 
@@ -274,7 +283,7 @@ int run_main(int argc, char** argv)
                                  params, ',', "1500,1000,2.0,0.5");
 
     // Calculators
-    TreeLikelihoodCalculator likelihood_calc(sites.get(), model.get(), rate_dist.get());
+    TreeLikelihoodCalculator likelihood_calc(tree, sites.get(), model.get(), rate_dist.get());
     LCFitter fit(start, sample_points, &likelihood_calc, &csv_fit_out);
 
     /*
@@ -285,7 +294,7 @@ int run_main(int argc, char** argv)
     for(const int & node_id : tree.getNodesId()) {
         cerr << "Node " << node_id << "\r";
         if(!tree.hasDistanceToFather(node_id)) continue;
-        const bsm_t m = fit.fit_model(tree, node_id);
+        const bsm_t m = fit.fit_model(node_id);
         const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, m);
         // Write to CSV
         std::for_each(begin(evals), end(evals),
