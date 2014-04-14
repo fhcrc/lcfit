@@ -4,6 +4,8 @@ library(ggplot2)
 library(plyr)
 library(reshape2)
 
+theme_set(theme_bw(16))
+
 main <- function(input_bls, input_maxima, input_fit, outfile) {
   d <- read.csv(input_bls, as.is=TRUE)
   maxima <- read.csv(input_maxima, as.is=TRUE)
