@@ -7,6 +7,7 @@
 #include "lcfit.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 
 #include <gsl/gsl_vector.h>
@@ -198,4 +199,66 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
 
     gsl_multifit_fdfsolver_free(s);
     return 0;
+}
+
+/* Here we minimize the KL divergence, rather than nonlinear least squares */
+static double log_sum(const double x, const double y)
+{
+    const static double max_value = DBL_MAX;
+    const double log_limit = -max_value / 100;
+    const static double NATS = 400;
+
+    const double temp = y - x;
+    if(temp > NATS || x < log_limit)
+        return y;
+    if(temp < -NATS || y < log_limit)
+        return x;
+    if(temp < 0)
+        return x + log1p(exp(temp));
+    return y + log1p(exp(-temp));
+}
+
+static void log_normalize(gsl_vector* x)
+{
+    double sum = -DBL_MAX;
+    for(size_t i = 0; i < x->size; i++)
+        sum = log_sum(sum, gsl_vector_get(x, i));
+    gsl_vector_add_constant(x, -sum);
+}
+
+double kl_divergence(const double* unnorm_log_p1,
+                     const double* unnorm_log_p2,
+                     const size_t n)
+{
+    assert(unnorm_log_p1 != NULL && "Null v1");
+    assert(unnorm_log_p2 != NULL && "Null v2");
+    gsl_vector_const_view v1 = gsl_vector_const_view_array(unnorm_log_p1, n);
+    gsl_vector_const_view v2 = gsl_vector_const_view_array(unnorm_log_p2, n);
+
+    gsl_vector* p1 = gsl_vector_alloc(n);
+    gsl_vector_memcpy(p1, &v1.vector);
+    log_normalize(p1);
+
+    gsl_vector* p2 = gsl_vector_alloc(n);
+    gsl_vector_memcpy(p2, &v2.vector);
+    log_normalize(p2);
+
+    gsl_vector* lr = gsl_vector_alloc(n);
+    gsl_vector_memcpy(lr, p1);
+    gsl_vector_sub(lr, p2);
+    for(size_t i = 0; i < n; i++) {
+        gsl_vector_set(p1, i, exp(gsl_vector_get(p1, i)));
+    }
+    gsl_vector_mul(p1, lr);
+
+    double kl = 0.0;
+    for(size_t i = 0; i < n; i++) {
+        kl += gsl_vector_get(p1, i);
+    }
+
+    gsl_vector_free(p1);
+    gsl_vector_free(p2);
+    gsl_vector_free(lr);
+
+    return kl / log(2.0);
 }

@@ -9,6 +9,8 @@
 #ifndef LCFIT_H
 #define LCFIT_H
 
+#include <gsl/gsl_vector.h>
+
 #include <stdlib.h>
 
 #ifdef __cplusplus
@@ -85,6 +87,16 @@ void lcfit_bsm_rescale(const double t, const double l, bsm_t* m);
  * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
  */
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m);
+
+
+/** \brief compute the KL divergence from unnorm_log_p1 to unnorm_log_p2,
+ *         two unnormalized probability vectors
+ *
+ * \param unnorm_log_p1 Unnormalized log probability vector 1
+ * \param unnorm_log_p2 Unnormalized log probability vector 2
+ * \param n size of vectors
+ */
+double kl_divergence(const double* unnorm_log_p1, const double* unnorm_log_p2, const size_t n);
 
 #ifdef __cplusplus
 } // extern "C"

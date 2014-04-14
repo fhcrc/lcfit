@@ -227,5 +227,46 @@ class SubsetPointsTestCase(unittest.TestCase):
         expected = [p[i] for i in expected_order]
         self._test(expected, p, 4)
 
+class KLDivergenceTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.kl_divergence = liblcfit.kl_divergence
+        cls.kl_divergence.restype = c_double
+        cls.kl_divergence.argtypes = [POINTER(c_double), POINTER(c_double), c_ulong]
+
+    def _test(self, x, y, expected):
+        v1 = (c_double * len(x))(*x)
+        v2 = (c_double * len(x))(*y)
+        res = self.kl_divergence(v1, v2, len(x))
+
+        self.assertAlmostEqual(expected, res, 5)
+
+    def test_kl1(self):
+        x = [-8.23386308827751, -7.89628369560472, -7.46488078438082, -7.0040373619371]
+        y = [-8.50881870037115, -7.01490663616462, -6.96466932063068, -7.32206267643069]
+        expected = 0.1806762
+        self._test(x, y, expected)
+
+    def test_kl2(self):
+        x = [-7.37119800784334, -9.691829378901, -8.48775781961084, -8.64186818920151]
+        y = [-7.2831430106067, -7.86459794233191, -7.16932601238058, -7.60551459493553]
+        expected = 0.286367
+        self._test(x, y, expected)
+
+    def test_kl3(self):
+        x = [-7.2395724556565, -6.91588211762945, -7.87524673207007, -7.1594973712871]
+        y = [-6.97527933923003, -8.45825223896343, -7.33596648002283, -8.98276588408589]
+        expected = 0.709192
+        self._test(x, y, expected)
+
+    def test_kl4(self):
+        x = [-8.22743576627117, -7.85937765563544, -11.2209775173986,
+             -7.86907487030067]
+        y = x[:]
+        expected = 0.0
+        self._test(x, y, expected)
+
+
+
 if __name__ == '__main__':
     unittest.main()
