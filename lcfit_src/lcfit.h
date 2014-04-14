@@ -98,6 +98,8 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m);
  */
 double kl_divergence(const double* unnorm_log_p1, const double* unnorm_log_p2, const size_t n);
 
+int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_t *m);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

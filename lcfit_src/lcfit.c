@@ -12,6 +12,7 @@
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_blas.h>
+#include <gsl/gsl_multimin.h>
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
 
@@ -196,6 +197,8 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
     m->m = FIT(1);
     m->r = FIT(2);
     m->b = FIT(3);
+#undef FIT
+#undef ERR
 
     gsl_multifit_fdfsolver_free(s);
     return 0;
@@ -261,4 +264,90 @@ double kl_divergence(const double* unnorm_log_p1,
     gsl_vector_free(lr);
 
     return kl / log(2.0);
+}
+
+static double kl_divergence_f(const gsl_vector *x, void *data)
+{
+    const size_t n = ((struct data_to_fit*) data)->n;
+    const double* t = ((struct data_to_fit*) data)->t;
+    const double* l = ((struct data_to_fit*) data)->l;
+
+    bsm_t m = {gsl_vector_get(x, 0),
+               gsl_vector_get(x, 1),
+               gsl_vector_get(x, 2),
+               gsl_vector_get(x, 3)};
+
+    double *fit = malloc(sizeof(double) * n);
+    for(size_t i = 0; i < n; i++) {
+        fit[i] = lcfit_bsm_log_like(t[i], &m);
+    }
+
+    const double kl = kl_divergence(l, fit, n);
+
+    free(fit);
+
+    return kl;
+}
+
+int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_t *m)
+{
+    double x[4] = {m->c, m->m, m->r, m->b};
+    const size_t p = 4; /* 4 parameters */
+
+    int status;
+    unsigned int iter = 0;
+
+    struct data_to_fit d = {n, t, l};
+
+    /* Storing the contents of x on the stack.
+     * http://www.gnu.org/software/gsl/manual/html_node/Vector-views.html */
+    gsl_vector_const_view x_view = gsl_vector_const_view_array(x, 4);
+
+    gsl_vector *step_size = gsl_vector_alloc(4);
+    gsl_vector_set_all(step_size, 1.0);
+
+    gsl_multimin_function f;
+    f.f = &kl_divergence_f;
+    f.n = p;
+    f.params = &d;
+
+    const gsl_multimin_fminimizer_type *T = gsl_multimin_fminimizer_nmsimplex2;
+    gsl_multimin_fminimizer *solver = gsl_multimin_fminimizer_alloc(T, p);
+    assert(solver != NULL && "Solver allocation failed!");
+    gsl_multimin_fminimizer_set(solver, &f, &x_view.vector, step_size);
+
+    do {
+        iter++;
+        status = gsl_multimin_fminimizer_iterate(solver);
+
+        if(status)
+            break;
+
+//#ifdef VERBOSE
+        printf("status = %s\n", gsl_strerror(status));
+        /*print_state(iter, s);*/
+//#endif /* VERBOSE */
+    } while(status == GSL_CONTINUE && iter < 500);
+
+#define FIT(i) gsl_vector_get(solver->x, i)
+//#ifdef VERBOSE
+
+    printf("c = %.5f\n", FIT(0));
+    printf("m = %.5f\n", FIT(1));
+    printf("r = %.5f\n", FIT(2));
+    printf("b = %.5f\n", FIT(3));
+
+    printf("status = %s\n", gsl_strerror(status));
+//#endif /* VERBOSE */
+
+    // Update fit
+    m->c = FIT(0);
+    m->m = FIT(1);
+    m->r = FIT(2);
+    m->b = FIT(3);
+#undef FIT
+
+    gsl_multimin_fminimizer_free(solver);
+    gsl_vector_free(step_size);
+    return 0;
 }
