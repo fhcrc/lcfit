@@ -28,6 +28,7 @@ class log_like_func_t(Structure):
 
 CRV_UNKNOWN, CRV_MONO_INC, CRV_MONO_DEC, CRV_ENC_MINIMA, CRV_ENC_MAXIMA = range(5)
 
+
 class ClassifyCurveTestCase(unittest.TestCase):
     def setUp(self):
         self.n = 4
@@ -266,6 +267,17 @@ class KLDivergenceTestCase(unittest.TestCase):
         expected = 0.0
         self._test(x, y, expected)
 
+    def test_kl5(self):
+        x = [-7430.16, -7422.50, -7467.66, -7532.40]
+        y = [-7503.59, -7514.70, -7533.54, -7551.58]
+        expected = 16.01493
+        self._test(x, y, expected)
+
+    def test_kl6(self):
+        x = [-46.600645, 0.000000, -29.433837, -181.026445]
+        y = [-0.001183, -6.740157, -17.959673, -55.618297]
+        expected = 9.723990
+        self._test(x, y, expected)
 
 
 if __name__ == '__main__':
