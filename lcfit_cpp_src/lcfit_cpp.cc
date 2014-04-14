@@ -127,7 +127,7 @@ LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like, const
         l.push_back(p.y);
     }
 
-    const int status = lcfit_fit_bsm(t.size(), t.data(), l.data(), &model);
+    const int status = lcfit_bsm_minimize_kl(t.size(), t.data(), l.data(), &model);
     if(status) throw runtime_error("fit_ll returned: " + std::to_string(status));
     return {points, std::move(model)};
 }

@@ -224,7 +224,8 @@ static double log_sum(const double x, const double y)
 static void log_normalize(gsl_vector* x)
 {
     double sum = -DBL_MAX;
-    for(size_t i = 0; i < x->size; i++)
+    size_t i;
+    for(i = 0; i < x->size; i++)
         sum = log_sum(sum, gsl_vector_get(x, i));
     gsl_vector_add_constant(x, -sum);
 }
@@ -235,6 +236,7 @@ double kl_divergence(const double* unnorm_log_p1,
 {
     assert(unnorm_log_p1 != NULL && "Null v1");
     assert(unnorm_log_p2 != NULL && "Null v2");
+    size_t i;
     gsl_vector_const_view v1 = gsl_vector_const_view_array(unnorm_log_p1, n);
     gsl_vector_const_view v2 = gsl_vector_const_view_array(unnorm_log_p2, n);
 
@@ -249,13 +251,13 @@ double kl_divergence(const double* unnorm_log_p1,
     gsl_vector* lr = gsl_vector_alloc(n);
     gsl_vector_memcpy(lr, p1);
     gsl_vector_sub(lr, p2);
-    for(size_t i = 0; i < n; i++) {
+    for(i = 0; i < n; i++) {
         gsl_vector_set(p1, i, exp(gsl_vector_get(p1, i)));
     }
     gsl_vector_mul(p1, lr);
 
     double kl = 0.0;
-    for(size_t i = 0; i < n; i++) {
+    for(i = 0; i < n; i++) {
         kl += gsl_vector_get(p1, i);
     }
 
@@ -271,6 +273,7 @@ static double kl_divergence_f(const gsl_vector *x, void *data)
     const size_t n = ((struct data_to_fit*) data)->n;
     const double* t = ((struct data_to_fit*) data)->t;
     const double* l = ((struct data_to_fit*) data)->l;
+    size_t i;
 
     bsm_t m = {gsl_vector_get(x, 0),
                gsl_vector_get(x, 1),
@@ -278,7 +281,7 @@ static double kl_divergence_f(const gsl_vector *x, void *data)
                gsl_vector_get(x, 3)};
 
     double *fit = malloc(sizeof(double) * n);
-    for(size_t i = 0; i < n; i++) {
+    for(i = 0; i < n; i++) {
         fit[i] = lcfit_bsm_log_like(t[i], &m);
     }
 
@@ -304,7 +307,8 @@ int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_
     gsl_vector_const_view x_view = gsl_vector_const_view_array(x, 4);
 
     gsl_vector *step_size = gsl_vector_alloc(4);
-    gsl_vector_set_all(step_size, 1.0);
+    gsl_vector_set_all(step_size, 0.05);
+    gsl_vector_mul(step_size, &x_view.vector);
 
     gsl_multimin_function f;
     f.f = &kl_divergence_f;
