@@ -200,11 +200,13 @@ public:
         // Log fit
         if(csv_fit_out != nullptr) {
             for(const Point& p : fit_result.evaluated_points) {
-                *csv_fit_out << node_id << "," << p.x << "," << p.y << endl;
+                *csv_fit_out << node_id
+                    << "," << p.x
+                    << "," << p.y
+                    << "," << lcfit_bsm_log_like(p.x, &fit_result.model_fit) << endl;
             }
         }
 
-        // Scale initial conditions to intersect with maximum likelihood point
         return fit_result.model_fit;
     }
 private:
@@ -276,7 +278,7 @@ int run_main(int argc, char** argv)
     ofstream csv_ml_out(csv_ml_path);
     string csv_fit_path = bpp::ApplicationTools::getAFilePath("lcfit.output.fit_file", params, true, false);
     ofstream csv_fit_out(csv_fit_path);
-    csv_fit_out << "node_id,branch_length,ll" << endl;;
+    csv_fit_out << "node_id,branch_length,ll,fit_ll" << endl;;
 
     const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
             "lcfit.sample.branch.lengths",
