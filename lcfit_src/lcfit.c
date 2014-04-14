@@ -17,7 +17,37 @@
 
 #include <nlopt.h>
 
+const static double LAMBDA = 50;
+
 const bsm_t DEFAULT_INIT = {1500.0, 1000.0, 1.0, 0.5};
+
+static double log_sum(const double x, const double y)
+{
+    const static double max_value = DBL_MAX;
+    const double log_limit = -max_value / 100;
+    const static double NATS = 400;
+
+    const double temp = y - x;
+    if(temp > NATS || x < log_limit)
+        return y;
+    if(temp < -NATS || y < log_limit)
+        return x;
+    if(temp < 0)
+        return x + log1p(exp(temp));
+    return y + log1p(exp(-temp));
+}
+
+static void log_normalize(gsl_vector* x)
+{
+    double sum = -DBL_MAX;
+    size_t i;
+    const double max_val = gsl_vector_max(x);
+    gsl_vector_add_constant(x, -max_val);
+
+    for(i = 0; i < x->size; i++)
+        sum = log_sum(sum, gsl_vector_get(x, i));
+    gsl_vector_add_constant(x, -sum);
+}
 
 double lcfit_bsm_log_like(const double t, const bsm_t* m)
 {
@@ -70,9 +100,25 @@ int lcfit_pair_f(const gsl_vector* x, void* data, gsl_vector* f)
 
     size_t i;
 
+    gsl_vector *weight = gsl_vector_alloc(n);
     for(i = 0; i < n; i++) {
-        gsl_vector_set(f, i, lcfit_bsm_log_like(t[i], &m) - l[i]);
+        gsl_vector_set(weight, i, l[i]);
     }
+
+    // Flatten likelihood surface
+    gsl_vector_scale(weight, 1 / LAMBDA);
+    log_normalize(weight);
+    for(i = 0; i < n; i++)
+        fprintf(stderr, "%.3f\t", exp(gsl_vector_get(weight, i)));
+    fprintf(stderr, "\n");
+
+    for(i = 0; i < n; i++) {
+        const double err = lcfit_bsm_log_like(t[i], &m) - l[i];
+        gsl_vector_set(f, i, exp(gsl_vector_get(weight, i)) * err * 10);
+        /*gsl_vector_set(f, i, err * 0.25);*/
+    }
+
+    gsl_vector_free(weight);
 
     return GSL_SUCCESS;
 }
@@ -206,31 +252,6 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
 }
 
 /* Here we minimize the KL divergence, rather than nonlinear least squares */
-static double log_sum(const double x, const double y)
-{
-    const static double max_value = DBL_MAX;
-    const double log_limit = -max_value / 100;
-    const static double NATS = 400;
-
-    const double temp = y - x;
-    if(temp > NATS || x < log_limit)
-        return y;
-    if(temp < -NATS || y < log_limit)
-        return x;
-    if(temp < 0)
-        return x + log1p(exp(temp));
-    return y + log1p(exp(-temp));
-}
-
-static void log_normalize(gsl_vector* x)
-{
-    double sum = -DBL_MAX;
-    size_t i;
-    for(i = 0; i < x->size; i++)
-        sum = log_sum(sum, gsl_vector_get(x, i));
-    gsl_vector_add_constant(x, -sum);
-}
-
 double kl_divergence(const double* unnorm_log_p1,
                      const double* unnorm_log_p2,
                      const size_t n)
@@ -312,7 +333,7 @@ int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_
     /*lcfit_fit_bsm(n, t, l, m);*/
     double x[4] = {m->c, m->m, m->r, m->b};
     const size_t p = 4; /* 4 parameters */
-    size_t i;
+    /*size_t i;*/
 
     struct data_to_fit d = {n, t, l};
 
