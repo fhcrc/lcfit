@@ -1,6 +1,6 @@
 # `lcfit`
 
-Likelihood curve fitting
+Likelihood curve fitting by nonlinear least squares.
 
 # Building
 
@@ -16,7 +16,7 @@ Running the unit tests requires python.
 
 ## Compiling
 
-Run `make` to obtain static and dynamic library.
+Run `make` to obtain static and dynamic libraries.
 
 Run `make doc` to build documentation.
 

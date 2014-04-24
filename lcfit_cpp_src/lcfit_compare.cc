@@ -220,9 +220,11 @@ vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const
     const double ml_t = tree.getDistanceToFather(node_id);
 
     // Limits are from Bio++: minimum branch length which may be considered is 1e-6
-    const double lower = std::min(ml_t / 2, 1e-6);
-    const double upper = std::max(ml_t * 2, 1e-5);
-    const size_t n_samples = 100;
+    //const double lower = std::min(ml_t / 10, 1e-6);
+    //const double upper = std::max(ml_t * 10, 1e-5);
+    const double lower = 1e-6;
+    const double upper = 1.0;
+    const size_t n_samples = 200;
     const double delta = (upper - lower) / static_cast<double>(n_samples - 1);
     for(size_t i = 0; i < n_samples; i++) {
         const double t = lower + (delta * i);
@@ -231,6 +233,7 @@ vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const
         double fit_ll = lcfit_bsm_log_like(t, &m);
         evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
     }
+    calc->set_branch_length(node_id, ml_t);
     assert(tree.getDistanceToFather(node_id) == ml_t);
     return evaluations;
 }
@@ -284,9 +287,6 @@ int run_main(int argc, char** argv)
     const vector<double> start = bpp::ApplicationTools::getVectorParameter<double>("lcfit.starting.values",
                                  params, ',', "1500,1000,2.0,0.5");
 
-    // Calculators
-    TreeLikelihoodCalculator likelihood_calc(tree, sites.get(), model.get(), rate_dist.get());
-    LCFitter fit(start, sample_points, &likelihood_calc, &csv_fit_out);
 
     /*
      * Run evaluations on each node, write output
@@ -294,9 +294,12 @@ int run_main(int argc, char** argv)
     csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
     csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
     for(const int & node_id : tree.getNodesId()) {
-        cerr << "Node " << node_id << "\r";
+        clog << "[lcfit eval] Node " << setw(4) << node_id << "\r";
+        // Calculators
+        TreeLikelihoodCalculator likelihood_calc(tree, sites.get(), model.get(), rate_dist.get());
+        LCFitter fitter(start, sample_points, &likelihood_calc, &csv_fit_out);
         if(!tree.hasDistanceToFather(node_id)) continue;
-        const bsm_t m = fit.fit_model(node_id);
+        const bsm_t m = fitter.fit_model(node_id);
         const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, m);
         // Write to CSV
         std::for_each(begin(evals), end(evals),
