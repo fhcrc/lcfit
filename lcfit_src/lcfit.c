@@ -171,7 +171,7 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
         if(status)
             break;
 
-        status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
+        status = gsl_multifit_test_delta(s->dx, s->x, 1e-6, 1e-6);
     } while(status == GSL_CONTINUE && iter < 500);
 
 #define FIT(i) gsl_vector_get(s->x, i)

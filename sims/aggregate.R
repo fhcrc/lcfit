@@ -96,7 +96,18 @@ p4 <- ggplot(subset(error, branch_length_rate == 10), aes(x=t, y=abs(t_hat - t) 
   scale_y_log10() +
   xlab('ML branch length') +
   theme(legend.position = 'none')
-ggsave('ml_branch_length_vs_rel_err.png', p4, width=14, height=9, dpi=72)
+ggsave('ml_branch_length_vs_rel_err.svg', p4, width=14, height=9, dpi=72)
+
+p5 <- ggplot(subset(error), aes(x=t, y=t_hat, color=model)) +
+  facet_grid(rate ~ model) +
+  geom_point() +
+  geom_abline(slope=1) +
+  ylab(expression(hat(t))) +
+  scale_y_log10() +
+  scale_x_log10() +
+  xlab('ML branch length') +
+  theme(legend.position = 'none')
+ggsave('t_vs_that.svg', p5, width=14, height=9, dpi=72)
 
 ggsave('hellinger.png', p1, height=14, width=7, dpi=72)
 ggsave('kl.png', p2, height=14, width=7, dpi=72)
