@@ -93,8 +93,9 @@ p4 <- ggplot(subset(error, branch_length_rate == 10), aes(x=t, y=abs(t_hat - t) 
   facet_grid(rate ~ model) +
   geom_point() +
   ylab(expression(frac(abs(hat(t) - t), t))) +
+  scale_y_log10() +
   xlab('ML branch length') +
-  ylim(0, 15)
+  theme(legend.position = 'none')
 ggsave('ml_branch_length_vs_rel_err.png', p4, width=14, height=9, dpi=72)
 
 ggsave('hellinger.png', p1, height=14, width=7, dpi=72)
