@@ -7,6 +7,7 @@ set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
 set(LCFIT_COMPARE_CPP
   ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_compare.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/gsl.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/../lcfit_src/lcfit.c)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lcfit_src)
