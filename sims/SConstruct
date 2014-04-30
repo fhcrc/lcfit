@@ -6,11 +6,19 @@ from nestly import Nest
 from nestly.scons import SConsWrap
 from SCons.Script import Environment
 
-env = Environment(ENV=os.environ.copy())
+environ = os.environ.copy()
+
+for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
+          'SLURM_NTASKS_PER_CORE', 'SLURM_CPUS_PER_TASK', 'SLURM_EXCLUSIVE'):
+    environ[k] = '1'
+environ['SLURM_TIMELIMIT'] = '20:00'
+
+env = Environment(ENV=environ)
 env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../example')
 env.PrependENVPath('PATH', '/home/matsengrp/local/encap/R-3.1.0/bin')
+env.PrependENVPath('PATH', './bin')
 
 n = Nest(base_dict={'n_sites': 1000})
 w = SConsWrap(n, 'runs', alias_environment=env)
@@ -33,7 +41,7 @@ models = {
 
 initial_values = ['1100,800,2.0,0.5',]
 
-sample_values = ['0.1,0.2,0.5',]
+sample_values = ['0.151781,0.202270,0.4648',]
 
 rdist = {
     'uniform': 'Constant()',
@@ -165,8 +173,11 @@ def ml_tree(outdir, c):
 @w.add_target_with_env(env)
 def lcfit(env, outdir, c):
     targets = [os.path.join(outdir, i)
-               for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv')]
-    command = ('lcfit-compare '
+               for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv',
+                         'lcfit_tol.csv')]
+    env['ENV']['SLURM_JOB_NAME'] = 'lcfitc-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
+    command = ('srun '
+               'lcfit-compare '
                'param=${SOURCES[2]} '
                'input.tree.file=${SOURCES[1]} '
                'input.tree.format=Newick '
@@ -174,9 +185,11 @@ def lcfit(env, outdir, c):
                'input.sequence.format=Fasta '
                'lcfit.starting.values=$initial ' +
                'lcfit.sample.branch.lengths=$sample ' +
+               'lcfit.tolerance.values=1e-6,1e-5,1e-4,1e-3,1e-2 '
                'lcfit.output.likelihoods_file=${TARGETS[0]} '
                'lcfit.output.maxima_file=${TARGETS[1]} '
-               'lcfit.output.fit_file=${TARGETS[2]}')
+               'lcfit.output.fit_file=${TARGETS[2]} '
+               'lcfit.output.mltol_file=${TARGETS[3]}')
 
     return env.Command(targets,
                        [c['alignment'], c['ml_tree'], c['model_file']],
@@ -186,7 +199,7 @@ def lcfit(env, outdir, c):
 @w.add_target()
 def lcfit_plots(outdir, c):
     return env.Command(os.path.join(outdir, 'lcfit_plots.pdf'),
-                       c['lcfit'],
+                       c['lcfit'][:3],
                        'plot_fits.R $SOURCES $TARGET')
 
 
@@ -194,6 +207,10 @@ w.add_controls(env)
 
 agg_results = env.Command(['agg.csv'],
                           [i['control'] for _, i in w],
-                          './aggregate.R $SOURCES')
-env.Depends(agg_results, ['aggregate.R'])
+                          'aggregate.R $SOURCES')
 env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
+
+agg_ml_tol = env.Command('agg_mltol.csv',
+                         [i['control'] for _, i in w],
+                         'nestagg delim lcfit_tol.csv $SOURCES -o $TARGET -k model_name,rdist_name,branch_length_rate,seed')
+env.Depends(agg_ml_tol, env.Flatten([c['lcfit'] for _, c in w]))

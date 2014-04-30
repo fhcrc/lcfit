@@ -359,7 +359,7 @@ int run_main(int argc, char** argv)
 
     string csv_mltol_path = bpp::ApplicationTools::getAFilePath("lcfit.output.mltol_file", params, true, false);
     ofstream csv_mltol_out(csv_mltol_path);
-    csv_mltol_out << "node_id,tolerance,ml_t,ml_est,n_eval" << endl;
+    csv_mltol_out << "node_id,tolerance,ml_t,ml_est,n_eval,ml_brent,n_eval_brent" << endl;
 
 
     const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
