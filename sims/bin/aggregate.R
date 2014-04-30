@@ -88,7 +88,6 @@ p2 <- ggplot(error, aes(x=model, y=my_kl, fill=model)) +
   geom_boxplot() +
   facet_grid(~ mean_branch_distribution,
              labeller = label_parsed) +
-  ggtitle("KL divergences between lcfit and empirical likelihoods at sampled branch lengths") +
   theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1),
         legend.position = 'none') +
   ylab("KL divergence (bits)")
@@ -142,7 +141,7 @@ p5 <- ggplot(error, aes(x=t, y=t_hat, color=factor(mean_branch_distribution))) +
 ggsave('t_vs_that.svg', p5, width=14, height=9, dpi=72)
 
 ggsave('hellinger.png', p1, height=14, width=7, dpi=72)
-ggsave('kl.svg', p2, height=10, width=16, dpi=72)
+ggsave('kl.svg', p2, height=6, width=10, dpi=72)
 pdf('kl_hellinger.pdf', width=21, height=14, useDingbats=FALSE)
 tryCatch(grid.arrange(p1, p2, p3, ncol=3), finally=dev.off())
 write.csv(error, 'agg.csv', row.names=FALSE)
