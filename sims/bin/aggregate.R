@@ -66,23 +66,31 @@ error <- ldply(controls, function(p) {
             seed=p$seed,
             tree=p$source_tree,
             branch_length_rate=p$branch_length_rate,
+            mean_branch_distribution=sprintf('Exp(mu == %.2f)', 1 / p$branch_length_rate),
             rel_err=abs(t - t_hat) / t,
             abs_err=abs(t - t_hat))
 }, .progress = 'text')
 
+
+error$model <- factor(error$model, levels = c('Binary-0.25', 'Binary-1.0', 'Binary-4.0',
+                                              'JC', 'HKY85-2.0',
+                                              'JTT92', 'LG08'))
+error$mean_branch_distribution <- factor(error$mean_branch_distribution,
+                                         levels = sort(unique(as.character(error$mean_branch_distribution))))
+
 p1 <- ggplot(error, aes(x=model, y=hellinger, fill=rate)) +
   geom_boxplot() +
-  facet_grid(seed ~ branch_length_rate) +
-  ggtitle("Hellinger distance between lcfit and empirical likelihoods
-at sampled branch lengths") +
+  facet_grid(seed ~ mean_branch_distribution) +
+  ggtitle("Hellinger distance between lcfit and empirical likelihoods at sampled branch lengths") +
   theme(legend.position='bottom')
 
-p2 <- ggplot(error, aes(x=model, y=my_kl, fill=rate)) +
+p2 <- ggplot(error, aes(x=model, y=my_kl, fill=model)) +
   geom_boxplot() +
-  facet_grid(seed ~ branch_length_rate) +
-  ggtitle("KL divergence between lcfit and empirical likelihoods
-at sampled branch lengths") +
-  theme(legend.position='bottom') +
+  facet_grid(~ mean_branch_distribution,
+             labeller = label_parsed) +
+  ggtitle("KL divergences between lcfit and empirical likelihoods at sampled branch lengths") +
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1),
+        legend.position = 'none') +
   ylab("KL divergence (bits)")
 
 p3 <- ggplot(subset(error, branch_length_rate == 10), aes(x=t, y=my_kl, color=model)) +
@@ -97,7 +105,7 @@ local({
   error_noshort <- subset(error, t >= 0.01)
   print(quantile(error$rel_err * 100))
   print(quantile(error_noshort$rel_err * 100))
-  p1 <- ggplot(error_noshort, aes(x=t, y=rel_err, color=factor(branch_length_rate))) +
+  p1 <- ggplot(error_noshort, aes(x=t, y=rel_err, color=factor(mean_branch_distribution))) +
     facet_grid(rate ~ model) +
     geom_hline(yintercept=1.0, linetype='dashed') +
     geom_point() +
@@ -107,7 +115,7 @@ local({
     scale_color_discrete(name = 'Branch length rate') +
     theme(legend.position = 'bottom') +
     ggtitle(expression(paste("Relative error: ", t >= 0.01)))
-  p2 <- ggplot(error, aes(x=t, y=t_hat, color=factor(branch_length_rate))) +
+  p2 <- ggplot(error, aes(x=t, y=t_hat, color=factor(mean_branch_distribution))) +
     facet_grid(rate ~ model) +
     geom_abline(color='grey', linetype='dashed') +
     geom_point() +
@@ -122,7 +130,7 @@ local({
   tryCatch(grid.arrange(p1, p2, nrow=2), finally=dev.off())
 })
 
-p5 <- ggplot(error, aes(x=t, y=t_hat, color=factor(branch_length_rate))) +
+p5 <- ggplot(error, aes(x=t, y=t_hat, color=factor(mean_branch_distribution))) +
   facet_grid(rate ~ model) +
   geom_point() +
   geom_abline(slope=1) +
@@ -134,7 +142,7 @@ p5 <- ggplot(error, aes(x=t, y=t_hat, color=factor(branch_length_rate))) +
 ggsave('t_vs_that.svg', p5, width=14, height=9, dpi=72)
 
 ggsave('hellinger.png', p1, height=14, width=7, dpi=72)
-ggsave('kl.png', p2, height=14, width=7, dpi=72)
+ggsave('kl.svg', p2, height=10, width=16, dpi=72)
 pdf('kl_hellinger.pdf', width=21, height=14, useDingbats=FALSE)
 tryCatch(grid.arrange(p1, p2, p3, ncol=3), finally=dev.off())
 write.csv(error, 'agg.csv', row.names=FALSE)

@@ -27,6 +27,9 @@ w = SConsWrap(n, 'runs', alias_environment=env)
 models = {
     # Nucleotide models
     'JC': {'name': 'JC69', 'alphabet': 'DNA'},
+    'Binary-0.25': {'name': 'Binary(kappa=0.25)', 'alphabet': 'Binary'},
+    'Binary-1.0': {'name': 'Binary(kappa=1.0)', 'alphabet': 'Binary'},
+    'Binary-4.0': {'name': 'Binary(kappa=4.0)', 'alphabet': 'Binary'},
     'HKY85-2.0': {'name': 'HKY85(kappa=2.0, theta=0.5, theta1=0.5, theta2=0.5)',
                   'alphabet': 'DNA'},
 
