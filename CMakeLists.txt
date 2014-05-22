@@ -1,4 +1,6 @@
 cmake_minimum_required (VERSION 2.8.1)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/lib/cmake")
+
 add_subdirectory(lcfit_src)
 add_subdirectory(lcfit_cpp_src)
