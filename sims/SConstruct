@@ -37,9 +37,9 @@ models = {
     'JTT92': {'name': 'JTT92', 'alphabet': 'Protein'},
     'LG08': {'name': 'LG08', 'alphabet': 'Protein'},
 
-#    # Codons
-#    #'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
-#    'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
+    # Codons
+    'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
+    'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
 }
 
 initial_values = ['1100,800,2.0,0.5',]
