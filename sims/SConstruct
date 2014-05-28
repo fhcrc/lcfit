@@ -11,7 +11,7 @@ environ = os.environ.copy()
 for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
           'SLURM_NTASKS_PER_CORE', 'SLURM_CPUS_PER_TASK', 'SLURM_EXCLUSIVE'):
     environ[k] = '1'
-environ['SLURM_TIMELIMIT'] = '20:00'
+environ['SLURM_TIMELIMIT'] = '0-6'
 
 env = Environment(ENV=environ)
 env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
@@ -38,7 +38,7 @@ models = {
     'LG08': {'name': 'LG08', 'alphabet': 'Protein'},
 
     # Codons
-    'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
+    #'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
     'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
 }
 
