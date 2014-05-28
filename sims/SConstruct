@@ -14,6 +14,8 @@ for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
 environ['SLURM_TIMELIMIT'] = '0-6'
 
 env = Environment(ENV=environ)
+env.PrependENVPath('PATH', '/home/matsengrp/local/encap/bpp-master-20140414/bin')
+env.PrependENVPath('LD_LIBRARY_PATH', '/home/matsengrp/local/encap/bpp-master-20140414/lib')
 env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../example')
@@ -30,7 +32,7 @@ models = {
     'Binary-0.25': {'name': 'Binary(kappa=0.25)', 'alphabet': 'Binary'},
     'Binary-1.0': {'name': 'Binary(kappa=1.0)', 'alphabet': 'Binary'},
     'Binary-4.0': {'name': 'Binary(kappa=4.0)', 'alphabet': 'Binary'},
-    'HKY85-2.0': {'name': 'HKY85(kappa=2.0, theta=0.5, theta1=0.5, theta2=0.5)',
+    'HKY85-2.0': {'name': 'HKY85(kappa=2.0, theta=0.5, theta1=0.5, theta2=0.75)',
                   'alphabet': 'DNA'},
 
     # Protein models
@@ -39,7 +41,25 @@ models = {
 
     # Codons
     #'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
-    'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
+    'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA)\ngenetic_code=Standard'},
+    # Nonhomogenous
+    'nonhom-dna': {
+        'alphabet': 'DNA',
+        'detail': """
+nonhomogeneous = general
+nonhomogeneous.number_of_models = 3
+nonhomogeneous.root_freq=GC(theta=0.6)
+
+model1=T92(kappa=2, theta=0.6)
+model2=TN93(kappa1=10, kappa2=3, theta=0.25, theta2=0.6)
+model3=GTR(a=2, b=1, c=4, theta=0.25, theta1=0.90)
+
+model1.nodes_id=0:6
+model2.nodes_id=7:12
+model3.nodes_id=13:17
+""",
+        'ignore': 'GC.theta,T92.kappa,TN93.kappa,GTR.a,GTR.b,GTR.c,GTR.theta,GTR.theta1,GTR.theta2',
+    }
 }
 
 initial_values = ['1100,800,2.0,0.5',]
@@ -77,12 +97,16 @@ n.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'),
 
 
 def write_model_action(target, source, env):
+    c = env['control']
     with open(str(target[0]), 'w') as fp:
         print >> fp, """alphabet={model[alphabet]}
-model={model[name]}
 rate_distribution={rdist}
 
-""".format(**env['control'])
+""".format(**c)
+        if 'name' in c['model']:
+            print >> fp, """model={model[name]}""".format(**c)
+        else:
+            print >> fp, """{model[detail]}""".format(**c)
 
 
 @w.add_target()
@@ -112,10 +136,10 @@ def seqgen_file(outdir, c):
 @w.add_target()
 def alignment(outdir, c):
     target = os.path.join(outdir, 'alignment.fasta')
-    cmd = ('bppseqgen '
-            'param=${SOURCES[1]} '
-            'input.tree.file=${SOURCES[0]} '
-            'output.sequence.file=$TARGET')
+    cmd = ('bppseqgen --seed=0 '
+           'param=${SOURCES[1]} '
+           'input.tree.file=${SOURCES[0]} '
+           'output.sequence.file=$TARGET')
     return env.Command(target, [c['source_tree'], c['seqgen_file']], cmd)[0]
 
 
@@ -168,9 +192,10 @@ def ml_tree(outdir, c):
     target_base = os.path.join(outdir, 'ml_tree')
     target = target_base + '.tre'
 
+    env['ENV']['SLURM_JOB_NAME'] = 'bppml-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
     return env.Command(target,
                        [c['bppml_file'], c['alignment'], c['source_tree']],
-                       'bppml param=$SOURCE')[0]
+                       'srun bppml param=$SOURCE')[0]
 
 
 @w.add_target_with_env(env)
@@ -178,7 +203,7 @@ def lcfit(env, outdir, c):
     targets = [os.path.join(outdir, i)
                for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv',
                          'lcfit_tol.csv')]
-    env['ENV']['SLURM_JOB_NAME'] = 'lcfitc-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
+    env['ENV']['SLURM_JOB_NAME'] = 'lcfit-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
     command = ('srun '
                'lcfit-compare '
                'param=${SOURCES[2]} '

@@ -17,6 +17,8 @@
 #include <Bpp/Numeric/Function/BrentOneDimension.h>
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Phyl/App/PhylogeneticsApplicationTools.h>
+#include <Bpp/Phyl/Model/SubstitutionModelSetTools.h>
+#include <Bpp/Phyl/Likelihood/RNonHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
 #include <Bpp/Seq/App/SequenceApplicationTools.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
@@ -134,31 +136,31 @@ inline size_t min_index(ForwardIterator first, const ForwardIterator last)
 class TreeLikelihoodCalculator
 {
 public:
-    TreeLikelihoodCalculator(const bpp::Tree& tree, bpp::SiteContainer* sites, bpp::SubstitutionModel* model, bpp::DiscreteDistribution* rate_dist) :
-        like(tree, *sites, model, rate_dist, false, false, false)
+    TreeLikelihoodCalculator(const bpp::TreeLikelihood& tl) :
+        like(tl.clone())
     {
-        like.initialize();
+        like->initialize();
     };
 
     /// Calculate log-likelihood
     double calculate_log_likelihood()
     {
-        like.computeTreeLikelihood();
-        return like.getLogLikelihood();
+        //like->computeTreeLikelihood();
+        return like->getLogLikelihood();
     }
 
     void set_branch_length(const size_t node, double length)
     {
         length = std::max(length, 1e-6);
-        like.setParameterValue("BrLen" + std::to_string(node), length);
+        like->setParameterValue("BrLen" + std::to_string(node), length);
     }
 
     void get_branch_length(const size_t node) const
     {
-        like.getParameterValue("BrLen" + std::to_string(node));
+        like->getParameterValue("BrLen" + std::to_string(node));
     }
 //private:
-    bpp::RHomogeneousTreeLikelihood like;
+    std::unique_ptr<bpp::TreeLikelihood> like;
 };
 
 /// Calculate the log likelihood of a node given a branch length
@@ -333,19 +335,41 @@ int run_main(int argc, char** argv)
     /********************/
 
     // Alphabet
-    unique_ptr<bpp::Alphabet> alphabet(bpp::SequenceApplicationTools::getAlphabet(params, "", false));
+    const unique_ptr<bpp::Alphabet> alphabet(bpp::SequenceApplicationTools::getAlphabet(params, "", false));
+    // Genetic code
+    unique_ptr<bpp::GeneticCode> gcode;
+    if(bpp::CodonAlphabet* codon_alph = dynamic_cast<bpp::CodonAlphabet*>(alphabet.get())) {
+        const string code_desc = bpp::ApplicationTools::getStringParameter("genetic_code", params, "Standard", "", true, true);
+        bpp::ApplicationTools::displayResult("Genetic Code", code_desc);
+        gcode.reset(bpp::SequenceApplicationTools::getGeneticCode(codon_alph->getNucleicAlphabet(), code_desc));
+    }
     // Sites
     unique_ptr<bpp::VectorSiteContainer> all_sites(bpp::SequenceApplicationTools::getSiteContainer(alphabet.get(), params));
     unique_ptr<bpp::VectorSiteContainer> sites(bpp::SequenceApplicationTools::getSitesToAnalyse(*all_sites, params, "", true, false));
     all_sites.reset();
+    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sites);
+
     // Tree
     unique_ptr<bpp::Tree> in_tree(bpp::PhylogeneticsApplicationTools::getTree(params));
     bpp::TreeTemplate<bpp::Node> tree(*in_tree);
-    // Model
-    unique_ptr<bpp::SubstitutionModel> model(bpp::PhylogeneticsApplicationTools::getSubstitutionModel(alphabet.get(), sites.get(), params));
-    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sites);
     // Rate dist
     unique_ptr<bpp::DiscreteDistribution> rate_dist(bpp::PhylogeneticsApplicationTools::getRateDistribution(params));
+    // Model
+    // See bppSeqGen.cpp L253
+    const std::string nh_opt = bpp::ApplicationTools::getStringParameter("nonhomogeneous", params, "no", "", true, false);
+    unique_ptr<bpp::SubstitutionModel> model;
+    unique_ptr<bpp::SubstitutionModelSet> model_set;
+    unique_ptr<bpp::TreeLikelihood> bpp_tree_like;
+    if(nh_opt == "no") {
+        model.reset(bpp::PhylogeneticsApplicationTools::getSubstitutionModel(alphabet.get(), gcode.get(), sites.get(), params));
+        //unique_ptr<bpp::FrequenciesSet> fSet(new bpp::FixedFrequenciesSet(model->getAlphabet(), model->getFrequencies()));
+        //model_set.reset(bpp::SubstitutionModelSetTools::createHomogeneousModelSet(model.release(), fSet.release(), &tree));
+        bpp_tree_like.reset(new bpp::RHomogeneousTreeLikelihood(tree, *sites, model.get(), rate_dist.get(), false, false, false));
+    } else if(nh_opt == "general") {
+        model_set.reset(bpp::PhylogeneticsApplicationTools::getSubstitutionModelSet(alphabet.get(), gcode.get(), sites.get(), params));
+        bpp_tree_like.reset(new bpp::RNonHomogeneousTreeLikelihood(tree, *sites, model_set.get(), rate_dist.get(), false, false, false));
+    } else throw std::runtime_error("Unknown non-homogeneous option: " + nh_opt);
+
 
     // lcfit-specific
     // Output
@@ -380,7 +404,7 @@ int run_main(int argc, char** argv)
     for(const int & node_id : tree.getNodesId()) {
         clog << "[lcfit eval] Node " << setw(4) << node_id << "\r";
         // Calculators
-        TreeLikelihoodCalculator likelihood_calc(tree, sites.get(), model.get(), rate_dist.get());
+        TreeLikelihoodCalculator likelihood_calc(*bpp_tree_like);
         LCFitter fitter(start, sample_points, &likelihood_calc, &csv_fit_out);
         if(!tree.hasDistanceToFather(node_id)) continue;
         const bsm_t m = fitter.fit_model(node_id);
