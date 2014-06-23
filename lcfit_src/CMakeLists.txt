@@ -5,8 +5,8 @@ project(libclfit C)
 set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
 
 # Find GSL
-include(FindGSL)
-find_package(GSL REQUIRED)
+include(FindGsl)
+find_package(Gsl REQUIRED)
 
 set(LCFIT_LIB_C_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit.h
@@ -17,9 +17,9 @@ set(LCFIT_LIB_C_FILES
 add_library(lcfit-static STATIC ${LCFIT_LIB_C_FILES})
 add_library(lcfit SHARED ${LCFIT_LIB_C_FILES})
 
-include_directories(${GSL_INCLUDES})
-target_link_libraries(lcfit-static ${GSL_LIBRARIES} gslcblas)
-target_link_libraries(lcfit ${GSL_LIBRARIES} gslcblas)
+include_directories(SYSTEM ${GSL_INCLUDES})
+target_link_libraries(lcfit-static ${GSL_LIBRARIES})
+target_link_libraries(lcfit ${GSL_LIBRARIES})
 
 install(TARGETS lcfit DESTINATION lib)
 install(FILES ${LCFIT_LIB_C_HEADERS} DESTINATION include)

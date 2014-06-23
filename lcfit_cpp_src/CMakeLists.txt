@@ -15,8 +15,7 @@ set(LCFIT_COMPARE_LIBS
   bpp-core
   bpp-seq
   bpp-phyl
-  gsl
-  gslcblas
+  ${GSL_LIBRARIES}
   lcfit-static)
 
 # LCFIT
