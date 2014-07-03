@@ -655,8 +655,8 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                  = src/lcfit.h src/lcfit.c src/lcfit_cpp.h src/lcfit_cpp.cc mainpage.dox
-INPUT                 += src/lcfit_select.h src/lcfit_select.c
+INPUT                  = lcfit_src/lcfit.h lcfit_src/lcfit.c lcfit_cpp_src/lcfit_cpp.h lcfit_cpp_src/lcfit_cpp.cc mainpage.dox
+INPUT                 += lcfit_src/lcfit_select.h lcfit_src/lcfit_select.c
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
