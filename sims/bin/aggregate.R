@@ -84,9 +84,11 @@ error <- ldply(controls, function(p) {
 }, .progress = 'text')
 
 
-error$model <- factor(error$model, levels = c('Binary-0.25', 'Binary-1.0', 'Binary-4.0',
-                                              'JC', 'HKY85-2.0',
-                                              'JTT92', 'LG08', 'YN98-2-5'))
+error$model <- factor(error$model,
+                      levels = c('Binary-0.25', 'Binary-1.0', 'Binary-4.0',
+                                 'JC', 'HKY85-2.0', 'JTT92', 'LG08', 'YN98-2-5', 'nonhom-dna'),
+                      labels = c('Binary-0.25', 'Binary-1.0', 'Binary-4.0',
+                                 'JC', 'HKY85', 'JTT92', 'LG08', 'YN98', 'Nonhomogeneous'))
 error$mean_branch_distribution <- factor(error$mean_branch_distribution,
                                          levels = sort(unique(as.character(error$mean_branch_distribution))))
 
@@ -163,6 +165,7 @@ ggsave('t_vs_that.svg', p5, width=14, height=9, dpi=72)
 m <- melt(error, measure.vars = c('t_hat', 't_hat_iterative'))
 m[['variable']] <- factor(m[['variable']], levels = c('t_hat', 't_hat_iterative'),
                           labels = c('non-iterative', 'iterative'))
+m <- transform(m, value = ifelse(abs(value) > 10, Inf * sign(value), value))
 p6 <- ggplot(m, aes(x = variable, y = t - value)) +
   geom_hline(yintercept = 0, linetype = 'dashed') +
   geom_boxplot() +
