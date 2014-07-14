@@ -1,0 +1,209 @@
+---
+title: "Estimating likelihood function with lcfit"
+output:
+html_document:
+toc: true
+theme: cerulean
+---
+
+
+```{r echo=FALSE, results='hide'}
+library(ggplot2)
+library(plyr)
+library(reshape2)
+suppressPackageStartupMessages(library(distrEx))
+suppressPackageStartupMessages(library(entropy))
+source("utils.R")
+
+theme_set(theme_bw(16))
+
+```
+
+Below is the standard lcfit function laid over the actual likelihood
+function.  The fitted data points are marked.
+
+
+```{r echo=FALSE, results='hide'}
+
+lcfit.root = "../../"
+
+sim.dir <- paste0(lcfit.root, "sims/runs/10/3/Binary-0.25/gamma4-0.2/")
+
+name.bls <- paste0(sim.dir, "lcfit_bls.csv")
+name.maxima <- paste0(sim.dir, "lcfit_maxima.csv")
+name.fit <-  paste0(sim.dir, "lcfit_fit.csv")
+
+data.bls <- read.csv(name.bls, as.is=TRUE)
+data.maxima <- read.csv(name.maxima, as.is=TRUE)
+data.fit <- read.csv(name.fit, as.is=TRUE)
+
+nodes <- unique(data.fit$node_id)
+node_id <- nodes[[1]]
+print(sprintf("node_id = %d", node_id))
+ndata.bls <- data.bls[data.bls$node_id == node_id,]
+ndata.maxima <- data.maxima[data.maxima$node_id == node_id,]
+ndata.fit <- data.fit[data.fit$node_id == node_id,]
+ndata.fit$name <- 'Bio++'
+
+# calculate summary statscomparing lcfit to likelihood
+error.lcfit <- compare_bls(ndata.bls)
+
+# calculate RSS between likelihood and lcfit
+rss.lcfit <- with(ndata.bls, as.integer(sum((fit_ll - bpp_ll)^2)))
+
+ndata.bls <- melt(ndata.bls, id.vars=1:2)
+
+    p <- ggplot( ndata.bls) +
+         geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable), data=ndata.bls) +
+         ggtitle(bquote(atop(.(sprintf("Node #%s",  ndata.bls$node_id[1])),
+                             atop(scriptscriptstyle(italic(RSS[lcfit] ~ "=" ~ .(rss.lcfit))),
+                                  phantom(0))
+                             ~
+                             atop(scriptscriptstyle(italic(KL[lcfit] ~ "=" ~ .(sprintf("%.3f",error.lcfit$kl)))),
+                                  phantom(0))
+
+                             ))) +
+         geom_point(aes(x=branch_length, y=ll, shape=name), data=ndata.fit) +
+         xlim(0, max(c(max(ndata.fit$branch_length), 1)))
+    p <- p + scale_color_discrete(name="", breaks=c('bpp_ll', 'fit_ll'), labels=c('Bio++', 'lcfit')) 
+    p <- p + guides(color="legend", shape=FALSE, linetype=FALSE) 
+    p <- p + theme(legend.position="bottom")
+
+print(p)
+
+```
+
+## Polynomial fitting 
+
+Fitting a 3rd degree polynomial to the same data shows significantly
+more deviation than lcfit does.
+
+```{r echo=FALSE, results='hide'}
+
+data.bls <- read.csv(name.bls, as.is=TRUE)
+data.maxima <- read.csv(name.maxima, as.is=TRUE)
+data.fit <- read.csv(name.fit, as.is=TRUE)
+
+nodes <- unique(data.fit$node_id)
+p <- plotPoly(nodes[[1]], degree=3, nextra=0)
+
+print(p)
+```
+
+##Sampling additional points 
+
+Uniformly sampling an additional four additional points from the likelihood function does not improve the 3rd degree polynomial.
+
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide', message=F, warning=F}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotPoly, degree=3, nextra=4)
+multiplot(plotlist=plots, cols=3)
+
+```
+
+####4th degree polynomial estimates
+
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide'}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotPoly, degree=4, nextra=4)
+
+multiplot(plotlist=plots, cols=3)
+
+```
+
+####5th degree polynomial estimates
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide'}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotPoly, degree=5, nextra=4)
+
+multiplot(plotlist=plots, cols=3)
+```
+
+## Spline fitting
+#####using only the sample points used by lcfit
+
+```{r eval=FALSE}
+    # fit a spline to the sample points.  Interpolate at the branch_point values used for lcfit_ll.
+    ndata.bls$spline_ll <- spline(ndata.fit$branch_length, y=ndata.fit$ll,
+                                  xout=ndata.bls[['branch_length']], method = "natural")[[2]]
+
+
+```
+
+Splines seem to do well according to RSS statistics, but 
+KL divergence shows that splines underperform lcfit in the region we
+care about most.
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide'}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotSpline)
+multiplot(plotlist=plots, cols=3)
+
+```
+
+## Splines with additional points
+
+```{r eval=FALSE}
+        nextra <- 1 # number of extra points
+        # compute the categorical distribution of points
+        bpp_ll <- ndata.bls[['bpp_ll']]
+        bpp_l <- exp(bpp_ll - max(bpp_ll))
+        bpp_l <- bpp_l / sum(bpp_l)
+
+        # sample w/o replacement according to the distribution calculated above
+        i <- sample(1:nrow(ndata.bls), nextra, replace = FALSE, prob=bpp_l)
+
+        # add the new points to the existing ones.
+        extra.fit <- data.frame(node_id=node_id, branch_length=ndata.bls[i,"branch_length"], ll=ndata.bls[i,"bpp_ll"], name="extra")
+        ndata.fit <- rbind(ndata.fit, extra.fit)
+```
+
+#####choosing one additional point, distributed according to bpp likelihood
+
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide'}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotSpline, nextra=1)
+multiplot(plotlist=plots, cols=3)
+
+```
+
+#####choosing two additional points, distributed according to bpp likelihood
+
+
+
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide'}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotSpline, nextra=2)
+multiplot(plotlist=plots, cols=3)
+
+```
+
+#####choosing three additional points, distributed according to bpp likelihood
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide'}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotSpline, nextra=3)
+multiplot(plotlist=plots, cols=3)
+
+```
+
+#####choosing four additional points, distributed according to bpp likelihood
+
+```{r fig.width=12, fig.height=5, echo=FALSE, results='hide'}
+set.seed(1234)
+plots <- lapply(nodes[1:3], plotSpline, nextra=4)
+multiplot(plotlist=plots, cols=3)
+
+```
+
+
+# Misc
+```{r}
+getwd()
+as.POSIXlt(Sys.time())
+```
