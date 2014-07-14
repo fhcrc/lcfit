@@ -41,3 +41,16 @@ To run the test suite, run `make test`
 [1]: http://www.cmake.org
 [2]: http://www.gnu.org/s/gsl
 [3]: http://biopp.univ-montp2.fr
+
+## Running simulations ##
+
+[Nestly](https://github.com/fhcrc/nestly) is used to build an extensive hierarchy of
+directories and configuration files to measure the behavior of lcfit
+when applied to a wide variety of data.  The simulations can take several hours to
+complete, but they can be run in parallel by passing the `-j` option
+to `scons`.   This will cause `scons` to launch multiple `slurm` jobs at
+once instead of running them sequentially.
+
+    $ cd sims
+	$ scons -j 10
+	
