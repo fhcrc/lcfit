@@ -2,7 +2,6 @@
 %.html : %.Rmd
 	R --slave -e 'rmarkdown::render("$(firstword $^)")'
 
-
 fitting.html : fitting.Rmd
 
 fitting.html : utils.R

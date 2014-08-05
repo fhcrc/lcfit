@@ -73,7 +73,6 @@ compare_bls <- function(d, fit='fit_ll') {
 }
 
 plotPoly <- function(node_id, degree=3, nextra = 0) {
-    print(sprintf("node_id = %d", node_id))
     ndata.bls <- data.bls[data.bls$node_id == node_id,]
     ndata.maxima <- data.maxima[data.maxima$node_id == node_id,]
     ndata.fit <- data.fit[data.fit$node_id == node_id,]
@@ -130,13 +129,16 @@ plotPoly <- function(node_id, degree=3, nextra = 0) {
 ##' @return 		named numeric vector, { 'c', 'm', 'r', 'b' }
 ##' @author chris
 fit_model <- function(model, pts) {
-    print(paste0("name = ", paste0(names(model), collapse=", ")))
     stopifnot(is(pts, "data.frame"))
-    stopifnot("x" %in% names(pts))
-    stopifnot("y" %in% names(pts))
+    stopifnot(all(c("x", "y") %in% names(pts)))
     stopifnot(is.list(model) || is(model, "numeric"))
     
+    # scale the model to the largest sample point
+    # THIS IS WHERE THE ERROR OCCURS!
     p <- pts[pts$y == max(pts$y),]
+    if (nrow(p) != 1)
+        warning("Fitting duplicated points?  Saw multiple maximum values.")
+    p <- p[1,]
     scale_factor <- lcfit_bsm_scale_factor(p$x, p$y, model);
     model['c'] <- model['c'] * scale_factor;
     model['m'] <- model['m'] * scale_factor;
@@ -161,7 +163,7 @@ lcfit <- function(t, model) {
 ##' @param nextra 	number of extra points to select
 ##' @return Returns nothing. Sends plot output to current graphics device.
 ##' @author chris
-plotSpline <- function(node_id, nextra=0) {
+plotSpline <- function(node_id, nextra=0, keep=0) {
     print(sprintf("node_id = %d", node_id))
     ndata.bls <- data.bls[data.bls$node_id == node_id,]
     ndata.maxima <- data.maxima[data.maxima$node_id == node_id,]
@@ -175,12 +177,26 @@ plotSpline <- function(node_id, nextra=0) {
         bpp_l <- exp(bpp_ll - max(bpp_ll))
         bpp_l <- bpp_l / sum(bpp_l)
 
-        # sample w/o replacement according to the distribution calculated above
-        i <- sample(1:nrow(ndata.bls), nextra, replace = FALSE, prob=bpp_l)
+        # propose some more sample points, but reject the proposal if any of the new points duplicate existing points.
+        repeat {
+            # sample w/o replacement according to the distribution calculated above
+            i <- sample(1:nrow(ndata.bls), nextra, replace = FALSE, prob=bpp_l)
+            # add the new points to the existing ones.
+            extra.fit <- data.frame(node_id=node_id, branch_length=ndata.bls[i,"branch_length"], ll=ndata.bls[i,"bpp_ll"], name="extra")
+            if (!any(sapply(extra.fit$ll, function(x) x == ndata.fit$ll ))) {
+                break
+            }
+            else {
+                message("proposal rejected")
+            }
+        }
 
-        # add the new points to the existing ones.
-        extra.fit <- data.frame(node_id=node_id, branch_length=ndata.bls[i,"branch_length"], ll=ndata.bls[i,"bpp_ll"], name="extra")
         ndata.fit <- rbind(ndata.fit, extra.fit)
+
+        # Erick asks to keep only the four-highest likelihood points.
+        if (keep > 0) {
+            ndata.fit <- ndata.fit[order(ndata.fit$ll, decreasing=T)[1:keep],]
+        }
     }
 
     # re-fit the lcfit model to the new sample points.
