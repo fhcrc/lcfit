@@ -72,53 +72,6 @@ compare_bls <- function(d, fit='fit_ll') {
              fit_rel_ess=ess(fit_ll) / length(bpp_ll))
 }
 
-plotPoly <- function(node_id, degree=3, nextra = 0) {
-    ndata.bls <- data.bls[data.bls$node_id == node_id,]
-    ndata.maxima <- data.maxima[data.maxima$node_id == node_id,]
-    ndata.fit <- data.fit[data.fit$node_id == node_id,]
-    ndata.fit$name <- 'Bio++'
-
-    # sample some extra points
-    if (nextra > 0) {
-        i <- sample(1:nrow(ndata.bls), nextra, replace = FALSE)
-        extra.fit <- data.frame(node_id=node_id, branch_length=ndata.bls[i,"branch_length"], ll=ndata.bls[i,"bpp_ll"], name="extra")
-        ndata.fit <- rbind(ndata.fit, extra.fit)
-    }
-    
-    # fit a polynomial to the sample points.  Interpolate over branch_length.
-    fit <- lm(ll ~ poly(branch_length,degree,raw=TRUE), data=ndata.fit)
-    
-    ndata.bls$poly_ll <- predict(fit, data.frame(branch_length=ndata.bls[['branch_length']]))
-
-    # calculate summary statistics
-    error.lcfit <- compare_bls(ndata.bls)
-    error.poly <- compare_bls(ndata.bls, fit='poly_ll')
-    
-    # calculate summary statistics - the residual squared difference between
-    # the fitting procedures (lcfit and spline) and the actual likelihood.
-    rss.poly <- with(ndata.bls, as.integer(sum((poly_ll - bpp_ll)^2)))
-    rss.lcfit <- with(ndata.bls, as.integer(sum((fit_ll - bpp_ll)^2)))
-
-    ndata.bls <- melt(ndata.bls, id.vars=1:2)
-
-    p <- ggplot( ndata.bls) +
-         geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable), data=ndata.bls) +
-         ggtitle(bquote(atop(.(sprintf("Node #%s",  ndata.bls$node_id[1])),
-                             atop(scriptscriptstyle(italic(RSS[lcfit] ~ "=" ~ .(rss.lcfit))),
-                                  scriptscriptstyle(italic(RSS[poly] ~ "=" ~ .(rss.poly))))
-                             ~
-                             atop(scriptscriptstyle(italic(KL[lcfit] ~ "=" ~ .(sprintf("%.3f",error.lcfit$kl)))),
-                                  scriptscriptstyle(italic(KL[poly] ~ "=" ~ .(sprintf("%.3f",error.poly$kl)))))
-
-                             ))) +
-         geom_point(aes(x=branch_length, y=ll, shape=name), data=ndata.fit) +
-         xlim(0, max(c(max(ndata.fit$branch_length), 1)))
-    p <- p + scale_color_discrete(name="", breaks=c('bpp_ll', 'fit_ll', 'poly_ll'), labels=c('Bio++', 'lcfit', 'poly')) 
-    p <- p + guides(color=FALSE, shape=FALSE, linetype=FALSE) 
-    p <- p + guides(color="legend")
-    p <- p + theme(legend.position="bottom")
-
-}
 
 ##' Fit lcfit model parameters to sample points
 ##'
@@ -155,6 +108,57 @@ lcfit <- function(t, model) {
     })
 }
 
+samplePoints <- function(node_id, nextra=0, keep=0) {
+    print(sprintf("node_id = %d", node_id))
+    ndata <- list()
+    ndata$bls <- data.bls[data.bls$node_id == node_id,]
+    ndata$maxima <- data.maxima[data.maxima$node_id == node_id,]
+    ndata$fit <- data.fit[data.fit$node_id == node_id,]
+    ndata$fit$name <- 'Bio++'
+
+    # sample some extra points
+    if (nextra > 0) {
+        # compute the categorical distribution of points
+        bpp_ll <- ndata$bls[['bpp_ll']]
+        bpp_l <- exp(bpp_ll - max(bpp_ll))
+        bpp_l <- bpp_l / sum(bpp_l)
+
+        # propose some more sample points, but reject the proposal if any of the new points duplicate existing points.
+        repeat {
+            # sample w/o replacement according to the distribution calculated above
+            i <- sample(1:nrow(ndata$bls), nextra, replace = FALSE, prob=bpp_l)
+            # add the new points to the existing ones.
+            extra.fit <- data.frame(node_id=node_id, branch_length=ndata$bls[i,"branch_length"], ll=ndata$bls[i,"bpp_ll"], name="extra")
+            if (!any(sapply(extra.fit$ll, function(x) x == ndata$fit$ll ))) {
+                break
+            }
+            else {
+                message("proposal rejected")
+            }
+        }
+
+        ndata$fit <- rbind(ndata$fit, extra.fit)
+
+        # Erick asks to keep only the four-highest likelihood points.
+        if (keep > 0) {
+            ndata$fit <- ndata$fit[order(ndata$fit$ll, decreasing=T)[1:keep],]
+        }
+    }
+
+    # re-fit the lcfit model to the new sample points.
+    model <-  ndata$maxima[, c('c', 'm', 'r', 'b')]
+    sample.points <- ndata$fit[, c('branch_length', 'll')]
+    names(sample.points) <- c('x', 'y')
+    model <- fit_model(model, sample.points)
+    ndata$bls$fit_ll <- sapply(ndata$bls[['branch_length']], lcfit, model=model)
+
+    # fit a spline to the sample points.  Interpolate at the branch_point values used for lcfit_ll.
+    ndata$bls$spline_ll <- spline(ndata$fit$branch_length, y=ndata$fit$ll,
+                                  xout=ndata$bls[['branch_length']], method = "natural")[[2]]
+
+    return(ndata)
+}
+
 ##' plot a spline approximation for the likelihood curve. 
 ##'
 ##' .. content for \details{} ..
@@ -163,78 +167,53 @@ lcfit <- function(t, model) {
 ##' @param nextra 	number of extra points to select
 ##' @return Returns nothing. Sends plot output to current graphics device.
 ##' @author chris
-plotSpline <- function(node_id, nextra=0, keep=0) {
-    print(sprintf("node_id = %d", node_id))
-    ndata.bls <- data.bls[data.bls$node_id == node_id,]
-    ndata.maxima <- data.maxima[data.maxima$node_id == node_id,]
-    ndata.fit <- data.fit[data.fit$node_id == node_id,]
-    ndata.fit$name <- 'Bio++'
+plotSpline <- function(ndata) {
 
-    # sample some extra points
-    if (nextra > 0) {
-        # compute the categorical distribution of points
-        bpp_ll <- ndata.bls[['bpp_ll']]
-        bpp_l <- exp(bpp_ll - max(bpp_ll))
-        bpp_l <- bpp_l / sum(bpp_l)
+    ndata$bls <- melt(ndata$bls, id.vars=1:2)
 
-        # propose some more sample points, but reject the proposal if any of the new points duplicate existing points.
-        repeat {
-            # sample w/o replacement according to the distribution calculated above
-            i <- sample(1:nrow(ndata.bls), nextra, replace = FALSE, prob=bpp_l)
-            # add the new points to the existing ones.
-            extra.fit <- data.frame(node_id=node_id, branch_length=ndata.bls[i,"branch_length"], ll=ndata.bls[i,"bpp_ll"], name="extra")
-            if (!any(sapply(extra.fit$ll, function(x) x == ndata.fit$ll ))) {
-                break
-            }
-            else {
-                message("proposal rejected")
-            }
-        }
-
-        ndata.fit <- rbind(ndata.fit, extra.fit)
-
-        # Erick asks to keep only the four-highest likelihood points.
-        if (keep > 0) {
-            ndata.fit <- ndata.fit[order(ndata.fit$ll, decreasing=T)[1:keep],]
-        }
-    }
-
-    # re-fit the lcfit model to the new sample points.
-    model <-  ndata.maxima[, c('c', 'm', 'r', 'b')]
-    sample.points <- ndata.fit[, c('branch_length', 'll')]
-    names(sample.points) <- c('x', 'y')
-    model <- fit_model(model, sample.points)
-    ndata.bls$fit_ll <- sapply(ndata.bls[['branch_length']], lcfit, model=model)
-
-    # fit a spline to the sample points.  Interpolate at the branch_point values used for lcfit_ll.
-    ndata.bls$spline_ll <- spline(ndata.fit$branch_length, y=ndata.fit$ll,
-                                  xout=ndata.bls[['branch_length']], method = "natural")[[2]]
-
-    error.lcfit <- compare_bls(ndata.bls)
-    error.spline <- compare_bls(ndata.bls, fit='spline_ll')
-    
-
-    # calculate summary statistics - the residual squared difference between
-    # the fitting procedures (lcfit and spline) and the actual likelihood.
-    rss.spline <- with(ndata.bls, as.integer(sum((spline_ll - bpp_ll)^2)))
-    rss.lcfit <- with(ndata.bls, as.integer(sum((fit_ll - bpp_ll)^2)))
-
-    ndata.bls <- melt(ndata.bls, id.vars=1:2)
-
-    p <- ggplot( ndata.bls, aes(color=name, linetype=name)) +
-         geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable), data=ndata.bls) +
-         ggtitle(bquote(atop(.(sprintf("Node #%s",  ndata.bls$node_id[1])),
-                             atop(scriptscriptstyle(italic(RSS[lcfit] ~ "=" ~ .(rss.lcfit))),
-                                  scriptscriptstyle(italic(RSS[spline] ~ "=" ~ .(rss.spline))))
-                             ~
-                             atop(scriptscriptstyle(italic(KL[lcfit] ~ "=" ~ .(sprintf("%.3f",error.lcfit$kl)))),
-                                  scriptscriptstyle(italic(KL[spline] ~ "=" ~ .(sprintf("%.3f",error.spline$kl)))))
-
-                             ))) +
-         geom_point(aes(x=branch_length, y=ll, shape=name), data=ndata.fit) +
-         xlim(0, max(c(max(ndata.fit$branch_length), 1))) 
+    p <- ggplot( ndata$bls, aes(color=name, linetype=name)) +
+         geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable), data=ndata$bls) +
+         ggtitle(sprintf("Node #%s",  ndata$bls$node_id[1])) +
+         geom_point(aes(x=branch_length, y=ll, shape=name), data=ndata$fit) +
+         ylab("Log likelihood") +
+         xlim(0, max(c(max(ndata$fit$branch_length), 1))) 
 
     p <- p + scale_color_discrete(name="", breaks=c('bpp_ll', 'fit_ll', 'spline_ll'), labels=c('Bio++', 'lcfit', 'spline')) 
     p <- p + guides(color="legend", shape=FALSE, linetype=FALSE) 
     p <- p + theme(legend.position="bottom")
+
 }
+
+
+
+
+summaryTable <- function(ndata) {
+    error.lcfit <- compare_bls(ndata$bls)
+    error.spline <- compare_bls(ndata$bls, fit='spline_ll')
+    
+    # compute the categorical distribution of points
+    bpp_ll <- ndata$bls[['bpp_ll']]
+    bpp_l <- exp(bpp_ll - max(bpp_ll))
+    bpp_l <- bpp_l / sum(bpp_l)
+
+
+    # calculate summary statistics - the residual squared difference between
+    # the fitting procedures (lcfit and spline) and the actual likelihood.
+    rss.spline <- with(ndata$bls, as.integer(sum((spline_ll - bpp_ll)^2)))
+    rss.lcfit <- with(ndata$bls, as.integer(sum((fit_ll - bpp_ll)^2)))
+
+    # calculated an rss value weighted by scaled likelihood estimate
+    wrss.spline <- with(ndata$bls, sum((spline_ll - bpp_ll)^2*exp(bpp_ll-max(bpp_ll))))
+    wrss.lcfit <- with(ndata$bls, sum((fit_ll - bpp_ll)^2*exp(bpp_ll-max(bpp_ll))))
+
+    # calculated an rss value weighted by the normalized likelihood estimate
+    wprss.spline <- with(ndata$bls, sum((spline_ll - bpp_ll)^2*bpp_l))
+    wprss.lcfit <- with(ndata$bls, sum((fit_ll - bpp_ll)^2*bpp_l))
+
+
+    tbl <- data.frame(lcfit=c(rss.lcfit, wrss.lcfit, wprss.lcfit, error.lcfit$kl),
+                     spline=c(rss.spline, wrss.spline, wprss.spline, error.spline$kl))
+    rownames(tbl) <- c("RSS", "WRSS", "WPRSS", "KL")
+    return(tbl)
+}
+
