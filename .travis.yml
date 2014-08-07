@@ -1,3 +1,10 @@
+notifications:
+  email:
+    recipients:
+      - cswarth@gmail.com
+    on_success: always
+    on_failure: always
+
 language: c
 
 install:
