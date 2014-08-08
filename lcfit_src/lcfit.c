@@ -53,7 +53,7 @@ struct data_to_fit {
     const double* l;  /* Corresponding likelihoods */
 };
 
-/* Evaluate the likelihood curve described in data at the point x. */
+/* Evaluate the likelihood curve described in data at the point x and store in f. */
 int lcfit_pair_f(const gsl_vector* x, void* data, gsl_vector* f)
 {
     const size_t n = ((struct data_to_fit*) data)->n;
@@ -74,7 +74,7 @@ int lcfit_pair_f(const gsl_vector* x, void* data, gsl_vector* f)
     return GSL_SUCCESS;
 }
 
-/* The corresponding Jacobian. */
+/* Evaluate the corresponding Jacobian and store in J. */
 int lcfit_pair_df(const gsl_vector* x, void* data, gsl_matrix* J)
 {
     const size_t n = ((struct data_to_fit*) data)->n;
