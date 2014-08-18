@@ -23,16 +23,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // rcpp_bsm_rescale
-NumericVector rcpp_bsm_rescale(const double t, const double l, List model);
-RcppExport SEXP lcfit_rcpp_bsm_rescale(SEXP tSEXP, SEXP lSEXP, SEXP modelSEXP) {
+NumericVector rcpp_bsm_rescale(const double bl, const double ll, List model);
+RcppExport SEXP lcfit_rcpp_bsm_rescale(SEXP blSEXP, SEXP llSEXP, SEXP modelSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
         Rcpp::RNGScope __rngScope;
-        Rcpp::traits::input_parameter< const double >::type t(tSEXP );
-        Rcpp::traits::input_parameter< const double >::type l(lSEXP );
+        Rcpp::traits::input_parameter< const double >::type bl(blSEXP );
+        Rcpp::traits::input_parameter< const double >::type ll(llSEXP );
         Rcpp::traits::input_parameter< List >::type model(modelSEXP );
-        NumericVector __result = rcpp_bsm_rescale(t, l, model);
+        NumericVector __result = rcpp_bsm_rescale(bl, ll, model);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);
@@ -40,16 +40,17 @@ BEGIN_RCPP
 END_RCPP
 }
 // rcpp_fit_bsm
-NumericVector rcpp_fit_bsm(NumericVector t, NumericVector l, List model);
-RcppExport SEXP lcfit_rcpp_fit_bsm(SEXP tSEXP, SEXP lSEXP, SEXP modelSEXP) {
+NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, List model);
+RcppExport SEXP lcfit_rcpp_fit_bsm(SEXP blSEXP, SEXP llSEXP, SEXP wSEXP, SEXP modelSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
         Rcpp::RNGScope __rngScope;
-        Rcpp::traits::input_parameter< NumericVector >::type t(tSEXP );
-        Rcpp::traits::input_parameter< NumericVector >::type l(lSEXP );
+        Rcpp::traits::input_parameter< NumericVector >::type bl(blSEXP );
+        Rcpp::traits::input_parameter< NumericVector >::type ll(llSEXP );
+        Rcpp::traits::input_parameter< NumericVector >::type w(wSEXP );
         Rcpp::traits::input_parameter< List >::type model(modelSEXP );
-        NumericVector __result = rcpp_fit_bsm(t, l, model);
+        NumericVector __result = rcpp_fit_bsm(bl, ll, w, model);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);

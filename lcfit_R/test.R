@@ -109,7 +109,7 @@ print(p)
 
 #bsm <- c(c=4461.25, m=2764.04, r=7.94896, b=0.125468)
 
-
+library(lcfit)
 pts <- c(0.000151781,-2144.03,
          0.00151781,-2133.88,
          0.0151781,-2135.72,
@@ -121,7 +121,7 @@ pts <- data.frame(x=pts[,1], y=pts[,1])
 
 
 model.fit <- lcfit_fit_bsm(pts$x, pts$y, DEFAULT_MODEL)
-
+print(model.fit)
 
 lcfit <- function(model, t) {
     env <- list2env(lapply(model, function(x) x))

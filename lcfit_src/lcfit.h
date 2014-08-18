@@ -84,7 +84,7 @@ void lcfit_bsm_rescale(const double t, const double l, bsm_t* m);
  * \param m Initial conditions for the model.
  * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
  */
-int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m);
+int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double* w, bsm_t* m);
 
 #ifdef __cplusplus
 } // extern "C"

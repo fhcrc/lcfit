@@ -5,11 +5,11 @@ lcfit_bsm_scale_factor <- function(t, l, model) {
     .Call('lcfit_rcpp_bsm_scale_factor', PACKAGE = 'lcfit', t, l, model)
 }
 
-lcfit_bsm_rescale <- function(t, l, model) {
-    .Call('lcfit_rcpp_bsm_rescale', PACKAGE = 'lcfit', t, l, model)
+lcfit_bsm_rescale <- function(bl, ll, model) {
+    .Call('lcfit_rcpp_bsm_rescale', PACKAGE = 'lcfit', bl, ll, model)
 }
 
-lcfit_fit_bsm <- function(t, l, model) {
-    .Call('lcfit_rcpp_fit_bsm', PACKAGE = 'lcfit', t, l, model)
+lcfit_fit_bsm <- function(bl, ll, w, model) {
+    .Call('lcfit_rcpp_fit_bsm', PACKAGE = 'lcfit', bl, ll, w, model)
 }
 

@@ -72,6 +72,51 @@ compare_bls <- function(d, fit='fit_ll') {
              fit_rel_ess=ess(fit_ll) / length(bpp_ll))
 }
 
+## https://gist.github.com/doobwa/941125
+log.sum.exp<- function(x) {
+  # Computes log(sum(exp(x))
+  # Uses offset trick to avoid numeric overflow: http://jblevins.org/notes/log-sum-exp
+  if ( max(abs(x)) > max(x) )
+    offset <- min(x)
+  else
+    offset <- max(x)
+  log(sum(exp(x - offset))) + offset
+}
+
+##' Calculate weights for sample points according to log-likelihood.
+##'
+##' These values are used to weight the minimization function when
+##' fitting a nonlinear function to the sample points.  The weights are
+##' distributed to favor points close to the maximum likelihood.
+##'
+##' Returns a numeric vector of weights corresponding to the vector of
+##' likelihood values.
+##' 
+##' @param ll numeric vector of log-likelihood values
+##' @return numeric vector of weights.
+##' @author chris
+fit_weights <- function(ll) {
+    # 
+    lambda <- 2
+    weights <- ll * (1/lambda)
+    weights <- weights - max(weights)
+    sum = log.sum.exp(weights)
+    weights <- weights - sum
+    weights <- exp(weights)
+    return(weights)
+}
+
+##' Default routine for calculating unitary weights across all sample points.
+##'
+##' This is the weight function to use if you want to do unweighted nonlinear approximation.
+##' @param ll  nuemric vector of log-likelihood values.
+##' @return numeric vector of 1.0, same length as ll
+##' @author chris
+fit_equal_weights <- function(ll) {
+    weights <-  rep(1.0, length(ll))
+    return(weights)
+}
+
 
 ##' Fit lcfit model parameters to sample points
 ##'
@@ -81,25 +126,44 @@ compare_bls <- function(d, fit='fit_ll') {
 ##' @param pts 		sampled points; dataframe { 'x', 'y' }
 ##' @return 		named numeric vector, { 'c', 'm', 'r', 'b' }
 ##' @author chris
-fit_model <- function(model, pts) {
+fit_model <- function(model, pts, weighted=F) {
     stopifnot(is(pts, "data.frame"))
     stopifnot(all(c("x", "y") %in% names(pts)))
     stopifnot(is.list(model) || is(model, "numeric"))
-    
-    # scale the model to the largest sample point
-    # THIS IS WHERE THE ERROR OCCURS!
+
+    # scale the model to the largest sample point.
+    # What's going on here?
+    #
+    # lcfit.c::lcfit_bsm_scale_factor() calculates a scaling factor to keep the resulting log-likelihood values
+    # within bounds.  It takes a single point as an argument, which represents the greatest log-likelihood value.
+    # The easiest way to obtain this point is to take the maximum y value, but if the maximum point is repeated in the list,
+    # then you will be get two points.  We warn against this and avoid it by using only a single max value.
+    # 
     p <- pts[pts$y == max(pts$y),]
-    if (nrow(p) != 1)
-        warning("Fitting duplicated points?  Saw multiple maximum values.")
     p <- p[1,]
+
     scale_factor <- lcfit_bsm_scale_factor(p$x, p$y, model);
     model['c'] <- model['c'] * scale_factor;
     model['m'] <- model['m'] * scale_factor;
 
-    model = lcfit_fit_bsm(pts$x, pts$y, model);
+    # unweighted
+    if (weighted)
+        weights <- fit_weights(pts$y)
+    else
+        weights <- fit_equal_weights(pts$y)
+
+    model = lcfit_fit_bsm(pts$x, pts$y, weights, model);
     return(model)
 }
 
+
+##' Apply the lcfit function to a set of branch lengths
+##'
+##' Give a set of branch lengths and model parameters, calculate the approximate likelihood values.
+##' @param t  branch lengths
+##' @param model named numeric vector with model parameters 'b', 'r', 'e', and 'c'
+##' @return numeric vector (same length as t) of approximate likelihood values.
+##' @author chris
 lcfit <- function(t, model) {
     env <- list2env(lapply(model, function(x) x))
     with(env, {
@@ -107,8 +171,15 @@ lcfit <- function(t, model) {
         l <- c * log((1.0 + e)/2.0) + m * log((1.0 - e)/2.0)
     })
 }
-
-samplePoints <- function(node_id, nextra=0, keep=0) {
+##' Sample additional points from a likelihood curve.
+##'
+##' .. content for \details{} ..
+##' @param node_id 
+##' @param nextra 
+##' @param keep 
+##' @return 
+##' @author chris
+samplePoints <- function(node_id, nextra=0) {
     print(sprintf("node_id = %d", node_id))
     ndata <- list()
     ndata$bls <- data.bls[data.bls$node_id == node_id,]
@@ -138,25 +209,35 @@ samplePoints <- function(node_id, nextra=0, keep=0) {
         }
 
         ndata$fit <- rbind(ndata$fit, extra.fit)
-
-        # Erick asks to keep only the four-highest likelihood points.
-        if (keep > 0) {
-            ndata$fit <- ndata$fit[order(ndata$fit$ll, decreasing=T)[1:keep],]
-        }
     }
 
+    return(ndata$fit)
+}
+
+
+calculate_lcfit <- function(ndata, weighted=F, keep=0) {
     # re-fit the lcfit model to the new sample points.
     model <-  ndata$maxima[, c('c', 'm', 'r', 'b')]
+    # model <- c('c'=1500,'m'=1000,'r'=2.0,'b'=0.5)
     sample.points <- ndata$fit[, c('branch_length', 'll')]
     names(sample.points) <- c('x', 'y')
-    model <- fit_model(model, sample.points)
-    ndata$bls$fit_ll <- sapply(ndata$bls[['branch_length']], lcfit, model=model)
+    
+    # Erick asks to keep only the four-highest likelihood points.
+    if (keep > 0) {
+        sample.points <- sample.points[order(sample.points$y, decreasing=T)[1:keep],]
+    }
+    model <- fit_model(model, sample.points, weighted)
+    # ndata$bls$fit_ll <-
+    sapply(ndata$bls[['branch_length']], lcfit, model=model)
+}
 
+
+calculate_spline <- function(ndata) {
     # fit a spline to the sample points.  Interpolate at the branch_point values used for lcfit_ll.
-    ndata$bls$spline_ll <- spline(ndata$fit$branch_length, y=ndata$fit$ll,
+    # ndata$bls$spline_ll <- 
+    spline(ndata$fit$branch_length, y=ndata$fit$ll,
                                   xout=ndata$bls[['branch_length']], method = "natural")[[2]]
 
-    return(ndata)
 }
 
 ##' plot a spline approximation for the likelihood curve. 
@@ -167,18 +248,17 @@ samplePoints <- function(node_id, nextra=0, keep=0) {
 ##' @param nextra 	number of extra points to select
 ##' @return Returns nothing. Sends plot output to current graphics device.
 ##' @author chris
-plotSpline <- function(ndata) {
+plot_node<- function(ndata) {
 
-    ndata$bls <- melt(ndata$bls, id.vars=1:2)
+    bls <- melt(ndata$bls, id.vars=1:2)
 
-    p <- ggplot( ndata$bls, aes(color=name, linetype=name)) +
-         geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable), data=ndata$bls) +
-         ggtitle(sprintf("Node #%s",  ndata$bls$node_id[1])) +
+    p <- ggplot( bls, aes(color=name, linetype=name)) +
+         geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable), data=bls) +
+         ggtitle(sprintf("Node #%s",  bls$node_id[1])) +
          geom_point(aes(x=branch_length, y=ll, shape=name), data=ndata$fit) +
-         ylab("Log likelihood") +
-         xlim(0, max(c(max(ndata$fit$branch_length), 1))) 
+         ylab("Log likelihood")
 
-    p <- p + scale_color_discrete(name="", breaks=c('bpp_ll', 'fit_ll', 'spline_ll'), labels=c('Bio++', 'lcfit', 'spline')) 
+    p <- p + scale_color_discrete(name="", breaks=c('fit_ll', 'wfit_ll', 't4fit_ll'), labels=c('unweighted', 'weighted', 'top4')) 
     p <- p + guides(color="legend", shape=FALSE, linetype=FALSE) 
     p <- p + theme(legend.position="bottom")
 
@@ -186,34 +266,52 @@ plotSpline <- function(ndata) {
 
 
 
+summaryTable <- function(ndata, compare.to='wfit_ll') {
+    error.unweighted <- compare_bls(ndata$bls, fit='fit_ll')
+    error.weighted <- compare_bls(ndata$bls, fit='wfit_ll')
+    error.topfour <- compare_bls(ndata$bls, fit='t4fit_ll')
 
-summaryTable <- function(ndata) {
-    error.lcfit <- compare_bls(ndata$bls)
-    error.spline <- compare_bls(ndata$bls, fit='spline_ll')
-    
-    # compute the categorical distribution of points
-    bpp_ll <- ndata$bls[['bpp_ll']]
-    bpp_l <- exp(bpp_ll - max(bpp_ll))
-    bpp_l <- bpp_l / sum(bpp_l)
-
+    w <- fit_weights(ndata$bls$bpp_ll)
 
     # calculate summary statistics - the residual squared difference between
     # the fitting procedures (lcfit and spline) and the actual likelihood.
-    rss.spline <- with(ndata$bls, as.integer(sum((spline_ll - bpp_ll)^2)))
-    rss.lcfit <- with(ndata$bls, as.integer(sum((fit_ll - bpp_ll)^2)))
+    rss.unweighted <- sum((w*(ndata$bls$fit_ll- ndata$bls$bpp_ll))^2)
+    rss.weighted <- sum((w*(ndata$bls$wfit_ll- ndata$bls$bpp_ll))^2)
+    rss.topfour <- sum((w*(ndata$bls$t4fit_ll- ndata$bls$bpp_ll))^2)
 
-    # calculated an rss value weighted by scaled likelihood estimate
-    wrss.spline <- with(ndata$bls, sum((spline_ll - bpp_ll)^2*exp(bpp_ll-max(bpp_ll))))
-    wrss.lcfit <- with(ndata$bls, sum((fit_ll - bpp_ll)^2*exp(bpp_ll-max(bpp_ll))))
-
-    # calculated an rss value weighted by the normalized likelihood estimate
-    wprss.spline <- with(ndata$bls, sum((spline_ll - bpp_ll)^2*bpp_l))
-    wprss.lcfit <- with(ndata$bls, sum((fit_ll - bpp_ll)^2*bpp_l))
-
-
-    tbl <- data.frame(lcfit=c(rss.lcfit, wrss.lcfit, wprss.lcfit, error.lcfit$kl),
-                     spline=c(rss.spline, wrss.spline, wprss.spline, error.spline$kl))
-    rownames(tbl) <- c("RSS", "WRSS", "WPRSS", "KL")
+    tbl <- data.frame(c(rss.unweighted, error.unweighted$kl),
+                      c(rss.weighted, error.weighted$kl),
+                      c(rss.topfour, error.topfour$kl)
+                      )
+    names(tbl) <- c('unweighted', "weighted", "topfour")
+    rownames(tbl) <- c("RSS", "KL")
     return(tbl)
 }
+
+
+
+
+showSummary <- function(ndata) {
+    tbl <- do.call(cbind, lapply(ndata, summaryTable, compare.to="wfit_ll"))
+    rownames(tbl) <- c("RSS", "KL divergence")
+    knitr::kable(tbl)
+    }
+
+
+
+showplots <- function(nodes, nextra) {
+    set.seed(1234)
+    ndata <- lapply(nodes,
+                function(node) {
+		    nd <- samplePoints(node, nextra=nextra)
+                    nd$bls$fit_ll <- calculate_lcfit(nd, weighted=F)
+                    nd$bls$wfit_ll <- calculate_lcfit(nd, weighted=T)
+                    nd$bls$t4fit_ll <- calculate_lcfit(nd, weighted=F, keep=4)
+                    nd })
+
+
+    plots <- lapply(ndata, function(nd) {plot_node(nd) })
+    multiplot(plotlist=plots, cols=3)
+    return(ndata)
+    }
 
