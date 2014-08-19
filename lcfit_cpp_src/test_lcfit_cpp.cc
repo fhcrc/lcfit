@@ -65,8 +65,9 @@ void
 fail_unless_fit_improves(const bsm_t* m, const double t[4], const double l[4])
 {
   bsm_t fit = *m;
+  const double w[4] = 1.0;
 
-  int result = lcfit_fit_bsm(4, t, l, &fit);
+  int result = lcfit_fit_bsm_weight(4, t, l, w, &fit);
   REQUIRE(!result);
 
   /* Estimates must improve */

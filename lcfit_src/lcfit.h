@@ -81,6 +81,7 @@ void lcfit_bsm_rescale(const double t, const double l, bsm_t* m);
  * \param n Number of observations in \c t and \c l
  * \param t Branch length
  * \param l Log-likelihood values at \c t
+ * \param w weight for sample point at \c t
  * \param m Initial conditions for the model.
  * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
  */

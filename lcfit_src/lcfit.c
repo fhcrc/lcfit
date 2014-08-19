@@ -95,7 +95,6 @@ struct data_to_fit {
 int lcfit_weights(const void* data, gsl_vector* weight)
 {
     const size_t n = ((const struct data_to_fit*) data)->n;
-    const double* t = ((const struct data_to_fit*) data)->t;
     const double* l = ((const struct data_to_fit*) data)->l;
     size_t i;
 
@@ -194,13 +193,37 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
 }
 
 
+/** \brief convenience function to calling non-weighted lcfit
+ *
+ * \param n Number of observations in \c t and \c l
+ * \param t Branch length
+ * \param l Log-likelihood values at \c t
+ * \param m Initial conditions for the model.
+ * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
+ *
+ * @return status==0 for success, non-zero otherwise
+ */
+int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
+{
+    double *w = calloc(n, sizeof(double));
+    int status, i;
 
-/*
-     c = x[0];
-     r = x[1];
-     m = x[2];
-     b = x[3];
-*/
+    for (i = 0; i < n; i++) 
+	w[i] = 1.0L;
+    status = lcfit_fit_bsm_weight(n, t, l, w, m);
+    free(w);
+    return(status);
+}
+
+/** \brief Fit the BSM
+ *
+ * \param n Number of observations in \c t and \c l
+ * \param t Branch length
+ * \param l Log-likelihood values at \c t
+ * \param w weight for sample point at \c t
+ * \param m Initial conditions for the model.
+ * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
+ */
 int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double *w, bsm_t *m)
 {
     double x[4] = {m->c, m->m, m->r, m->b};
@@ -210,7 +233,6 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
 
     struct data_to_fit d = {n, t, l, w};
     gsl_multifit_function_fdf fdf;
-    size_t i;
 
     /* Storing the contents of x on the stack.
      * http://www.gnu.org/software/gsl/manual/html_node/Vector-views.html */
