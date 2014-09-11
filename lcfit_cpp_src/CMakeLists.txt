@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 2.8.1)
 # Comparison
 project(lcfitcompare C CXX)
 set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2 ")
 
 set(LCFIT_COMPARE_CPP
   ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_compare.cc
@@ -21,7 +22,7 @@ set(LCFIT_COMPARE_LIBS
   lcfit-static)
 
 # LCFIT
-add_executable(lcfit-compare EXCLUDE_FROM_ALL ${LCFIT_COMPARE_CPP})
+add_executable(lcfit-compare ${LCFIT_COMPARE_CPP})
 target_link_libraries(lcfit-compare ${LCFIT_COMPARE_LIBS})
 add_executable(lcfit-test EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit_cpp.cc

@@ -6,6 +6,10 @@ fitting.html : fitting.Rmd
 
 fitting.html : utils.R
 
+aggfit.html : aggfit.Rmd
+
+aggfit.html : aggutils.R
+
 # Cribbed from http://dirk.eddelbuettel.com/code/rcpp.html  
 # "Usage for package building"
 #

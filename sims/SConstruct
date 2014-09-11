@@ -236,14 +236,19 @@ w.add_controls(env)
 agg_results = env.Command(['agg.csv', 'ml_branch_length_vs_kl.png', 't_vs_that.svg', 't_vs_that_iter.svg', 'hellinger.png', 'kl.svg', 'kl_hellinger.pdf'],
                           [i['control'] for _, i in w],
                           'aggregate.R $SOURCES')
+# depends on all the lcfit_fit.csv files
 env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
 
 agg_ml_tol = env.Command('agg_mltol.csv',
                          [i['control'] for _, i in w],
                          'nestagg delim lcfit_tol.csv $SOURCES -o $TARGET -k model_name,rdist_name,branch_length_rate,seed')
+# depends on all the lcfit_fit.csv files
 env.Depends(agg_ml_tol, env.Flatten([c['lcfit'] for _, c in w]))
 
+
+# aggregate error measurements from all the simulated data sets
 agg_results = env.Command(['aggfit.csv', 'wrss_weighted_vs_nextra.png', 'wrss_nextra2_vs_measure.png'],
                           [i['control'] for _, i in w],
                           'aggfit.R $SOURCES')
+# depends on all the lcfit_fit.csv files
 env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))

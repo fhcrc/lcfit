@@ -1,0 +1,354 @@
+---
+title: "Aggregate error measurments for estimates of likelihood curves"
+output:
+html_document:
+toc: true
+theme: cerulean
+---
+
+## Recent changes
+* distinguish between failing and successful lcfit estimation.
+* Zoom in to the area of highest interest.  Full plot is inset.
+  
+
+```{r echo=FALSE, results='hide'}
+library(ggplot2)
+library(grid)
+library(plyr)
+library(reshape2)
+library(RJSONIO)
+source("utils.R")
+
+theme_set(theme_bw(16))
+
+source("aggutils.R")
+
+DEFAULT_MODEL=c(c=1500, m=1000,r=2.0,b=0.5)
+
+
+```
+
+
+```{r echo=FALSE, results='hide'}
+
+setwd("..")
+
+aggdata <- read.csv("aggfit.csv", stringsAsFactors=F)
+
+m <- melt(aggdata, id=c("tree", "node_id"))
+# it seems there is no easy way to avoid having melt convert your character columns to factors.
+# convert them back to characters
+m$tree <- as.character(m$tree)
+m <- cbind(m, colsplit(m$variable, names = c("measure", "fitting", "nextra"), pattern="_"))
+m <- m[!is.na(m$value),]
+
+```
+
+## Weighted vs. unweighted lcfit
+
+
+We fit the LCFIT function using variable number of extra points and using
+a variety of fitting techniques.   For each combination of fitting
+technique and number of extra points, we always measure
+the weighted error between the lcfit curve and the actual likelihood
+as calculated by BPP.
+
+* unweighted - the standard lcfit procedure.
+* weighted - uses a squared difference objective function weighted by
+  likelihood of the point being measured.
+* top4 - an unweighted objective function, but fit to  only the top four
+  highest-likelihood points regardless of how many extra pointswere used.
+
+Each time we fit the LCFIT function to a set of sample points, the
+process may fail in a variety of ways.
+
+* The objective function may not converge to within our tolerance values
+  in the specified number of iterations (default: 500)
+* The objective function may not move towards convergence at all, in
+  which case the nonlinear estimator will exit before reaching the
+  maximum iterations.
+
+If the fitting procedure does not converge or otherwise encounters an
+error, the error measures are negated sothe failing cases   are easier
+to identify.
+
+###LCFIT failures
+
+Out of `r nrow(m)` total attempts, across all fitting procedures and
+0-4 extra points for all nodes in every simulated tree, LCFIT fitting
+failed `r sum(m$value < 0)` times (`r sprintf("%.2f%%", (sum(m$value<0)/nrow(m))*100)`)
+
+
+
+###Weighted RSS of unweighted LCFIT including failures
+
+
+This first graph shows the error estimates for only the UNWEIGHTED, or
+standard, lcfit function.  All of the error estimates are included,
+but those for whic the lcfit function failed in some way are negated.
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" & m$fitting == 'unweighted' ,]
+tmp <- tmp[order(tmp$value, decreasing=T),]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(nextra), value), data=tmp) +
+      xlab("number of extra points") +
+      ggtitle("unweighted objective function \n including lcfit failures (negative values)") +
+      theme(legend.position='bottom')
+print(p1)
+
+```
+
+###Weighted RSS of unweighted LCFIT excluding failures
+
+This is the same graph of errors from the UNWEIGHTED lcfit, but
+excluding the cases when lcfit failed.
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" & m$fitting == 'unweighted' & m$value >= 0,]
+tmp <- tmp[order(tmp$value, decreasing=T),]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(nextra), value), data=tmp) +
+      xlab("number of extra points") +
+      ggtitle("unweighted objective function \n excluding lcfit failures") +
+      theme(legend.position='bottom')
+print(p1)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[1, ],
+              list(showplot((tree), node_id, nextra,model=DEFAULT_MODEL),
+                   showplot((tree), node_id, nextra,model=DEFAULT_MODEL, zoom=T)))
+multiplot(plotlist=plots, cols=2)
+plots <- with(tmp[2, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+plots <- with(tmp[3, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+###Weighted RSS of Weighted LCFIT, excluding failures
+
+Weighted LCFIT uses likelihoods to weight the objective function at
+each sample point.  We exclude all CFIT failures for this graph
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" & m$fitting == 'weighted' & m$value >= 0,]
+tmp <- tmp[order(tmp$value, decreasing=T),]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(nextra), value), data=tmp) +
+      xlab("number of extra points") +
+      ggtitle("weighted objective function \n excluding lcfit failures") +
+      theme(legend.position='bottom')
+print(p1)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[1, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+plots <- with(tmp[2, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+plots <- with(tmp[3, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+
+
+
+
+
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" & m$fitting == 'weighted' & m$nextra > 2 & m$value != 0,]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(nextra), value), data=tmp) +
+      xlab("number of extra points") +
+      ggtitle("weighted rss error for 2 or more extra points\nbetween weighted lcfit and empirical likelihoods") +
+      theme(legend.position='bottom')
+print(p1)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" & m$fitting == 'unweighted' & m$nextra == 0,]
+tmp <- tmp[order(tmp$value, decreasing=T),]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(nextra), value), data=tmp) +
+      xlab("number of extra points") +
+      ggtitle("weighted rss error without extra points\nbetween unweighted lcfit and empirical likelihoods") +
+      theme(legend.position='bottom')
+print(p1)
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[1, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[2, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[3, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+
+```
+
+
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" & m$fitting == 'weighted' & m$nextra == 4,]
+tmp <- tmp[order(tmp$value, decreasing=T),]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(nextra), value), data=tmp) +
+      xlab("number of extra points") +
+      ggtitle("weighted rss error for 4 extra points\nbetween weighted lcfit and empirical likelihoods") +
+      theme(legend.position='bottom')
+print(p1)
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[1, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[2, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[3, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+
+```
+
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" &  m$nextra == 2,]
+tmp <- tmp[order(tmp$value, decreasing=T),]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(fitting), value), data=tmp) +
+      xlab("minimization function") +
+      ggtitle("weighted rss error for 2 extra points\n fitting function compared against empirical likelihoods") +
+      theme(legend.position='bottom')
+print(p1)
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[1, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+
+tmp <- m[m$measure=="wrss" &  m$nextra == 3,]
+tmp <- tmp[order(tmp$value, decreasing=T),]
+
+p1 <- ggplot() +
+      geom_boxplot(aes(x=factor(fitting), value), data=tmp) +
+      xlab("minimization function") +
+      ggtitle("weighted rss error for 3 extra points\n fitting function compared against empirical likelihoods") +
+      theme(legend.position='bottom')
+print(p1)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[1, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[2, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+setwd("..")
+plots <- with(tmp[3, ],
+              list(showplot(tree, node_id, model=DEFAULT_MODEL, nextra),
+                   showplot(tree, node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+
+```
+
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE}
+
+print(tmp[1:3,])
+
+```
+
+
+# Misc
+```{r}
+getwd()
+as.POSIXlt(Sys.time())
+```

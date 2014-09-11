@@ -1,3 +1,17 @@
+
+
+# To build lcfit-compare, you need a specific version of bpp in your path
+#
+#	module load bpp/master-201404114
+#
+# To build a debug version of lcfit,
+#
+#	make -C _build/debug/ lcfit-compare
+#
+# This will leave lcfit-compare in ./_build/debug/lcfit_cpp_src/lcfit-compare
+
+
+
 .PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc release debug build-all example
 
 BUILD := _build
@@ -15,21 +29,21 @@ debug: BUILD_DIR=$(BUILD)/debug
 debug: build-all
 
 build-all: setup-cmake
-	make -C $(BUILD_DIR)
+	$(MAKE) -C $(BUILD_DIR) 
 
 test: debug
 	python test/test_lcfit.py -v
 
 example: release lcfit-compare
 example:
-	+make -C example
+	$(MAKE) -C example
 
-lcfit-compare: release
+# lcfit-compare: release
 lcfit-compare: setup-cmake
-	+make -C$(BUILD_DIR) $@
+	$(MAKE) -C$(BUILD_DIR) $@
 
 lcfit-test: setup-cmake
-	+make -C$(BUILD_DIR) $@
+	$(MAKE) -C$(BUILD_DIR) $@
 
 setup-cmake:
 	mkdir -p $(BUILD_DIR)

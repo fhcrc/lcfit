@@ -302,7 +302,7 @@ vector<LogLikelihoodComparison> compare_log_likelihoods(Tree tree, TreeLikelihoo
     //const double upper = std::max(ml_t * 10, 1e-5);
     const double lower = 1e-6;
     const double upper = 1.0;
-    const size_t n_samples = 200;
+    const size_t n_samples = 500;
     const double delta = (upper - lower) / static_cast<double>(n_samples - 1);
     for(size_t i = 0; i < n_samples; i++) {
         const double t = lower + (delta * i);

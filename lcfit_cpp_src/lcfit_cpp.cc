@@ -34,7 +34,7 @@ struct point_by_x
 /** 
  * \brief Select branch_length values to bracket the maximum of the likelihood curve.
  * 
- * The starting points are used to establish a directio in which to move when selecting any additional points.
+ * The starting points are used to establish a direction in which to move when selecting any additional points.
  * They will be included in the final list along with any additional points that may be selected.
 
  * @param log_like 	pointer to a function to calculate log-likelihood of a given branch length
@@ -42,7 +42,8 @@ struct point_by_x
  * @param max_points 	The maximum number of points that will be used, including \c starting_pts
  * 
  * @return vector of values along the branch_length axis.
- */vector<Point> select_points(std::function<double(double)> log_like, const std::vector<double>& starting_pts, const size_t max_points)
+ */
+vector<Point> select_points(std::function<double(double)> log_like, const std::vector<double>& starting_pts, const size_t max_points)
 {
         vector<Point> points;
 
@@ -97,6 +98,10 @@ vector<Point> retain_top(const vector<Point>& points, const size_t n)
     sort(begin(sorted), end(sorted), point_by_x());
     return sorted;
 }
+
+// Given a vector x.y points, sorted by increasing x value, 
+// determin whether y values are increasing, decreasing or non-monotonic over the range,
+
 
 Monotonicity monotonicity(const std::vector<Point>& points)
 {

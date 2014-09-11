@@ -19,7 +19,6 @@
 #    include <nlopt.h>
 #endif /* NLOPT */
 
-
 const static double LAMBDA = 50;
 
 const bsm_t DEFAULT_INIT = {1500.0, 1000.0, 1.0, 0.5};
@@ -182,7 +181,7 @@ int lcfit_pair_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J
 
 void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
 {
-    printf("iter: %3u x = % 15.8f % 15.8f % 15.8f % 15.8f "
+    printf("iter: %3u {c,m,r,b} = % 15.8f % 15.8f % 15.8f % 15.8f "
            "|f(x)| = %g\n",
            iter,
            gsl_vector_get(s->x, 0),
@@ -193,7 +192,7 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
 }
 
 
-/** \brief convenience function to calling non-weighted lcfit
+/** \brief convenience function for non-weighted lcfit
  *
  * \param n Number of observations in \c t and \c l
  * \param t Branch length
@@ -227,8 +226,8 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
 int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double *w, bsm_t *m)
 {
     double x[4] = {m->c, m->m, m->r, m->b};
-
-    int status;
+    int max_iter = 500;		// maximum number of iterations
+    int status = GSL_SUCCESS;
     unsigned int iter = 0;
 
     struct data_to_fit d = {n, t, l, w};
@@ -259,11 +258,25 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
         print_state(iter, s);
 #endif /* VERBOSE */
 
-        if(status)
+        if (status) {
             break;
-
+	}
         status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
-    } while(status == GSL_CONTINUE && iter < 500);
+    } while(status == GSL_CONTINUE && iter < max_iter);
+
+    // translate from GSL status to LCFIT status
+    if (iter >= max_iter) {
+	status = LCFIT_MAXITER;
+    } else if (status == GSL_SUCCESS) 
+	status = LCFIT_SUCCESS;
+    else if (status ==  GSL_ENOPROG)
+	status = LCFIT_ENOPROG;
+    else if (status == GSL_ETOLF)
+	status = LCFIT_ETOLF;
+    else {
+	fprintf(stderr, "GSL status - iteration: %d status: %d, %s\n", iter, status, gsl_strerror(status));
+	status = LCFIT_ERROR;
+    }
 
 #define FIT(i) gsl_vector_get(s->x, i)
 #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
@@ -276,7 +289,7 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
     printf("c = %.5f +/- %.5f\n", FIT(0), ERR(0));
     printf("m = %.5f +/- %.5f\n", FIT(1), ERR(1));
     printf("r = %.5f +/- %.5f\n", FIT(2), ERR(2));
-    printf("r = %.5f +/- %.5f\n", FIT(3), ERR(3));
+    printf("b = %.5f +/- %.5f\n", FIT(3), ERR(3));
 
     printf("status = %s\n", gsl_strerror(status));
 #endif /* VERBOSE */
@@ -290,9 +303,10 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
 #undef ERR
 
     gsl_multifit_fdfsolver_free(s);
-    return 0;
+    return status;
 }
 
+#ifdef NOTYET
 /* Here we minimize the KL divergence, rather than nonlinear least squares */
 double kl_divergence(const double* unnorm_log_p1,
                      const double* unnorm_log_p2,
@@ -369,7 +383,7 @@ static double kl_divergence_f(unsigned n, const double *x, double* grad, void *d
  *        fprintf(stderr, "\t%f", gsl_vector_get(x, i));
  *}
  */
-#ifdef NLOPT
+
 int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_t *m)
 {
     /*lcfit_fit_bsm(n, t, l, m);*/
@@ -411,4 +425,4 @@ int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_
 
     return res < 0 ? res : 0;
 }
-#endif /* NLOPT */
+#endif /* NOTYET */

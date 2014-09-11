@@ -180,7 +180,6 @@ lcfit <- function(t, model) {
 ##' @return 
 ##' @author chris
 samplePoints <- function(node_id, nextra=0) {
-    print(sprintf("node_id = %d", node_id))
     ndata <- list()
     ndata$bls <- data.bls[data.bls$node_id == node_id,]
     ndata$maxima <- data.maxima[data.maxima$node_id == node_id,]
@@ -214,11 +213,21 @@ samplePoints <- function(node_id, nextra=0) {
     return(ndata$fit)
 }
 
-
+##' re-fit the lcfit model to the new sample points.
+##'
+##' .. content for \details{} ..
+##' @param ndata 
+##' @param weighted 
+##' @param keep 
+##' @return 
+##' @author chris
 calculate_lcfit <- function(ndata, weighted=F, keep=0) {
-    # re-fit the lcfit model to the new sample points.
-    model <-  ndata$maxima[, c('c', 'm', 'r', 'b')]
-    # model <- c('c'=1500,'m'=1000,'r'=2.0,'b'=0.5)
+    # ignore the precomputed model parameters for now
+    # because those were failing some of the time.
+    # try out these new parameters before deploying them to
+    # C code.
+    #model <-  ndata$maxima[, c('c', 'm', 'r', 'b')]
+    model <- c('c'=1500,'m'=930,'r'=2.0,'b'=0.5)
     sample.points <- ndata$fit[, c('branch_length', 'll')]
     names(sample.points) <- c('x', 'y')
     
