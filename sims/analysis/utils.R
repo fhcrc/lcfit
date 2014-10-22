@@ -51,9 +51,22 @@ kl_log <- function(log_freqs1, log_freqs2) {
   sum(exp(log_freqs1) * LR) / log(2)
 }
 
-# takes a data frame with columns 'branch_length', 'bpp_ll', and 'fit_ll'
 
-compare_bls <- function(d, fit='fit_ll') {
+##' Calculates various error measurements between a fitted estimate of likelihood curve and the true likelihood curve.
+##'
+##' This is a poor modification of what Connor wrote.  I think his original only compared a particular known estimate with
+##' the true likelihood.   I modified it to take the name of the column holding the estimate, but really this should
+##' take just the true bpp_ll and the estimate.  I didn't change it yet b/c I would have to go find all th places that
+##' depend on the current signature.
+##'
+##' There is another functionof the same name in aggutils.R that looks more like what I hope this would be!
+##' 
+##' @param d data frame with columns 'branch_length', 'bpp_ll', and one other column holding a likelihood estimate, usually 'fit_ll'
+##' @param fit the ame of the column holding the likelihood estimate
+##' @return a data frame holding various estimates of deviation between the tree likelihood in 'bpp_ll' and a likelihood estimate.
+deprecated_compare_bls <- function(d, fit='fit_ll') {
+    ## deprecated to find the places where this is called.  It is time to fix up those calls!
+
   branch_length <- d[['branch_length']]
   bpp_ll <- d[['bpp_ll']]
   fit_ll <- d[[fit]]

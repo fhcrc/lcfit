@@ -99,14 +99,14 @@ calculate_lcfit <- function(bls, model, fit, weighted=F, keep=0) {
         sample.points <- sample.points[order(sample.points$y, decreasing=T)[1:keep],]
     }
 
-    model <- fit_model(model, sample.points, weighted)
+    model.fitted <- fit_model(model, sample.points, weighted)
         
-    if (model["status"] == LCFIT_MAXITER) {
-        message(sprintf("WARN: node_id=%d %s", bls$node_id[[1]], lcfit_strerror(model["status"])));
-    } else if (model["status"] != LCFIT_SUCCESS) {
-        message(sprintf("ERROR: node_id=%d %s", bls$node_id[[1]], lcfit_strerror(model["status"])));
+    if (model.fitted["status"] == LCFIT_MAXITER) {
+        message(sprintf("WARN: node_id=%d weighted=%s keep=%d %s", bls$node_id[[1]], weighted, keep, lcfit_strerror(model.fitted["status"])));
+    } else if (model.fitted["status"] != LCFIT_SUCCESS) {
+        message(sprintf("ERROR: node_id=%d weighted=%s keep=%d %s", bls$node_id[[1]], weighted, keep, lcfit_strerror(model.fitted["status"])));
     }
-    ll <- list(status=model[["status"]], ll=sapply(bls[['branch_length']], lcfit, model=model))
+    ll <- list(status=model.fitted[["status"]], ll=sapply(bls[['branch_length']], lcfit, model=model.fitted))
     return(ll)
 }
 
@@ -184,6 +184,16 @@ readSimulationData <- function(path) {
     bls.list <- dlply(bls, .(node_id), function(d) d)
     fit.list <- dlply(fit, .(node_id), function(d) d)
     maxima.list <- dlply(maxima, .(node_id), function(d) d)
+
+    # Expect all lists aggregated by node_id should have the same length!
+    if (length(unique(sapply(list(bls.list,fit.list,maxima.list), length))) != 1) {
+        message(sprintf("Error: inconsistent number of nodes in each data file length"))
+        message(sprintf("%s: %d", fit_file, length(fit.list)))
+        message(sprintf("%s: %d", maxima_file, length(maxima.list)))
+        message(sprintf("%s: %d", bls_file, length(bls.list)))
+        stopifnot(length(unique(sapply(list(bls.list,fit.list,maxima.list), length))) != 1)
+    }
+    
     m <- mapply(list, fit.list, bls.list, maxima.list, SIMPLIFY=FALSE)
     m <- lapply(m, setNames, c("fit", "bls", "model"))
 
@@ -191,18 +201,19 @@ readSimulationData <- function(path) {
 }
 
 
-##' plot estimates likelihood curves against actual likelihood.
+##' plot estimated likelihood curves against actual likelihood.
 ##'
 ##' Given a path to a JSON control file, read in the data pointed to by the control file
-##' and plot the various likelihood estimates on the actual likelihood as calulated by BPP.
+##' and plot the various likelihood estimates against the actual likelihood as calulated by BPP.
 ##' @param path character path to control file, i.e. "runs/10/0/JTT92/uniform/control.json"
 ##' @param node_id identifier of node in tree, i.e. 4
 ##' @param nextra, number of extra points to fit, usually in the range 0-4
 ##' @return a data frame of error measures
 ##' @author chris
 showplot <- function(path, node_id, nextra, model=NULL, zoom=F) {
-    print(path)
-    print(node_id)
+    message(sprintf("showplot: path=%s", path))
+    message(sprintf("showplot: cwd=%s", getwd()))
+    message(sprintf("showplot: node_id=%s", node_id))
     tree <- readSimulationData(path)
     node_id <-  as.character(node_id)
     node <- tree[[as.character(node_id)]]
@@ -215,21 +226,42 @@ showplot <- function(path, node_id, nextra, model=NULL, zoom=F) {
 
     if (!is.null(model))
         node$model <-  model
+    node$fit = fit
 
+    title <-  sprintf("%s #%s",  path, node_id)
+
+    return(plotnode(node, node_id, title=title, zoom=zoom))
+
+}
+
+##'
+##' plot data extracted from the likelihood table for a particulat node.
+##'
+##' .. content for \details{} ..
+##' @param path 
+##' @param node_id 
+##' @param nextra 
+##' @param model 
+##' @param zoom 
+##' @return 
+##' @author chris
+plotnode <- function(node, node_id, zoom=F, title="") {
+
+    fit <- node$fit
     node$bls$fit_ll <- calculate_lcfit(node$bls, node$model, fit, weighted=F)$ll
     node$bls$wfit_ll <- calculate_lcfit(node$bls, node$model, fit, weighted=T)$ll
     node$bls$t4fit_ll <- calculate_lcfit(node$bls, node$model, fit, weighted=F, keep=4)$ll
-
     bls <- node$bls
+
     # bls <- bls[,c('node_id','branch_length', 'bpp_ll', 'fit_ll')]
-    bls <- melt(node$bls, id.vars=1:2)
+    bls <- melt(bls, id.vars=1:2)
 
     if (!zoom) {
         # full plot
         p <- ggplot() + ylab("Log likelihood")
         p <- p + geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable),
                           data=bls) +
-                ggtitle(sprintf("%s #%s",  path, node_id)) +
+                ggtitle(title) +
                 theme(plot.title=element_text(size=15)) +
                 geom_point(aes(x=branch_length, y=ll), data=fit) +
                 scale_color_discrete(name="", breaks=c('bpp_ll', 'fit_ll', 'wfit_ll', 't4fit_ll'), labels=c('bpp', 'unweighted', 'weighted', 'top4')) +
@@ -245,7 +277,7 @@ showplot <- function(path, node_id, nextra, model=NULL, zoom=F) {
         p <- ggplot() + ylab("Log likelihood")
         p <- p + geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable),
                           data=subset(bls, branch_length >= r[[1]] & branch_length <= r[[2]] )) +
-                ggtitle(sprintf("%s #%s",  path, node_id)) +
+                ggtitle(title) +
                 theme(plot.title=element_text(size=15)) +
                     # geom_point(aes(x=branch_length, y=value), data=subset(bls, branch_length >= r[[1]] & branch_length <= r[[2]] )) +
 

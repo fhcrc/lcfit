@@ -15,6 +15,7 @@ theme_set(theme_bw(16) + theme(strip.background=element_blank(),
 args <- commandArgs(TRUE)
 stopifnot(length(args) >= 1)
 control_paths <- args
+control_paths <- list("runs/10/1/Binary-4.0/uniform/control.json")
 
 controls <- llply(control_paths, fromJSON)
 
@@ -51,14 +52,21 @@ compare_bls <- function(d) {
 }
 
 error <- ldply(controls, function(p) {
-  bls_file <- p$lcfit[1]
-  maxima_file <- p$lcfit[2]
-  fit_file <- p$lcfit[3]
-  ml_est_file <- p$lcfit[4]
-
-  bls <- read.csv(bls_file, as.is=TRUE)
-  maxima <- read.csv(maxima_file, as.is=TRUE)
-  ml_est <- read.csv(ml_est_file, as.is=TRUE)
+    p <- controls[[1]]
+    bls_file <- p$lcfit[1]
+    maxima_file <- p$lcfit[2]
+    fit_file <- p$lcfit[3]
+    ml_est_file <- p$lcfit[4]
+    
+    bls <- read.csv(bls_file, as.is=TRUE)
+    if (nrow(bls) < 100) 
+        stop(sprintf("Error: file '%s' looks like it was truncated or not made correctly.", bls_file))
+    maxima <- read.csv(maxima_file, as.is=TRUE)
+    if (nrow(maxima) < 10) 
+        stop(sprintf("Error: file '%s' looks like it was truncated or not made correctly.", maxima_file))
+    ml_est <- read.csv(ml_est_file, as.is=TRUE)
+    if (nrow(ml_est) < 40) 
+        stop(sprintf("Error: file '%s' looks like it was truncated or not made correctly.", ml_est_file))
 
   # Choosing one tolerance for now
   ml_est <- ml_est[ml_est[['tolerance']] == 1e-3, c('node_id', 'ml_est', 'ml_brent')]

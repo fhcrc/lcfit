@@ -2,6 +2,11 @@
 %.html : %.Rmd
 	R --slave -e 'rmarkdown::render("$(firstword $^)")'
 
+%.pdf : %.md
+	pandoc -o $@ $<
+
+README.html : README.md
+
 fitting.html : fitting.Rmd
 
 fitting.html : utils.R
