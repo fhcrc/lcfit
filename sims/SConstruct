@@ -22,6 +22,15 @@ env.PrependENVPath('PATH', '../example')
 env.PrependENVPath('PATH', '/home/matsengrp/local/encap/R-3.1.0/bin')
 env.PrependENVPath('PATH', './bin')
 
+# my slurm jobs routed to the wrong partition. scicomp
+# doesn't know why; suggested using '-A matsen_e' until problem is
+# resolved.
+env['SRUN'] = 'srun -A matsen_e'
+
+# nope, as of 10/16/2014 this does not work...
+# "User's group not permitted to use this partition"
+# env['SRUN'] = 'srun'
+    
 n = Nest(base_dict={'n_sites': 1000})
 w = SConsWrap(n, 'runs', alias_environment=env)
 
@@ -195,7 +204,7 @@ def ml_tree(outdir, c):
     env['ENV']['SLURM_JOB_NAME'] = 'bppml-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
     return env.Command(target,
                        [c['bppml_file'], c['alignment'], c['source_tree']],
-                       'srun bppml param=$SOURCE')[0]
+                       '${SRUN} bppml param=$SOURCE')[0]
 
 
 @w.add_target_with_env(env)
@@ -204,7 +213,7 @@ def lcfit(env, outdir, c):
                for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv',
                          'lcfit_tol.csv')]
     env['ENV']['SLURM_JOB_NAME'] = 'lcfit-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
-    command = ('srun '
+    command = ( '${SRUN} '
                'lcfit-compare '
                'param=${SOURCES[2]} '
                'input.tree.file=${SOURCES[1]} '
@@ -247,8 +256,10 @@ env.Depends(agg_ml_tol, env.Flatten([c['lcfit'] for _, c in w]))
 
 
 # aggregate error measurements from all the simulated data sets
-agg_results = env.Command(['aggfit.csv', 'wrss_weighted_vs_nextra.png', 'wrss_nextra2_vs_measure.png'],
+agg_results = env.Command(['aggfit.csv'],
                           [i['control'] for _, i in w],
-                          'aggfit.R $SOURCES')
+                          'aggfit.R $SOURCES >${TARGETS[0]}')
 # depends on all the lcfit_fit.csv files
+
+print([i['control'] for _, i in w][1])
 env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
