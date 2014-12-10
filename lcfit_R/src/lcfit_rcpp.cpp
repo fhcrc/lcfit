@@ -53,7 +53,7 @@ NumericVector rcpp_bsm_rescale(const double bl, const double ll, List model)
 
 
 // [[Rcpp::export("lcfit_fit_bsm")]]
-NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, List model)
+NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, List model, int max_iter)
 {
     // bl - branch lengths 
     // ll - log-likelihood values
@@ -63,7 +63,7 @@ NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, 
     int status;
 
     assert(t_n == l_n);
-    status = lcfit_fit_bsm_weight(t_n, bl.begin(), ll.begin(), w.begin(), &m);
+    status = lcfit_fit_bsm_weight(t_n, bl.begin(), ll.begin(), w.begin(), &m, max_iter);
 
     return(Rcpp::NumericVector::create(_["c"]=m.c, _["m"]=m.m, _["r"]=m.r, _["b"]=m.b, _["status"]=status));
 }

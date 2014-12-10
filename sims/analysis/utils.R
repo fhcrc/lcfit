@@ -96,12 +96,13 @@ log.sum.exp<- function(x) {
   log(sum(exp(x - offset))) + offset
 }
 
-##' Calculate weights for sample points according to log-likelihood.
+##' Calculate exponential weights for sample points according to log-likelihood.
 ##'
 ##' These values are used to weight the minimization function when
 ##' fitting a nonlinear function to the sample points.  The weights are
 ##' distributed to favor points close to the maximum likelihood.
 ##'
+##' This essentially turns the log-likelihood values into a discrete probability distribution.
 ##' Returns a numeric vector of weights corresponding to the vector of
 ##' likelihood values.
 ##' 
@@ -139,10 +140,11 @@ fit_equal_weights <- function(ll) {
 ##' @param pts 		sampled points; dataframe { 'x', 'y' }
 ##' @return 		named numeric vector, { 'c', 'm', 'r', 'b' }
 ##' @author chris
-fit_model <- function(model, pts, weighted=F) {
+fit_model <- function(model, pts, weighted=F, max.iter = 250) {
     stopifnot(is(pts, "data.frame"))
-    stopifnot(all(c("x", "y") %in% names(pts)))
+    stopifnot(all(c('x', 'y') %in% names(pts)))
     stopifnot(is.list(model) || is(model, "numeric"))
+    stopifnot(all(c('c', 'm', 'r', 'b') %in% names(model)))
 
     # scale the model to the largest sample point.
     # What's going on here?
@@ -152,8 +154,8 @@ fit_model <- function(model, pts, weighted=F) {
     # The easiest way to obtain this point is to take the maximum y value, but if the maximum point is repeated in the list,
     # then you will be get two points.  We warn against this and avoid it by using only a single max value.
     # 
-    p <- pts[pts$y == max(pts$y),]
-    p <- p[1,]
+    p <- pts[pts$y == min(pts$y),]
+    p <- p[1,]	# make sure to use only a single point
 
     scale_factor <- lcfit_bsm_scale_factor(p$x, p$y, model);
     model['c'] <- model['c'] * scale_factor;
@@ -165,7 +167,7 @@ fit_model <- function(model, pts, weighted=F) {
     else
         weights <- fit_equal_weights(pts$y)
 
-    model = lcfit_fit_bsm(pts$x, pts$y, weights, model);
+    model = lcfit_fit_bsm(pts$x, pts$y, weights, model, max.iter);
     return(model)
 }
 
@@ -184,6 +186,8 @@ lcfit <- function(t, model) {
         l <- c * log((1.0 + e)/2.0) + m * log((1.0 - e)/2.0)
     })
 }
+
+
 ##' Sample additional points from a likelihood curve.
 ##'
 ##' .. content for \details{} ..
@@ -192,38 +196,57 @@ lcfit <- function(t, model) {
 ##' @param keep 
 ##' @return 
 ##' @author chris
-samplePoints <- function(node_id, nextra=0) {
-    ndata <- list()
-    ndata$bls <- data.bls[data.bls$node_id == node_id,]
-    ndata$maxima <- data.maxima[data.maxima$node_id == node_id,]
-    ndata$fit <- data.fit[data.fit$node_id == node_id,]
-    ndata$fit$name <- 'Bio++'
-
+samplePoints <- function(node, nextra=0) {
+    node$fit$name <- 'Bio++'
+    fit <- node$fit
     # sample some extra points
     if (nextra > 0) {
         # compute the categorical distribution of points
-        bpp_ll <- ndata$bls[['bpp_ll']]
+        bpp_ll <- node$bls[['bpp_ll']]
         bpp_l <- exp(bpp_ll - max(bpp_ll))
         bpp_l <- bpp_l / sum(bpp_l)
 
-        # propose some more sample points, but reject the proposal if any of the new points duplicate existing points.
+        # propose extra sample points.
+        # reject the proposal if any of the new points duplicate existing points.
+        #
+        nrejected <- 0
         repeat {
             # sample w/o replacement according to the distribution calculated above
-            i <- sample(1:nrow(ndata$bls), nextra, replace = FALSE, prob=bpp_l)
+            i <- sample(1:nrow(node$bls), nextra, replace = FALSE, prob=bpp_l)
+
             # add the new points to the existing ones.
-            extra.fit <- data.frame(node_id=node_id, branch_length=ndata$bls[i,"branch_length"], ll=ndata$bls[i,"bpp_ll"], name="extra")
-            if (!any(sapply(extra.fit$ll, function(x) x == ndata$fit$ll ))) {
+            extra.fit <- data.frame(node_id=unique(node$fit$node_id), branch_length=node$bls[i,"branch_length"], ll=node$bls[i,"bpp_ll"], name="extra")
+
+            # Reject if any duplicates
+            if (!all(is.na(extra.fit$branch_length %in% node$fit$branch_length)))
                 break
-            }
-            else {
-                message("proposal rejected")
+
+            # too many rejections result in failure.
+            nrejected <- nrejected + 1
+            if (nrejected > 200) {
+                extra.fit <- NULL
+                break
             }
         }
 
-        ndata$fit <- rbind(ndata$fit, extra.fit)
+        if (is.null(extra.fit))
+            # we didn't successfully generate a good set of extra points.
+            # fail out of the routine.
+            # should raise an exception here.
+            fit <- NULL
+        else
+            # succcess!
+            fit <- rbind(node$fit, extra.fit)
     }
 
-    return(ndata$fit)
+    if (!is.null(fit)) {
+        # double-super-paranoid-extra check for duplicated branch lengths.
+        # can almost certainly, probably, possibly, get rid of this.
+        if (sum(fit$branch_length == max(fit$branch_length)) != 1) {
+            message("in samplePoints: Saw duplicated branch_lengths")
+        }
+    }
+    return(fit)
 }
 
 ##' re-fit the lcfit model to the new sample points.
@@ -234,7 +257,8 @@ samplePoints <- function(node_id, nextra=0) {
 ##' @param keep 
 ##' @return 
 ##' @author chris
-calculate_lcfit <- function(ndata, weighted=F, keep=0) {
+calculate_lcfit <- function(ndata, weighted=F, keep=0, max.iter=250) {
+    stop("caling deprecated calculate_lcfit() function in analysis/utils.R")
     # ignore the precomputed model parameters for now
     # because those were failing some of the time.
     # try out these new parameters before deploying them to
@@ -248,7 +272,7 @@ calculate_lcfit <- function(ndata, weighted=F, keep=0) {
     if (keep > 0) {
         sample.points <- sample.points[order(sample.points$y, decreasing=T)[1:keep],]
     }
-    model <- fit_model(model, sample.points, weighted)
+    model <- fit_model(model, sample.points, weighted, max.iter)
     # ndata$bls$fit_ll <-
     sapply(ndata$bls[['branch_length']], lcfit, model=model)
 }
@@ -337,3 +361,61 @@ showplots <- function(nodes, nextra) {
     return(ndata)
     }
 
+
+
+##' Reads in simulation data for a particular tree and aggregates into a single R data structure
+##'
+##' This routine reads a JSON format control file to retrieve the names
+##' of various simulation output files.  It reads the data from those output files and aggregates it
+##' by node_id.
+##' 
+##' @param path path to a control file, e.g. "runs/10/0/JTT92/gamma4-0.2/control.json"
+##' @return a list of lists, with each sublist containing the data for a single node
+##' in the tree.  
+##' @author chris
+readSimulationData <- function(path) {
+    p <- fromJSON(path)
+    bls_file <- p$lcfit[1]
+    maxima_file <- p$lcfit[2]
+    fit_file <- p$lcfit[3]
+    ml_est_file <- p$lcfit[4]
+
+    bls <- read.csv(bls_file, as.is=TRUE)
+    maxima <- read.csv(maxima_file, as.is=TRUE)
+    fit <- read.csv(fit_file, as.is=TRUE)
+    bls.list <- dlply(bls, .(node_id), function(d) d)
+    fit.list <- dlply(fit, .(node_id), function(d) d)
+    maxima.list <- dlply(maxima, .(node_id), function(d) d)
+
+    # Expect all lists aggregated by node_id should have the same length!
+    if (length(unique(sapply(list(bls.list,fit.list,maxima.list), length))) != 1) {
+        message(sprintf("Error: inconsistent number of nodes in each data file length"))
+        message(sprintf("%s: %d", fit_file, length(fit.list)))
+        message(sprintf("%s: %d", maxima_file, length(maxima.list)))
+        message(sprintf("%s: %d", bls_file, length(bls.list)))
+        stopifnot(length(unique(sapply(list(bls.list,fit.list,maxima.list), length))) != 1)
+    }
+    
+    m <- mapply(list, fit.list, bls.list, maxima.list, SIMPLIFY=FALSE)
+    m <- lapply(m, setNames, c("fit", "bls", "model"))
+
+    return(m)
+}
+
+
+# calculate summary statistics - the residual squared difference between
+# the fitting procedures (lcfit and spline) and the actual likelihood.
+compare_bls <- function(fit_ll, bpp_ll) {
+
+  ## bpp_l <- exp(bpp_ll - max(bpp_ll))
+  ## bpp_l <- bpp_l / sum(bpp_l)
+  ## fit_l <- exp(fit_ll - max(fit_ll))
+  ## fit_l <- fit_l / sum(fit_l)
+  ## kl=KL.plugin(bpp_l, fit_l, unit = 'log2')
+  
+  w <- fit_weights(bpp_ll)  # weights for weighted RSS
+
+  data.frame(
+             wrss=sum((w*(fit_ll- bpp_ll))^2)
+             )
+}

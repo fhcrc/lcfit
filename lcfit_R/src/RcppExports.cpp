@@ -40,8 +40,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // rcpp_fit_bsm
-NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, List model);
-RcppExport SEXP lcfit_rcpp_fit_bsm(SEXP blSEXP, SEXP llSEXP, SEXP wSEXP, SEXP modelSEXP) {
+NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, List model, int max_iter);
+RcppExport SEXP lcfit_rcpp_fit_bsm(SEXP blSEXP, SEXP llSEXP, SEXP wSEXP, SEXP modelSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     SEXP __sexp_result;
     {
@@ -50,7 +50,8 @@ BEGIN_RCPP
         Rcpp::traits::input_parameter< NumericVector >::type ll(llSEXP );
         Rcpp::traits::input_parameter< NumericVector >::type w(wSEXP );
         Rcpp::traits::input_parameter< List >::type model(modelSEXP );
-        NumericVector __result = rcpp_fit_bsm(bl, ll, w, model);
+        Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP );
+        NumericVector __result = rcpp_fit_bsm(bl, ll, w, model, max_iter);
         PROTECT(__sexp_result = Rcpp::wrap(__result));
     }
     UNPROTECT(1);

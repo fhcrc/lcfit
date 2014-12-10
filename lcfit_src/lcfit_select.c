@@ -334,7 +334,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     /* Re-fit */
     lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
     blit_points_to_arrays(points, n_pts, t, l);
-    lcfit_fit_bsm(n_pts, t, l, model);
+    lcfit_fit_bsm(n_pts, t, l, model, 250);
 
     for(iter = 0; iter < MAX_ITERS; iter++) {
         ml_t = lcfit_bsm_ml_t(model);
@@ -381,7 +381,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         subset_points(points, n_pts + 1, n_pts);
 
         blit_points_to_arrays(points, n_pts, t, l);
-        lcfit_fit_bsm(n_pts, t, l, model);
+        lcfit_fit_bsm(n_pts, t, l, model, 250);
         max_pt = max_point(points, n_pts);
     }
 

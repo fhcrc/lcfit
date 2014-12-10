@@ -5,7 +5,7 @@ library(gridExtra)
 library(plyr)
 library(reshape2)
 library(RJSONIO)
-suppressPackageStartupMessages(library(distrEx))
+#suppressPackageStartupMessages(library(distrEx))
 suppressPackageStartupMessages(library(entropy))
 
 theme_set(theme_bw(16) + theme(strip.background=element_blank(),

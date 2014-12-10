@@ -1,6 +1,6 @@
 library(shiny)
 library(ggplot2)
-library(grid)
+library(grid)		# for unit() function
 library(plyr)
 library(reshape2)
 library(RJSONIO)
@@ -10,7 +10,7 @@ theme_set(theme_bw(16))
 
 source("../aggutils.R")
 
-DEFAULT_MODEL=c(c=1500,m=1000,r=2.0,b=0.5) # taken from sim/bin/aggfit.R:DEFAULT_MODEL
+
 DEFAULT_MODEL=c(c=1100,m=800,r=2.0,b=0.5)	# from lcfit/sims/Sconstruct:initial_values
 
 m = NULL
@@ -23,7 +23,7 @@ shinyServer(function(input, output, session) {
     output$model_input <- renderUI({
         message("render model ui")
         times <- input$reset_input
-        div(id=letters[(times %% length(letters)) + 1],
+        div(id=paste0("model.",letters[(times %% length(letters)) + 1]),
             sliderInput("model.c", "c: number of constant sites", 800, 2500, DEFAULT_MODEL['c'], step=2),
             sliderInput("model.m", "m: number of mutated sites", 650, 1400, DEFAULT_MODEL['m']),
             sliderInput("model.r", "r: mutation rate", 0, 5, DEFAULT_MODEL['r'], step=0.1),
@@ -31,12 +31,21 @@ shinyServer(function(input, output, session) {
             )
     })
 
+    output$max.iter <- renderUI({
+        message("render max.iter ui")
+        times <- input$reset_input
+        div(id=paste0("max.iter.",letters[(times %% length(letters)) + 1]),
+            sliderInput("max.iter", "Maximum iterations:", 1,
+                        1000, 250)
+            )
+    })
+
     ## load data for all the nodes in all the trees.
     loadAggData <- reactive({
         aggfile <- "../../aggfit.csv"
-        aggdata <- read.csv(aggfile, stringsAsFactors=F)
+        aggdata <- read.csv(aggfile, stringsAsFactors=F, nrows=3000)
         message(sprintf("loaded %d rows from %s", nrow(aggdata), aggfile))
-        aggdaa <- aggdata[1:2000,]
+        # aggdata <- aggdata[1:3130,]
         m.measures <- melt(aggdata, id.vars=c("tree", "node_id"), measure.vars=names(aggdata)[!grepl('tree|node_id|status_', names(aggdata))])
         m.measures <- cbind(m.measures, colsplit(m.measures$variable, names = c("measure", "fitting", "nextra"), pattern="_"))
         m.measures = m.measures[,-grep('variable',names(m.measures))]
@@ -63,7 +72,11 @@ shinyServer(function(input, output, session) {
 
     inode = 0
 
-    selectedNodes <- reactive({
+
+
+    # return a boolean vector that is TRUE for rows in loadAggData()
+    # meeting the user-selected error criteria
+    bSelectedNodes <- reactive({
         m <- loadAggData()
         
         ## let the user select which failure mode they are interested in.
@@ -73,9 +86,53 @@ shinyServer(function(input, output, session) {
         ## LCFIT_ETOLF = 29	// cannot reach the specified tolerance in F
         errs = c(MAXITER=1, ERROR=2, ENOPROG=27, ETOLF=29)
         errs = errs[input$failures]
-        message(sprintf("nrows of m = %d", nrow(m)))
-        # select some nodes that meet our criteria
-        tmp <- m[m$measure=="wrss" & m$nextra == input$nextra & m$fitting == input$fitting & m$status %in% errs,]
+        # return a boolean vector (length=nrow(m)) that is TRUE for rows meeting the user-selected criteria
+        bVector <- m$measure=="wrss" & m$nextra == input$nextra & m$fitting == input$fitting & m$status %in% errs
+        stopifnot(length(bVector) == nrow(m))
+        message(sprintf("%d matching nodes", sum(bVector)))
+        return(bVector)
+    })
+
+
+    # Sample nodes from the pool of non-failing nodes under the original model parameters.
+    # This means we grab a subset of the nodes that did NOT fail when they were run with the original
+    # defaul model parameters.   We will recalculate these nodes with the current modified model parameters to see if they still succeed.
+    # We don't want our new model to make things worse!
+    #
+    # "input$nf.resample" resamples the nodes from the pool of
+    # non-failing nodes.
+    #
+    # "input$nf.count" controls how many nodes to sample.  Constrained
+    # by how long you are willing to wait for an interactive update
+    # when applying the current model to these nodes.
+    #
+    nf.resample.value <- 0
+    unselectedNodes <- reactive({
+        
+        if (input$nf.resample != nf.resample.value)
+            nf.resample.value <<- input$nf.resample
+
+        m <- loadAggData()
+        # Calculate boolean index 
+        b <- m$measure=="wrss" & m$nextra == input$nextra & m$fitting == input$fitting & m$status==0
+        stopifnot(length(b) == nrow(m))
+        i <- which( b )   		# convert to indicies
+        i <- sample(i, min(input$nf.count, length(i)))	# sub-sample the indicies
+        return(m[i,])
+    })
+
+
+
+    # Return a dataframe of nodes that are failing according to the user-selected criteria.
+    #
+    # We will select one of these nodes to display a detailed graph.
+    # When directed to do so, we will apply a modified model to all
+    # the nodes in this list to see how many failures are corrected.
+    #
+    selectedNodes <- reactive({
+        i <- bSelectedNodes()
+        m <- loadAggData()
+        tmp <- m[i,]
         if (nrow(tmp) == 0) 
             return()
         tmp <- tmp[order(tmp$value, decreasing=F),]
@@ -87,11 +144,12 @@ shinyServer(function(input, output, session) {
 
     })
 
+    # save the value of the action buttons so we know when they are clicked.
     iprev.save = 0
     inext.save = 0
     
     # React to the user clicking on the 'previous' or 'next' buttons
-    # This updates the global variables `inode` keep track of
+    # This updates the global variable `inode` to keep track of
     # which node is currently selected.
     iNode <- reactive({
         tmp <- selectedNodes()
@@ -112,6 +170,10 @@ shinyServer(function(input, output, session) {
             if (inode > nrow(tmp))
                 inode <<- nrow(tmp)
         }
+
+        # disable or enable the 'next' and 'previous' buttons as
+        # appropriate depending on whether we are currently at the
+        # first or last node in the list.
         if (inode == 1) {
             session$sendCustomMessage("disableButton", "left")
         } else {
@@ -126,9 +188,11 @@ shinyServer(function(input, output, session) {
 
     })
     
-    # Load the data for a single node in a tree.
-    # We are just interested in looking at all sorts of failing nodes, so the particular tree has
-    # significance beyond holding a node that failed lcfit.
+    # Load the data for a single node from selectedNodes()
+    #
+    # We are just interested in looking at all sorts of failing nodes,
+    # so the particular tree has no significance beyond holding a node
+    # that failed lcfit.
     #
     nodeData <- reactive({
         tmp <- selectedNodes()
@@ -169,64 +233,72 @@ shinyServer(function(input, output, session) {
              tags$div(style="text-align: center; font-style: italic;",
                       sprintf("c=%s m=%s r=%s b=%s", model['c'], model['m'], model['r'], model['b'] )))
     })
+
+
+
+    ##' convenience function for fitting a model to data points according to style.
+    ##'
+    ##' @param type one of 'weighted', 'unweighted', or 'top4'
+    ##' @param pts sampled points; dataframe { 'x', 'y' }
+    ##' @param model named numeric vector, { 'c', 'm', 'r', 'b' }
+    ##' @return fitted model numeric vector, { 'c', 'm', 'r', 'b', 'status' }
+    ##' @author chris
+    fit.model.bytype <- function(type, pts, model, max.iter) {
+        names(pts) <- c('x', 'y')
+        model <- switch(type,
+                        weighted = fit_model(model, pts, weighted=T),
+                        unweighted = fit_model(model, pts, weighted=F),
+                        top4 = {
+                                # Erick asks to keep only the four-highest likelihood points.
+                            pts <- pts[order(pts$y, decreasing=T)[1:4],]
+                            fit_model(model, pts, weighted=F)
+                        }
+                        )
+        return(model)
+    }
+
+
     
     
     output$distPlot <- renderPlot({
-        message("In renderPlot")
+        message("In output$distPlot")
         node <- nodeData()
         if (is.null(node))
              return()
         message(paste0(names(node), collapse=","))
-        model <- c(c=input$model.c, m=input$model.m, r=input$model.r, b=input$model.b)
+        model.input <- c(c=input$model.c, m=input$model.m, r=input$model.r, b=input$model.b)
+        max.iter <-  input$max.iter
+        message(sprintf("model = %s", paste0(model.input, collapse=", ")))
 
-        message(sprintf("model = %s", paste0(model, collapse=", ")))
-
-        if (is.null(model) || any(sapply(model, is.null)))
+        if (is.null( model.input) || any(sapply( model.input, is.null)))
             return()
 
         if (is.null(input$fitting))
             return()
             
         bls <- node$bls
-        fit = node$fit
+        pts <- node$fit[,c('branch_length', 'll')]
         message(sprintf("fitting = %s", input$fitting))
-
-        # plot the likelihood estimate using the model parameters as adjusted by the user.
-        #
-        switch(input$fitting,
-               'unweighted'= {
-                   lcfit.results <- calculate_lcfit(bls, model, fit, weighted=F)
-                   bls$fit_ll <- lcfit.results$ll
-               },
-               'weighted' = {
-                   lcfit.results <- calculate_lcfit(bls, model, fit, weighted=T)
-                   bls$wfit_ll <- lcfit.results$ll},
-               'top4' = {
-                   lcfit.results <- calculate_lcfit(bls, model, fit, weighted=F, keep=4)
-                   bls$t4fit_ll <- lcfit.results$ll})
 
         # If the model has been modified, plot the baseline plot
         # using the default model.   That way the user can always see where they are coming from.
         # 
-        if (any(model != DEFAULT_MODEL)) {
-            message(sprintf("model = %s", paste0(model, collapse=", ")))
-                    
-            switch(input$fitting,
-                   'unweighted'= {
-                       bls$baseline_ll <- calculate_lcfit(bls, DEFAULT_MODEL, fit, weighted=F)$ll
-                   },
-                   'weighted' = {
-                       bls$baseline_ll <- calculate_lcfit(bls, DEFAULT_MODEL, fit, weighted=T)$ll
-                   },
-                   'top4' = {
-                       bls$baseline_ll <- calculate_lcfit(bls, DEFAULT_MODEL, fit, weighted=F, keep=4)$ll
-                   })
-        } else if ('baseline_ll' %in% names(bls))
+        if (any(model.input != DEFAULT_MODEL)) {
+            model <- fit.model.bytype(input$fitting, pts, DEFAULT_MODEL)
+            bls$baseline_ll <- sapply(node$bls[['branch_length']], lcfit, model=model)
+            
+        } else if ('baseline_ll' %in% names(bls)) {
+            # otherwise remove the baseline so it doesn't show up in the graph
             bls <- bls[,-grep('baseline_ll', names(bls)),drop=FALSE]
-
-
-        print(sprintf("lcfit status = %s", lcfit.results$status))
-        status <- switch(as.character(lcfit.results$status),
+        }
+        # plot the likelihood estimate using the model parameters as adjusted by the user.
+        #
+        model <- fit.model.bytype(input$fitting, pts, model.input, max.iter)
+        bls$modified_ll<- sapply(node$bls[['branch_length']], lcfit, model=model)
+        browser()
+        
+        print(sprintf("lcfit status = %s", model[['status']]))
+        status <- switch(as.character(model[['status']]),
                          '0'="Branch length",
                          '1'="exceeded maximum iterations without converging",
                          '2'="non-specific error",
@@ -235,8 +307,8 @@ shinyServer(function(input, output, session) {
         p <- ggplot() + ylab("Log likelihood")
         p <- p + geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable),
                            data=melt(bls, id.vars=1:2)) +
-                geom_point(aes(x=branch_length, y=ll), data=fit) +
-                scale_color_discrete(name="", breaks=c('bpp_ll', 'fit_ll', 'wfit_ll', 't4fit_ll', 'baseline_ll'), labels=c('bpp', 'unweighted', 'weighted', 'top4', 'baseline')) +
+                geom_point(aes(x=branch_length, y=ll), data=pts) +
+                scale_color_discrete(name="", breaks=c('bpp_ll', 'baseline_ll', 'modified_ll'), labels=c('bpp', 'baseline', 'modified')) +
                 guides(color="legend", shape=FALSE, linetype=FALSE) +
                 theme(legend.position="bottom") +
                 ylab("Log likelihood") +
@@ -245,13 +317,98 @@ shinyServer(function(input, output, session) {
         print(p)
     })
 
+
+    recalculateNodes <- function(nodes, model, fitting, max.iter) {
+
+        # helper function to apply to each row in `nodes`
+        recalculate.helper <- function(row, model, fitting) {
+             # browser()
+            message(paste0(row, sep=", "))
+            tree <- readSimulationData(row['tree'])
+            message(paste0("reading tree ", row['tree']))
+            node_id <- as.character(as.numeric(row['node_id']))
+            message(paste0("node_id ", node_id))
+            node <- tree[[as.character(node_id)]]
+            message(node)
+            bls <- node$bls
+            pts <- node$fit[,c('branch_length', 'll')]
+            message(paste0("fit=", paste0(pts, collapse=", ")))
+            model <- fit.model.bytype(input$fitting, pts, model)
+            status = model[['status']]
+
+            message(paste(class(status), status))
+            return(status)
+        }
+        message(paste0(names(nodes), sep=", "))
+
+        wd = getwd()
+        tryCatch( {
+            setwd("../../")
+            v = apply(nodes, 1, recalculate.helper, model, fitting)
+        }, finally={ message("TryCatch!!!")
+                     setwd(wd) })
+
+        message(class(v))
+        return(v)
+    }
+
+
+    nf.apply.value <- 0
     failures.action.value <- 0
-    
+
+    # Get the success/failure status of a random sampling of the nodes NOT under the current selection criteria.
+    #
+    # Unless the actionbutton has been pressed, this status reflects
+    # the sttaus calculated under the standard model.  After pressing
+    # the action button, each node is recalculated with the current
+    # adjusted model.  Since this can be an expensive operation, we
+    # only do so when the tiobutton is pressed, and not when the model
+    # is changed.
+    #
+    successNodes <- reactive({
+        tmp <- unselectedNodes()
+        if (is.null(tmp))
+            return()
+
+        # handle the 'Apply.." action button on the "Non-failures" panel
+        if (input$nf.apply != nf.apply.value) {
+            nf.apply.value <<- input$nf.apply
+            print("applying model!")
+            model <- isolate(c(c=input$model.c, m=input$model.m, r=input$model.r, b=input$model.b))
+            max.iter <- isolate(input$max.iter)
+            fitting <- isolate(input$fitting)
+            
+            message(sprintf("model = %s", paste0(model, collapse=", ")))
+
+            if (is.null(model) || any(sapply(model, is.null)))
+                return()
+
+            if (is.null(fitting))
+                return()
+
+            return(recalculateNodes(tmp, model, fitting, max.iter))
+        }
+        
+        return(tmp$status)
+    })
+
+
+
+    # Get the success/failure status of all the nodes under the current selection criteria.
+    #
+    # Unless the actionbutton has been pressed, this status reflects
+    # the sttaus calculated under the standard model.  After pressing
+    # the action button, each node is recalculated with the current
+    # adjusted model.  Since this can be an expensive operation, we
+    # only do so when the tiobutton is pressed, and not when the model
+    # is changed.
+    #
     failingNodes <- reactive({
         tmp <- selectedNodes()
         if (is.null(tmp))
             return()
         
+        # handle the 'apply' action button on the "Failure Map" panel.
         if (input$apply != failures.action.value) {
             failures.action.value <<- input$apply
             print("applying model!")
@@ -275,51 +432,63 @@ shinyServer(function(input, output, session) {
                 }, finally={ setwd(wd) })
                 node_id <- as.character(tmp[i, 'node_id'])
                 node <- tree[[as.character(node_id)]]
+                pts <- node$fit[,c('branch_length', 'll')]
+                fitted <- fit.model.bytype(fitting, pts, model)
+                tmp[i,"status"] <- fitted[['status']]
 
-                bls <- node$bls
-                fit = node$fit
-
-                tmp[i,"status"] <- switch(fitting,
-                                          'unweighted'= {
-                                              calculate_lcfit(bls, model, fit, weighted=F)$status
-                                          },
-                                          'weighted' = {
-                                              calculate_lcfit(bls, model, fit, weighted=T)$status
-                                          },
-                                          'top4' = {
-                                              calculate_lcfit(bls, model, fit, weighted=F, keep=4)$status
-                                          })
             }
         }
 
         return(tmp$status)
-
     })
 
-    # http://stackoverflow.com/a/13261443/1135316
-    output$failMap <- renderPlot({
-        print("in renderPlot")
-        tmp <- failingNodes()
-        if (is.null(tmp))
-            return()
-        n <- ceiling(sqrt(length(tmp)))
+    tilePlot <- function(status.vector, show.rect) {
+        n <- ceiling(sqrt(length(status.vector)))
         df <- expand.grid(x=seq(n), y=seq(n))
-        df$status <- factor(c(tmp, rep(0, n**2 - length(tmp))))
-        p <- ggplot(data=df[1:length(tmp),], aes(x=x, y=y))
+        df$status <- factor(c(status.vector, rep(0, n**2 - length(status.vector))))
+        p <- ggplot(data=df[1:length(status.vector),], aes(x=x, y=y))
         p <- p + geom_tile(aes(fill=status))
-        p <- p + geom_rect(data=df[iNode(),], size=1, fill=NA, colour="black",
-                           aes(xmin=x - 0.5, xmax=x + 0.5, ymin=y - 0.5, ymax=y + 0.5)) 
+
+        # outline the tile corresponding to the currently selected tile
+        if (!missing(show.rect)) 
+            p <- p + geom_rect(data=df[show.rect,], size=1, fill=NA, colour="black",
+                               aes(xmin=x - 0.5, xmax=x + 0.5, ymin=y - 0.5, ymax=y + 0.5)) 
+
         p <- p +  theme(panel.grid = element_blank())
         p <- p +  theme(strip.background = element_blank())
-        p <- p + scale_fill_hue(h=c(20, 60), l=80, c=150, breaks=c(1, 2, 27, 29, 0),
-            labels=c("Iterations", "Other", "Progress", "Tolerance", "Success!"))
+        p <- p + scale_fill_manual(values=c("0"="#1A9641", "1"="#FFB54F", "2"="#FFC400", "27"="#FFD300", "29"="#FFE000"),
+                                   breaks=c(0, 1, 2, 27, 29),
+                                   labels=c("Success!", "Iterations", "Other", "Progress", "Tolerance"))
         p <- p + theme(axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank())
         p <- p + theme(axis.title.x = element_blank(), axis.title.y = element_blank())
         p <- p + theme(axis.title.x = element_blank(), axis.title.y = element_blank())
-        p <- p + ggtitle("Failures in the current selection")
         p <- p + theme(panel.margin = unit(0.1, "lines"))
         p <- p + theme(plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "lines"))
+        return(p)
+    }
+    
+    # http://stackoverflow.com/a/13261443/1135316
+    output$failMap <- renderPlot({
+        print("in output$failMap")
+        tmp <- failingNodes()
+        if (is.null(tmp))
+            return()
+        p <- tilePlot(tmp, show.rect=iNode())
+        p <- p + ggtitle("Failures in the current selection")
+
         print(p)
     })
+
+    # http://stackoverflow.com/a/13261443/1135316
+    output$successMap <- renderPlot({
+        print("in output$successMap")
+        tmp <- successNodes()
+        if (is.null(tmp))
+            return()
+        p <- tilePlot(tmp)
+        p <- p + ggtitle("Previously successful nodes")
+        print(p)
+    })
+    
 
 })

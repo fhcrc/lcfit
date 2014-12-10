@@ -89,26 +89,24 @@ compare_bls <- function(fit_ll, bpp_ll) {
              wrss=sum((w*(fit_ll- bpp_ll))^2)
              )
 }
-
-calculate_lcfit <- function(bls, model, fit, weighted=F, keep=0) {
-    sample.points <- fit[, c('branch_length', 'll')]
-    names(sample.points) <- c('x', 'y')
-    
-    # Erick asks to keep only the four-highest likelihood points.
-    if (keep > 0) {
-        sample.points <- sample.points[order(sample.points$y, decreasing=T)[1:keep],]
-    }
-
-    model.fitted <- fit_model(model, sample.points, weighted)
-        
-    if (model.fitted["status"] == LCFIT_MAXITER) {
-        message(sprintf("WARN: node_id=%d weighted=%s keep=%d %s", bls$node_id[[1]], weighted, keep, lcfit_strerror(model.fitted["status"])));
-    } else if (model.fitted["status"] != LCFIT_SUCCESS) {
-        message(sprintf("ERROR: node_id=%d weighted=%s keep=%d %s", bls$node_id[[1]], weighted, keep, lcfit_strerror(model.fitted["status"])));
-    }
-    ll <- list(status=model.fitted[["status"]], ll=sapply(bls[['branch_length']], lcfit, model=model.fitted))
-    return(ll)
+##' Fit a model to sample points and calculate the curve defined by the model.
+##'
+##' .. content for \details{} ..
+##' @param bls dataframe containing branch lengths
+##' @param model starting model parameters
+##' @param fit sample points for which both branch length and likelihood are known
+##' @param weighted boolean True if weighted lcfit
+##' @param max.iter  integer maximum iterations to converge before giving up.
+##' @return list consisting of a scalar status, and  likelihood values estimated using the fitted model.
+##' @author chris
+calculate_lcfit <- function(bls, model, fit, weighted=F, keep=0, max.iter=250) {
+    traceback()
+    stop("calculate_lcfit() should no longer be used")
+    # replace with explicit calls to fit_model and then apply lcfit() to the model and branch lengths.
+    # See calculate.model.errors() and lcfit/sims/bin/aggfit.R for an example.
 }
+
+
 
 # sample extra points
 samplePoints <- function(node, nextra=0) {

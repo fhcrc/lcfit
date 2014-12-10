@@ -1,7 +1,6 @@
 ---
 title: "Aggregate error measurments for estimates of likelihood curves"
-output:
-html_document:
+output: html_document
 toc: true
 theme: cerulean
 ---
@@ -44,23 +43,25 @@ m <- m[!is.na(m$value),]
 
 ```
 
-## Weighted vs. unweighted lcfit
+## LCFIT techniques
 
 
-We fit the LCFIT function using variable number of extra points and using
-a variety of fitting techniques.   For each combination of fitting
-technique and number of extra points, we always measure
-the weighted error between the lcfit curve and the actual likelihood
+We fit the LCFIT function using variable number of extra points and 
+a variety of fitting techniques.   For each fitting
+technique shown below we try to estimate the likelihood curve with
+lcfit using an increasing number of extra points.   We score each
+attempt by calculating the weighted and unweighted residual error between the lcfit curve and the actual likelihood
 as calculated by BPP.
 
-* unweighted - the standard lcfit procedure.
-* weighted - uses a squared difference objective function weighted by
+* unweighted lcfit - the standard lcfit procedure.
+* weighted lcfit - the squared difference objective function is weighted by
   likelihood of the point being measured.
-* top4 - an unweighted objective function, but fit to  only the top four
-  highest-likelihood points regardless of how many extra pointswere used.
+* top4 lcfit - an unweighted objective function, but fit to  only the top four
+  highest-likelihood points regardless of how many extra points were used.
 
-Each time we fit the LCFIT function to a set of sample points, the
-process may fail in a variety of ways.
+##LCFIT failures
+
+LCFIT may fail in a variety of ways.
 
 * The objective function may not converge to within our tolerance values
   in the specified number of iterations (default: 500)
@@ -69,18 +70,37 @@ process may fail in a variety of ways.
   maximum iterations.
 
 If the fitting procedure does not converge or otherwise encounters an
-error, the error measures are negated sothe failing cases   are easier
-to identify.
-
-###LCFIT failures
+error, the error measures are negated so the failing cases can be
+easily identified.
 
 Out of `r nrow(m)` total attempts, across all fitting procedures and
 0-4 extra points for all nodes in every simulated tree, LCFIT fitting
 failed `r sum(m$value < 0)` times (`r sprintf("%.2f%%", (sum(m$value<0)/nrow(m))*100)`)
 
+## What does LCFIT look like when it fails?
 
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
 
-###Weighted RSS of unweighted LCFIT including failures
+tmp <- m[m$measure=="wrss" & m$fitting == 'unweighted' & m$value < 0,]
+tmp <- tmp[order(tmp$value, decreasing=F),]
+
+setwd("..")
+plots <- with(tmp[1, ],
+              list(showplot((tree), node_id, nextra,model=DEFAULT_MODEL),
+                   showplot((tree), node_id, nextra,model=DEFAULT_MODEL, zoom=T)))
+multiplot(plotlist=plots, cols=2)
+plots <- with(tmp[2, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+plots <- with(tmp[3, ],
+              list(showplot((tree), node_id, model=DEFAULT_MODEL, nextra),
+                   showplot((tree), node_id, nextra, model=DEFAULT_MODEL,zoom=T)))
+multiplot(plotlist=plots, cols=2)
+
+```
+
+## Weighted RSS of unweighted LCFIT including failures
 
 
 This first graph shows the error estimates for only the UNWEIGHTED, or
@@ -101,10 +121,11 @@ print(p1)
 
 ```
 
-###Weighted RSS of unweighted LCFIT excluding failures
+### Weighted RSS of unweighted LCFIT excluding failures
 
-This is the same graph of errors from the UNWEIGHTED lcfit, but
-excluding the cases when lcfit failed.
+In "Unweighted LCFIT", all sample points have equal weight, hence they
+are "unweighted".  The "Weighted RSS" is calculate between the LCFIT curve and
+actual BPP curve weighted by actual likelihood.  We exclude all LCFIT failures for this graph
 
 ```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
 
@@ -120,7 +141,7 @@ print(p1)
 
 ```
 
-```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
+```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, warning=F}
 setwd("..")
 plots <- with(tmp[1, ],
               list(showplot((tree), node_id, nextra,model=DEFAULT_MODEL),
@@ -137,10 +158,11 @@ multiplot(plotlist=plots, cols=2)
 
 ```
 
-###Weighted RSS of Weighted LCFIT, excluding failures
+### Weighted RSS of Weighted LCFIT, excluding failures
 
-Weighted LCFIT uses likelihoods to weight the objective function at
-each sample point.  We exclude all CFIT failures for this graph
+"Weighted LCFIT" uses likelihoods to weight the objective function at
+each sample point.  The "Weighted RSS" is calculate between the LCFIT curve and
+actual BPP curve weighted by actual likelihood.  We exclude all LCFIT failures for this graph
 
 ```{r eval=TRUE, fig.width=12, fig.height=5, echo=FALSE, results='hide', warning=F}
 

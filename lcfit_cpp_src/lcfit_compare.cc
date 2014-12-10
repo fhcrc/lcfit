@@ -207,16 +207,16 @@ public:
     ///
     /// Given a set of starting points, attempts to add (branch_length, ll) points until the function is non-monotonic,
     /// then fits the BS model using these sampled points.
-    bsm_t fit_model(const int node_id)
+    bsm_t fit_model(const int node_id, const int max_iter = 250)
     {
         bsm_t m = {start[0], start[1], start[2], start[3]};
         NodeLikelihoodCalculator ll(calc,node_id);
-        lcfit::LCFitResult fit_result = lcfit::fit_bsm_log_likelihood(ll, m, sample_points, 8);
+        lcfit::LCFitResult fit_result = lcfit::fit_bsm_log_likelihood(ll, m, sample_points, 8, max_iter);
 
         // Log fit
         if(csv_fit_out != nullptr) {
             for(const Point& p : fit_result.evaluated_points) {
-                *csv_fit_out << node_id << "," << p.x << "," << p.y << endl;
+                *csv_fit_out << node_id << "," << std::setprecision(20) << p.x << "," << p.y << endl;
             }
         }
 
@@ -304,7 +304,7 @@ vector<LogLikelihoodComparison> compare_log_likelihoods(Tree tree, TreeLikelihoo
     const double upper = 1.0;
     const size_t n_samples = 500;
     const double delta = (upper - lower) / static_cast<double>(n_samples - 1);
-    for(size_t i = 0; i < n_samples; i++) {
+    for (size_t i = 0; i < n_samples; i++) {
         const double t = lower + (delta * i);
         calc->set_branch_length(node_id, t);
         double actual_ll = calc->calculate_log_likelihood();
@@ -401,17 +401,24 @@ int run_main(int argc, char** argv)
      */
     csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
     csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
-    for(const int & node_id : tree.getNodesId()) {
-        clog << "[lcfit eval] Node " << setw(4) << node_id << "\r";
+
+    for (const int & node_id : tree.getNodesId()) {
+        clog << "[lcfit eval] Node " << setw(4) << node_id << "\n";
+
         // Calculators
         TreeLikelihoodCalculator likelihood_calc(*bpp_tree_like);
         LCFitter fitter(start, sample_points, &likelihood_calc, &csv_fit_out);
-        if(!tree.hasDistanceToFather(node_id)) continue;
+
+        if (!tree.hasDistanceToFather(node_id)) 
+	    continue;
+
         const bsm_t m = fitter.fit_model(node_id);
         const vector<LogLikelihoodComparison> evals = compare_log_likelihoods(tree, &likelihood_calc, node_id, m);
+
         // Write to CSV
         std::for_each(begin(evals), end(evals),
             [&csv_like_out](const LogLikelihoodComparison & e) { to_csv(csv_like_out, e); });
+
         const ModelFit fit = compare_ml_values(tree, node_id, m);
         to_csv(csv_ml_out, fit);
 

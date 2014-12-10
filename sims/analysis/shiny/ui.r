@@ -2,7 +2,7 @@ library(shiny)
 
 
 shinyUI(fluidPage(theme = "bootstrap.css",
-    singleton(tags$head(HTML('
+                  singleton(tags$head(HTML('
     <script type="text/javascript">
     $(document).ready(function() {
     
@@ -17,16 +17,9 @@ shinyUI(fluidPage(theme = "bootstrap.css",
          });
 
     })
-    </script>'),
-                        tags$style(HTML("
-                     #caption {
-                       font-style: italic;
-                       color: red;
-                       }
-    "))
+    </script>')
                         )),
     titlePanel("LCfit Failure Mode Analysis"),
-
     fluidRow(
         column(4,
                wellPanel(
@@ -48,23 +41,37 @@ shinyUI(fluidPage(theme = "bootstrap.css",
                        "Select initial model parameters.")),
                    uiOutput('model_input'),
                    hr(),
-                   sliderInput("niter", "Maximum iterations:", 100,
-                               200, 120),
+                   uiOutput('max.iter'),
+
                    hr(),
                    actionButton("reset_input", "Reset")
                    )
 
                ),
-
+        
         column(8,
-               fluidRow(
-                   column(2, actionButton("left", "Prev")),
-                   column(8,  htmlOutput("title")),
-                   column(2, actionButton("right", "Next"))
-                   ),
-               plotOutput("distPlot"),
-               actionButton("apply", "Apply current model to the failing nodes"),
-               plotOutput("failMap")
+               tabsetPanel(
+                   tabPanel("Failure Plot",
+                            fluidRow(
+                                column(2, actionButton("left", "Prev")),
+                                column(8,  htmlOutput("title")),
+                                column(2, actionButton("right", "Next"))
+                                ),
+                            plotOutput("distPlot")),
+                   tabPanel("Failure Map", 
+                            actionButton("apply", "Apply current model to the failing nodes"),
+                            plotOutput("failMap")),
+                   tabPanel("Non-failures",
+                            fluidRow(
+                                span(style='float:left; ', actionButton("nf.apply", "Apply model")),
+                                actionButton("nf.resample", "Resample"),
+                                span(style='float:right; ',
+                                     tags$label(style='vertical-align:top; display: inline-block;', class = "control-label", `for` = "nf.count", "# Cases: "),
+                                     span(style='vertical-align:middle; display: inline-block;',
+                                          selectInput("nf.count", label=NULL, choices=c(10, 50, 100, 300, 500, 1000))))
+                                ),
+                            plotOutput("successMap"))
+                   )
                )
         )
     ))

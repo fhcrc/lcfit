@@ -202,14 +202,14 @@ void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
  *
  * @return status==0 for success, non-zero otherwise
  */
-int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
+int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, int max_iter)
 {
     double *w = calloc(n, sizeof(double));
     int status, i;
 
     for (i = 0; i < n; i++) 
 	w[i] = 1.0L;
-    status = lcfit_fit_bsm_weight(n, t, l, w, m);
+    status = lcfit_fit_bsm_weight(n, t, l, w, m, max_iter);
     free(w);
     return(status);
 }
@@ -223,10 +223,9 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m)
  * \param m Initial conditions for the model.
  * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
  */
-int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double *w, bsm_t *m)
+int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double *w, bsm_t *m, int max_iter)
 {
     double x[4] = {m->c, m->m, m->r, m->b};
-    int max_iter = 500;		// maximum number of iterations
     int status = GSL_SUCCESS;
     unsigned int iter = 0;
 
@@ -254,7 +253,7 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
         status = gsl_multifit_fdfsolver_iterate(s);
 
 #ifdef VERBOSE
-        printf("status = %s\n", gsl_strerror(status));
+        printf("status = %s (%d)\n", gsl_strerror(status), status);
         print_state(iter, s);
 #endif /* VERBOSE */
 
@@ -264,7 +263,26 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
         status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
     } while(status == GSL_CONTINUE && iter < max_iter);
 
+#define FIT(i) gsl_vector_get(s->x, i)
+#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
+#if 1
+    gsl_matrix* covar = gsl_matrix_alloc(4, 4);
+    gsl_multifit_covar(s->J, 0.0, covar);
+    gsl_matrix_fprintf(stdout, covar, "%g");
+
+    printf("c = %.5f +/- %.5f\n", FIT(0), ERR(0));
+    printf("m = %.5f +/- %.5f\n", FIT(1), ERR(1));
+    printf("r = %.5f +/- %.5f\n", FIT(2), ERR(2));
+    printf("b = %.5f +/- %.5f\n", FIT(3), ERR(3));
+
+    printf("status = %s (%d)\n", gsl_strerror(status), status);
+    gsl_matrix_free(covar);
+#endif /* VERBOSE */
+
     // translate from GSL status to LCFIT status
+    // GSL error codes are defined in gsl_errno.h
+    // a local copy can be found in ~matsengrp/local/include/gsl/gsl_errno.h
+    // corresonding lcfit error codes can be found in lcfit.h
     if (iter >= max_iter) {
 	status = LCFIT_MAXITER;
     } else if (status == GSL_SUCCESS) 
@@ -273,26 +291,12 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
 	status = LCFIT_ENOPROG;
     else if (status == GSL_ETOLF)
 	status = LCFIT_ETOLF;
+    //else if (status == GSL_ETOLG)
+    //  status = LCFIT_ETOLG;
     else {
 	fprintf(stderr, "GSL status - iteration: %d status: %d, %s\n", iter, status, gsl_strerror(status));
 	status = LCFIT_ERROR;
     }
-
-#define FIT(i) gsl_vector_get(s->x, i)
-#define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
-#ifdef VERBOSE
-    gsl_matrix* covar = gsl_matrix_alloc(4, 4);
-    gsl_multifit_covar(s->J, 0.0, covar);
-    gsl_matrix_fprintf(stdout, covar, "%g");
-    gsl_matrix_free(covar);
-
-    printf("c = %.5f +/- %.5f\n", FIT(0), ERR(0));
-    printf("m = %.5f +/- %.5f\n", FIT(1), ERR(1));
-    printf("r = %.5f +/- %.5f\n", FIT(2), ERR(2));
-    printf("b = %.5f +/- %.5f\n", FIT(3), ERR(3));
-
-    printf("status = %s\n", gsl_strerror(status));
-#endif /* VERBOSE */
 
     // Update fit
     m->c = FIT(0);

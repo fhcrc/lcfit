@@ -9,7 +9,7 @@ lcfit_bsm_rescale <- function(bl, ll, model) {
     .Call('lcfit_rcpp_bsm_rescale', PACKAGE = 'lcfit', bl, ll, model)
 }
 
-lcfit_fit_bsm <- function(bl, ll, w, model) {
-    .Call('lcfit_rcpp_fit_bsm', PACKAGE = 'lcfit', bl, ll, w, model)
+lcfit_fit_bsm <- function(bl, ll, w, model, max_iter) {
+    .Call('lcfit_rcpp_fit_bsm', PACKAGE = 'lcfit', bl, ll, w, model, max_iter)
 }
 

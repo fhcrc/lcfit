@@ -19,7 +19,7 @@ env.PrependENVPath('LD_LIBRARY_PATH', '/home/matsengrp/local/encap/bpp-master-20
 env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../example')
-env.PrependENVPath('PATH', '/home/matsengrp/local/encap/R-3.1.0/bin')
+# env.PrependENVPath('PATH', '/home/matsengrp/local/encap/R-3.1.0/bin')
 env.PrependENVPath('PATH', './bin')
 
 # my slurm jobs routed to the wrong partition. scicomp
