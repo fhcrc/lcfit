@@ -265,7 +265,7 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
 
 #define FIT(i) gsl_vector_get(s->x, i)
 #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
-#if 1
+#ifdef VERBOSE
     gsl_matrix* covar = gsl_matrix_alloc(4, 4);
     gsl_multifit_covar(s->J, 0.0, covar);
     gsl_matrix_fprintf(stdout, covar, "%g");
@@ -275,9 +275,10 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
     printf("r = %.5f +/- %.5f\n", FIT(2), ERR(2));
     printf("b = %.5f +/- %.5f\n", FIT(3), ERR(3));
 
-    printf("status = %s (%d)\n", gsl_strerror(status), status);
+    printf("status = %s (%d)   iterations %d\n", gsl_strerror(status), status, iter);
     gsl_matrix_free(covar);
 #endif /* VERBOSE */
+    printf("status = %s (%d)   iterations %d\n", gsl_strerror(status), status, iter);
 
     // translate from GSL status to LCFIT status
     // GSL error codes are defined in gsl_errno.h
