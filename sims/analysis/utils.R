@@ -1,5 +1,8 @@
 library(lcfit)
 
+# DEFAULT_MODEL=c(c=1500, m=1000,r=2.0,b=0.5)  # not sure where from - probably from inside lcfit.c
+# DEFAULT_MODEL=c(c=1100, m=800,r=2.0,b=0.5)   # from lcfit/sims/Sconstruct:initial_values
+DEFAULT_MODEL=c(c=1228, m=700,r=2.0,b=0.5)   # adjusted based on empirical observations.
 
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   require(grid)
@@ -258,23 +261,10 @@ samplePoints <- function(node, nextra=0) {
 ##' @return 
 ##' @author chris
 calculate_lcfit <- function(ndata, weighted=F, keep=0, max.iter=250) {
-    stop("caling deprecated calculate_lcfit() function in analysis/utils.R")
-    # ignore the precomputed model parameters for now
-    # because those were failing some of the time.
-    # try out these new parameters before deploying them to
-    # C code.
-    #model <-  ndata$maxima[, c('c', 'm', 'r', 'b')]
-    model <- c('c'=1500,'m'=930,'r'=2.0,'b'=0.5)
-    sample.points <- ndata$fit[, c('branch_length', 'll')]
-    names(sample.points) <- c('x', 'y')
-    
-    # Erick asks to keep only the four-highest likelihood points.
-    if (keep > 0) {
-        sample.points <- sample.points[order(sample.points$y, decreasing=T)[1:keep],]
-    }
-    model <- fit_model(model, sample.points, weighted, max.iter)
-    # ndata$bls$fit_ll <-
-    sapply(ndata$bls[['branch_length']], lcfit, model=model)
+    stop("stop calling deprecated calculate_lcfit() function in analysis/utils.R")
+    # replaced with explicit call to fit_model() followed by sapply(lcfit) to apply the model to branch lengths.
+    # model <- fit_model(model, sample.points, weighted, max.iter)
+    # sapply(ndata$bls[['branch_length']], lcfit, model=model)
 }
 
 
