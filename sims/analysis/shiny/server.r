@@ -11,8 +11,6 @@ theme_set(theme_bw(16))
 source("../aggutils.R")
 
 
-DEFAULT_MODEL=c(c=1100,m=800,r=2.0,b=0.5)	# from lcfit/sims/Sconstruct:initial_values
-
 m = NULL
 
 # Define server logic required to generate and plot a random distribution
@@ -43,9 +41,8 @@ shinyServer(function(input, output, session) {
     ## load data for all the nodes in all the trees.
     loadAggData <- reactive({
         aggfile <- "../../aggfit.csv"
-        aggdata <- read.csv(aggfile, stringsAsFactors=F, nrows=3000)
+        aggdata <- read.csv(aggfile, stringsAsFactors=F)
         message(sprintf("loaded %d rows from %s", nrow(aggdata), aggfile))
-        # aggdata <- aggdata[1:3130,]
         m.measures <- melt(aggdata, id.vars=c("tree", "node_id"), measure.vars=names(aggdata)[!grepl('tree|node_id|status_', names(aggdata))])
         m.measures <- cbind(m.measures, colsplit(m.measures$variable, names = c("measure", "fitting", "nextra"), pattern="_"))
         m.measures = m.measures[,-grep('variable',names(m.measures))]
@@ -56,7 +53,7 @@ shinyServer(function(input, output, session) {
 
         m <- join(m.measures, m.status, by=c("tree", "node_id", "fitting", "nextra"), type="left")
 
-        m <- m[!is.na(m$value),]
+#        m <- m[!is.na(m$value),]
         return(m)
     })
 
@@ -87,7 +84,12 @@ shinyServer(function(input, output, session) {
         errs = c(MAXITER=1, ERROR=2, ENOPROG=27, ETOLF=29)
         errs = errs[input$failures]
         # return a boolean vector (length=nrow(m)) that is TRUE for rows meeting the user-selected criteria
-        bVector <- m$measure=="wrss" & m$nextra == input$nextra & m$fitting == input$fitting & m$status %in% errs
+        bVector <- m$measure=="wrss" & m$nextra == input$nextra & m$fitting %in% input$fitting 
+        if (any(is.na(errs))) {
+            bVector <- bVector & (m$status %in% errs | is.na(m$value))
+        } else {
+            bVector <- bVector & m$status %in% errs
+        }
         stopifnot(length(bVector) == nrow(m))
         message(sprintf("%d matching nodes", sum(bVector)))
         return(bVector)
@@ -114,7 +116,7 @@ shinyServer(function(input, output, session) {
 
         m <- loadAggData()
         # Calculate boolean index 
-        b <- m$measure=="wrss" & m$nextra == input$nextra & m$fitting == input$fitting & m$status==0
+        b <- m$measure=="wrss" & m$nextra == input$nextra & m$fitting %in% input$fitting & m$status==0
         stopifnot(length(b) == nrow(m))
         i <- which( b )   		# convert to indicies
         i <- sample(i, min(input$nf.count, length(i)))	# sub-sample the indicies
@@ -200,7 +202,6 @@ shinyServer(function(input, output, session) {
             return()
         n <- iNode()
         message(sprintf("selecting row %d out of %d", n, nrow(tmp)))
-        print(tmp[n,])
 
         # read in the sampled points for that node in that particular tree...
         wd = getwd()
@@ -214,6 +215,7 @@ shinyServer(function(input, output, session) {
         node <- tree[[as.character(node_id)]]
         node$path <- tmp[n, 'tree']
         node$node_id <- node_id
+        node$fitting <- tmp[n,'fitting']
         return(node)
     })
 
@@ -225,13 +227,14 @@ shinyServer(function(input, output, session) {
         if (is.null(node))
              return()
         model <- c(c=input$model.c, m=input$model.m, r=input$model.r, b=input$model.b)
+        iterations = input$max.iter
         if (is.null(model) || any(sapply(model, is.null)))
             return()
 
         list(tags$div(style="text-align: center; font-style: bold; font-size: 120%;",
                       sprintf("%s #%s",  node$path, node$node_id)),
              tags$div(style="text-align: center; font-style: italic;",
-                      sprintf("c=%s m=%s r=%s b=%s", model['c'], model['m'], model['r'], model['b'] )))
+                      sprintf("c=%s m=%s r=%s b=%s  iterations=%d", model['c'], model['m'], model['r'], model['b'], iterations )))
     })
 
 
@@ -246,12 +249,12 @@ shinyServer(function(input, output, session) {
     fit.model.bytype <- function(type, pts, model, max.iter) {
         names(pts) <- c('x', 'y')
         model <- switch(type,
-                        weighted = fit_model(model, pts, weighted=T),
-                        unweighted = fit_model(model, pts, weighted=F),
+                        weighted = fit_model(model, pts, weighted=T, max.iter),
+                        unweighted = fit_model(model, pts, weighted=F, max.iter),
                         top4 = {
                                 # Erick asks to keep only the four-highest likelihood points.
                             pts <- pts[order(pts$y, decreasing=T)[1:4],]
-                            fit_model(model, pts, weighted=F)
+                            fit_model(model, pts, weighted=F, max.iter)
                         }
                         )
         return(model)
@@ -265,26 +268,22 @@ shinyServer(function(input, output, session) {
         node <- nodeData()
         if (is.null(node))
              return()
-        message(paste0(names(node), collapse=","))
         model.input <- c(c=input$model.c, m=input$model.m, r=input$model.r, b=input$model.b)
         max.iter <-  input$max.iter
-        message(sprintf("model = %s", paste0(model.input, collapse=", ")))
+        message(sprintf("starting model = %s", paste0(model.input, collapse=", ")))
 
         if (is.null( model.input) || any(sapply( model.input, is.null)))
             return()
 
-        if (is.null(input$fitting))
-            return()
-            
         bls <- node$bls
         pts <- node$fit[,c('branch_length', 'll')]
-        message(sprintf("fitting = %s", input$fitting))
+        message(sprintf("fitting = %s", node$fitting))
 
         # If the model has been modified, plot the baseline plot
         # using the default model.   That way the user can always see where they are coming from.
         # 
-        if (any(model.input != DEFAULT_MODEL)) {
-            model <- fit.model.bytype(input$fitting, pts, DEFAULT_MODEL)
+        if (any(model.input != DEFAULT_MODEL) && !input$suppress.baseline) {
+            model <- fit.model.bytype(node$fitting, pts, DEFAULT_MODEL, 250)
             bls$baseline_ll <- sapply(node$bls[['branch_length']], lcfit, model=model)
             
         } else if ('baseline_ll' %in% names(bls)) {
@@ -293,9 +292,9 @@ shinyServer(function(input, output, session) {
         }
         # plot the likelihood estimate using the model parameters as adjusted by the user.
         #
-        model <- fit.model.bytype(input$fitting, pts, model.input, max.iter)
-        bls$modified_ll<- sapply(node$bls[['branch_length']], lcfit, model=model)
-        browser()
+        model <- fit.model.bytype(node$fitting, pts, model.input, max.iter)
+        message(sprintf("fitted model = %s", paste0(model, collapse=", ")))
+        bls$fit_ll<- sapply(node$bls[['branch_length']], lcfit, model=model)
         
         print(sprintf("lcfit status = %s", model[['status']]))
         status <- switch(as.character(model[['status']]),
@@ -308,7 +307,7 @@ shinyServer(function(input, output, session) {
         p <- p + geom_line(aes(x=branch_length, y=value, color=variable, linetype=variable),
                            data=melt(bls, id.vars=1:2)) +
                 geom_point(aes(x=branch_length, y=ll), data=pts) +
-                scale_color_discrete(name="", breaks=c('bpp_ll', 'baseline_ll', 'modified_ll'), labels=c('bpp', 'baseline', 'modified')) +
+                scale_color_discrete(name="", breaks=c('bpp_ll', 'baseline_ll', 'fit_ll'), labels=c('bpp', 'baseline', 'fit')) +
                 guides(color="legend", shape=FALSE, linetype=FALSE) +
                 theme(legend.position="bottom") +
                 ylab("Log likelihood") +
@@ -321,22 +320,18 @@ shinyServer(function(input, output, session) {
     recalculateNodes <- function(nodes, model, fitting, max.iter) {
 
         # helper function to apply to each row in `nodes`
-        recalculate.helper <- function(row, model, fitting) {
+        recalculate.helper <- function(row, model, fitting, max.iter) {
              # browser()
-            message(paste0(row, sep=", "))
             tree <- readSimulationData(row['tree'])
             message(paste0("reading tree ", row['tree']))
             node_id <- as.character(as.numeric(row['node_id']))
             message(paste0("node_id ", node_id))
             node <- tree[[as.character(node_id)]]
-            message(node)
             bls <- node$bls
             pts <- node$fit[,c('branch_length', 'll')]
-            message(paste0("fit=", paste0(pts, collapse=", ")))
-            model <- fit.model.bytype(input$fitting, pts, model)
+            model <- fit.model.bytype(fitting, pts, model, max.iter)
             status = model[['status']]
 
-            message(paste(class(status), status))
             return(status)
         }
         message(paste0(names(nodes), sep=", "))
@@ -344,7 +339,7 @@ shinyServer(function(input, output, session) {
         wd = getwd()
         tryCatch( {
             setwd("../../")
-            v = apply(nodes, 1, recalculate.helper, model, fitting)
+            v = apply(nodes, 1, recalculate.helper, model, fitting, max.iter)
         }, finally={ message("TryCatch!!!")
                      setwd(wd) })
 
@@ -414,6 +409,7 @@ shinyServer(function(input, output, session) {
             print("applying model!")
             model <- isolate(c(c=input$model.c, m=input$model.m, r=input$model.r, b=input$model.b))
             fitting <- isolate(input$fitting)
+            max.iter <- isolate(input$max.iter)
             
             message(sprintf("model = %s", paste0(model, collapse=", ")))
 
@@ -433,7 +429,7 @@ shinyServer(function(input, output, session) {
                 node_id <- as.character(tmp[i, 'node_id'])
                 node <- tree[[as.character(node_id)]]
                 pts <- node$fit[,c('branch_length', 'll')]
-                fitted <- fit.model.bytype(fitting, pts, model)
+                fitted <- fit.model.bytype(fitting, pts, model, max.iter)
                 tmp[i,"status"] <- fitted[['status']]
 
             }

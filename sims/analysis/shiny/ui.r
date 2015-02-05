@@ -24,9 +24,10 @@ shinyUI(fluidPage(theme = "bootstrap.css",
         column(4,
                wellPanel(
                    checkboxGroupInput("failures", "Failure modes:",
-                                      c("Progress" = "ENOPROG",
-                                        "Tolerance" = "ETOLF",
-                                        "Iterations" = "MAXITER",
+                                      c("Prog." = "ENOPROG",
+                                        "Tol." = "ETOLF",
+                                        "Iter." = "MAXITER",
+                                        "NA" = "NA",
                                         "Other" = "ERROR"), selected=c("ENOPROG", "ETOLF",  "ERROR"), inline=TRUE),
                    htmlOutput("caption"),
                    radioButtons("fitting", "Fitting technique:",
@@ -57,7 +58,9 @@ shinyUI(fluidPage(theme = "bootstrap.css",
                                 column(8,  htmlOutput("title")),
                                 column(2, actionButton("right", "Next"))
                                 ),
-                            plotOutput("distPlot")),
+                            plotOutput("distPlot"),
+                            fluidRow(span(style='float:left; ', checkboxInput("suppress.baseline", "Suppress baseline plot")))
+                            ),
                    tabPanel("Failure Map", 
                             actionButton("apply", "Apply current model to the failing nodes"),
                             plotOutput("failMap")),
@@ -70,7 +73,9 @@ shinyUI(fluidPage(theme = "bootstrap.css",
                                      span(style='vertical-align:middle; display: inline-block;',
                                           selectInput("nf.count", label=NULL, choices=c(10, 50, 100, 300, 500, 1000))))
                                 ),
-                            plotOutput("successMap"))
+                            plotOutput("successMap")
+                            )  # end-tabPanel
+                   
                    )
                )
         )
