@@ -15,7 +15,6 @@ theme_set(theme_bw(16) + theme(strip.background=element_blank(),
 args <- commandArgs(TRUE)
 stopifnot(length(args) >= 1)
 control_paths <- args
-control_paths <- list("runs/10/1/Binary-4.0/uniform/control.json")
 
 controls <- llply(control_paths, fromJSON)
 
@@ -52,7 +51,6 @@ compare_bls <- function(d) {
 }
 
 error <- ldply(controls, function(p) {
-    p <- controls[[1]]
     bls_file <- p$lcfit[1]
     maxima_file <- p$lcfit[2]
     fit_file <- p$lcfit[3]
