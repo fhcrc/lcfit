@@ -14,8 +14,6 @@ for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
 environ['SLURM_TIMELIMIT'] = '0-6'
 
 env = Environment(ENV=environ)
-env.PrependENVPath('PATH', '/home/matsengrp/local/encap/bpp-master-20140414/bin')
-env.PrependENVPath('LD_LIBRARY_PATH', '/home/matsengrp/local/encap/bpp-master-20140414/lib')
 env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../example')
