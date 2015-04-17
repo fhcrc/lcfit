@@ -179,7 +179,7 @@ fit_model <- function(model, pts, weighted=F, max.iter = 250) {
 ##'
 ##' Give a set of branch lengths and model parameters, calculate the approximate likelihood values.
 ##' @param t  branch lengths
-##' @param model named numeric vector with model parameters 'b', 'r', 'e', and 'c'
+##' @param model named numeric vector with model parameters 'b', 'r', 'm', and 'c'
 ##' @return numeric vector (same length as t) of approximate likelihood values.
 ##' @author chris
 lcfit <- function(t, model) {
