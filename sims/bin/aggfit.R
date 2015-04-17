@@ -55,11 +55,13 @@ calculate.model.errors <- function(node) {
                             fit_model(model=DEFAULT_MODEL, pts, weighted=F)
                         }
                         )
-        
+        if (model['b'] < 0) {
+            message("Warning: b < 0")
+        }
         ll <- sapply(node$bls[['branch_length']], lcfit, model=model)
         if (any(is.na(ll))) {
             message(sprintf("NA found in %s likelhoods", analysis))
-            message(model)
+            message(sprintf("c=%f m=%f r=%f b=%f", model['c'], model['m'], model['r'], model['b']))
         }
         
         # See the definition of enum lcfit_status in lcfit_R/src/lcfit.h for error codes.
