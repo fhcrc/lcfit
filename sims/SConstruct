@@ -174,7 +174,7 @@ output.estimates={target_base}.params.txt
 optimization.verbose=0
 optimization.method=DB
 optimization.reparametrization=no
-optimization.ignore_parameters=alpha
+optimization.ignore_parameters=Gamma.alpha
 optimization.max_number_f_eval=10000
 optimization.tolerance=0.000001
 
