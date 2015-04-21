@@ -2,7 +2,8 @@ cmake_minimum_required (VERSION 2.8.1)
 
 # Comparison
 project(lcfitcompare C CXX)
-set(CMAKE_CXX_FLAGS "-std=c++0x -Wall -pedantic")
+set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2 ")
 
 set(LCFIT_COMPARE_CPP
