@@ -22,11 +22,11 @@ all: release
 
 release: CMAKE_BUILD_TYPE=Release
 release: BUILD_DIR=$(BUILD)/release
-release: build-all
+release: build-all lcfit-r
 
 debug: CMAKE_BUILD_TYPE=Debug
 debug: BUILD_DIR=$(BUILD)/debug
-debug: build-all
+debug: build-all lcfit-r
 
 build-all: setup-cmake
 	$(MAKE) -C $(BUILD_DIR) 
@@ -37,6 +37,9 @@ test: debug
 example: release lcfit-compare
 example:
 	$(MAKE) -C example
+
+lcfit-r:
+	R CMD INSTALL --library=$(PWD)/sims/venv/lib/R lcfit_R
 
 # lcfit-compare: release
 lcfit-compare: setup-cmake
@@ -51,6 +54,7 @@ setup-cmake:
 
 clean:
 	rm -rf $(BUILD)
+	R CMD REMOVE --library=$(PWD)/sims/venv/lib/R lcfit
 
 doc:
 	doxygen
