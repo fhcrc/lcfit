@@ -6,5 +6,5 @@ GSL_LIBS   = -lgsl -lgslcblas -lm
 
 # combine with standard arguments for R
 PKG_CPPFLAGS = -I../inst/include
-PKG_LIBS += $(GSL_LIBS) $(RCPP_LDFLAGS)
+PKG_LIBS += $(GSL_LIBS) -lnlopt $(RCPP_LDFLAGS)
 

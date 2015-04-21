@@ -15,9 +15,7 @@
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
 
-#ifdef NLOPT
-#    include <nlopt.h>
-#endif /* NLOPT */
+#include <nlopt.h>
 
 const static double LAMBDA = 50;
 
@@ -88,6 +86,7 @@ struct data_to_fit {
     const double* t;  /* Branch lengths */
     const double* l;  /* Corresponding likelihoods */
     const double* w;  /* Corresponding weights */
+    size_t iterations;
 };
 
 
@@ -223,7 +222,7 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, in
  * \param m Initial conditions for the model.
  * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
  */
-int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double *w, bsm_t *m, int max_iter)
+int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double *w, bsm_t *m, int max_iter)
 {
     double x[4] = {m->c, m->m, m->r, m->b};
     int status = GSL_SUCCESS;
@@ -308,6 +307,142 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
 #undef ERR
 
     gsl_multifit_fdfsolver_free(s);
+    return status;
+}
+
+double bsm_fit_objective(unsigned p,
+                         const double* x,
+                         double* grad,
+                         void* data)
+{
+    struct data_to_fit* fit_data = (struct data_to_fit*) data;
+
+    const size_t n = fit_data->n;
+    const double* t = fit_data->t;
+    const double* l_hat = fit_data->l;
+    const double* w = fit_data->w;
+
+    const double c = x[0];
+    const double m = x[1];
+    const double r = x[2];
+    const double b = x[3];
+
+    double sum_sq_err = 0.0;
+
+    if (grad) {
+        grad[0] = 0.0;
+        grad[1] = 0.0;
+        grad[2] = 0.0;
+        grad[3] = 0.0;
+    }
+
+    for (size_t i = 0; i < n; ++i) {
+        const double u = exp(-r * (t[i] + b));
+        const double l = c * log((1 + u) / 2) +
+                         m * log((1 - u) / 2);
+
+        const double err = l_hat[i] - l;
+
+        sum_sq_err += w[i] * pow(err, 2.0);
+
+        if (grad) {
+            grad[0] -= 2 * w[i] * err * log((1 + u) / 2);
+            grad[1] -= 2 * w[i] * err * log((1 - u) / 2);
+            grad[2] -= 2 * w[i] * err * (t[i] + b) * (-c * u / (1 + u)) + m * u / (1 - u);
+            grad[3] -= 2 * w[i] * err * r * (-c * u / (1 + u)) + m * u / (1 - u);
+        }
+    }
+
+    ++fit_data->iterations;
+    return sum_sq_err;
+}
+
+const char* nlopt_strerror(int status)
+{
+    switch (status) {
+    case NLOPT_SUCCESS:
+        return "success";
+    case NLOPT_STOPVAL_REACHED:
+        return "stopval reached";
+    case NLOPT_FTOL_REACHED:
+        return "ftol reached";
+    case NLOPT_XTOL_REACHED:
+        return "xtol reached";
+    case NLOPT_MAXTIME_REACHED:
+        return "maxtime reached";
+    case NLOPT_MAXEVAL_REACHED:
+        return "maxeval reached";
+    case NLOPT_FAILURE:
+        return "failure";
+    case NLOPT_INVALID_ARGS:
+        return "invalid args";
+    case NLOPT_OUT_OF_MEMORY:
+        return "out of memory";
+    case NLOPT_ROUNDOFF_LIMITED:
+        return "roundoff limited";
+    case NLOPT_FORCED_STOP:
+        return "forced stop";
+    default:
+        return "unknown status code";
+    }
+}
+
+int lcfit_fit_bsm_weight(const size_t n,
+                         const double* t,
+                         const double* l,
+                         const double *w,
+                         bsm_t *m,
+                         int max_iter)
+{
+    struct data_to_fit fit_data = { n, t, l, w };
+
+    const double lower_bounds[4] = { 1, 1, 1e-7, 1e-4 };
+    const double upper_bounds[4] = { HUGE_VAL, HUGE_VAL, HUGE_VAL, 10 };
+
+    nlopt_opt opt = nlopt_create(NLOPT_LD_MMA, 4);
+    nlopt_set_min_objective(opt, bsm_fit_objective, &fit_data);
+    nlopt_set_lower_bounds(opt, lower_bounds);
+    nlopt_set_upper_bounds(opt, upper_bounds);
+
+    nlopt_set_xtol_abs1(opt, 1e-4);
+    nlopt_set_xtol_rel(opt, 1e-4);
+    //nlopt_set_maxeval(opt, max_iter);
+
+    double x[4] = { m->c, m->m, m->r, m->b };
+    double minf = 0.0;
+
+    int status = nlopt_optimize(opt, x, &minf);
+
+    switch (status) {
+    case NLOPT_SUCCESS:
+    case NLOPT_STOPVAL_REACHED:
+    case NLOPT_FTOL_REACHED:
+    case NLOPT_XTOL_REACHED:
+    case NLOPT_MAXTIME_REACHED:
+        status = LCFIT_SUCCESS;
+        break;
+    case NLOPT_MAXEVAL_REACHED:
+        //printf("status = %s (%d)   iterations %zu\n",
+        //       nlopt_strerror(status), status, fit_data.iterations);
+        status = LCFIT_MAXITER;
+        break;
+    case NLOPT_FAILURE:
+    case NLOPT_INVALID_ARGS:
+    case NLOPT_OUT_OF_MEMORY:
+    case NLOPT_ROUNDOFF_LIMITED:
+    case NLOPT_FORCED_STOP:
+    default:
+        //printf("status = %s (%d)   iterations %zu\n",
+        //       nlopt_strerror(status), status, fit_data.iterations);
+        status = LCFIT_ERROR;
+    }
+
+    m->c = x[0];
+    m->m = x[1];
+    m->r = x[2];
+    m->b = x[3];
+
+    nlopt_destroy(opt);
     return status;
 }
 

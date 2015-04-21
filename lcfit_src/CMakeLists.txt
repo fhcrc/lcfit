@@ -14,10 +14,12 @@ add_library(lcfit-static STATIC ${LCFIT_LIB_C_FILES})
 add_library(lcfit SHARED ${LCFIT_LIB_C_FILES})
 target_link_libraries(lcfit-static
   gsl
-  gslcblas)
+  gslcblas
+  nlopt)
 target_link_libraries(lcfit
   gsl
-  gslcblas)
+  gslcblas
+  nlopt)
 
 install(TARGETS lcfit DESTINATION lib)
 install(FILES ${LCFIT_LIB_C_HEADERS} DESTINATION include)

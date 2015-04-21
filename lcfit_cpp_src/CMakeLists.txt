@@ -20,7 +20,8 @@ set(LCFIT_COMPARE_LIBS
   bpp-phyl
   gsl
   gslcblas
-  lcfit-static)
+  lcfit-static
+  nlopt)
 
 # LCFIT
 add_executable(lcfit-compare ${LCFIT_COMPARE_CPP})
@@ -32,4 +33,5 @@ add_executable(lcfit-test EXCLUDE_FROM_ALL
 target_link_libraries(lcfit-test
   gsl
   gslcblas
-  lcfit-static)
+  lcfit-static
+  nlopt)
