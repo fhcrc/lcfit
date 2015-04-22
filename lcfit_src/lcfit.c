@@ -310,6 +310,14 @@ int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, c
     return status;
 }
 
+/** \brief Least-squares objective function for fitting with NLopt.
+ *
+ * \param p Number of model parameters
+ * \param x Model parameters to evaluate
+ * \param grad Gradient of the objective function at \c x
+ * \param data Observed likelihood data to fit
+ * \return Sum of squared error from observed likelihoods
+ */
 double bsm_fit_objective(unsigned p,
                          const double* x,
                          double* grad,
