@@ -348,8 +348,10 @@ double bsm_fit_objective(unsigned p,
         if (grad) {
             grad[0] -= 2 * w[i] * err * log((1 + u) / 2);
             grad[1] -= 2 * w[i] * err * log((1 - u) / 2);
-            grad[2] -= 2 * w[i] * err * (t[i] + b) * (-c * u / (1 + u)) + m * u / (1 - u);
-            grad[3] -= 2 * w[i] * err * r * (-c * u / (1 + u)) + m * u / (1 - u);
+            grad[2] -= 2 * w[i] * err * (t[i] + b) *
+                (-c * u / (1 + u) + m * u / (1 - u));
+            grad[3] -= 2 * w[i] * err * r *
+                (-c * u / (1 + u) + m * u / (1 - u));
         }
     }
 
