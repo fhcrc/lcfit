@@ -327,7 +327,7 @@ double bsm_fit_objective(unsigned p,
 
     const size_t n = fit_data->n;
     const double* t = fit_data->t;
-    const double* l_hat = fit_data->l;
+    const double* l = fit_data->l;
     const double* w = fit_data->w;
 
     const double c = x[0];
@@ -346,10 +346,9 @@ double bsm_fit_objective(unsigned p,
 
     for (size_t i = 0; i < n; ++i) {
         const double u = exp(-r * (t[i] + b));
-        const double l = c * log((1 + u) / 2) +
-                         m * log((1 - u) / 2);
+        const double l_hat = c * log((1 + u) / 2) + m * log((1 - u) / 2);
 
-        const double err = l_hat[i] - l;
+        const double err = l[i] - l_hat;
 
         sum_sq_err += w[i] * pow(err, 2.0);
 
