@@ -206,7 +206,7 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, in
     double *w = calloc(n, sizeof(double));
     int status, i;
 
-    for (i = 0; i < n; i++) 
+    for (i = 0; i < n; i++)
 	w[i] = 1.0L;
     status = lcfit_fit_bsm_weight(n, t, l, w, m, max_iter);
     free(w);
@@ -285,7 +285,7 @@ int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, c
     // corresonding lcfit error codes can be found in lcfit.h
     if (iter >= max_iter) {
 	status = LCFIT_MAXITER;
-    } else if (status == GSL_SUCCESS) 
+    } else if (status == GSL_SUCCESS)
 	status = LCFIT_SUCCESS;
     else if (status ==  GSL_ENOPROG)
 	status = LCFIT_ENOPROG;
