@@ -31,6 +31,20 @@ struct point_by_x
     };
 };
 
+std::vector<Point> select_points(std::function<double(double)> log_like,
+                                 const std::vector<double>& starting_pts,
+                                 const size_t max_points)
+{
+    std::vector<Point> points;
+
+    // Evaluate log-likelihood at starting points
+    for(const double& d: starting_pts) {
+        points.push_back({d, log_like(d)});
+    }
+
+    return select_points(log_like, points, max_points);
+}
+
 /**
  * \brief Select branch_length values to bracket the maximum of the likelihood curve.
  *
@@ -38,19 +52,15 @@ struct point_by_x
  * They will be included in the final list along with any additional points that may be selected.
 
  * @param log_like 	pointer to a function to calculate log-likelihood of a given branch length
- * @param starting_pts 	a vector of starting points.
+ * @param starting_pts 	a vector of already-evaluated starting points.
  * @param max_points 	The maximum number of points that will be used, including \c starting_pts
  *
  * @return vector of values along the branch_length axis.
  */
-vector<Point> select_points(std::function<double(double)> log_like, const std::vector<double>& starting_pts, const size_t max_points)
+vector<Point> select_points(std::function<double(double)> log_like, const std::vector<Point>& starting_pts, const size_t max_points)
 {
-        vector<Point> points;
+        vector<Point> points(starting_pts);
 
-        // Try starting points
-        for(const double & d : starting_pts) {
-            points.push_back({d, log_like(d)});
-        }
 
         // Add additional samples until the evaluated branch lengths enclose a maximum.
         size_t offset; // Position
