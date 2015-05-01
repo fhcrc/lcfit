@@ -1,5 +1,3 @@
-
-
 # To build lcfit-compare, you need a specific version of bpp in your path
 #
 #	module load bpp/master-201404114
@@ -29,7 +27,7 @@ debug: BUILD_DIR=$(BUILD)/debug
 debug: build-all
 
 build-all: setup-cmake
-	$(MAKE) -C $(BUILD_DIR) 
+	$(MAKE) -C $(BUILD_DIR)
 
 test: debug
 	python test/test_lcfit.py -v
