@@ -178,18 +178,31 @@ int lcfit_pair_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J
     return GSL_SUCCESS;
 }
 
-void print_state(unsigned int iter, gsl_multifit_fdfsolver* s)
+void print_state_gsl(unsigned int iter, gsl_multifit_fdfsolver* s)
 {
-    printf("iter: %3u {c,m,r,b} = % 15.8f % 15.8f % 15.8f % 15.8f "
-           "|f(x)| = %g\n",
-           iter,
-           gsl_vector_get(s->x, 0),
-           gsl_vector_get(s->x, 1),
-           gsl_vector_get(s->x, 2),
-           gsl_vector_get(s->x, 3),
-           gsl_blas_dnrm2(s->f));
+    fprintf(stderr, "[%4u] sum_sq_err = %.3f", iter, gsl_blas_dnrm2(s->f));
+    fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
+            gsl_vector_get(s->x, 0),
+            gsl_vector_get(s->x, 1),
+            gsl_vector_get(s->x, 2),
+            gsl_vector_get(s->x, 3));
+    fprintf(stderr, "\n");
 }
 
+void print_state_nlopt(size_t iter,
+                       double sum_sq_err,
+                       const double* x,
+                       const double* grad)
+{
+    fprintf(stderr, "[%4zu] sum_sq_err = %.3f", iter, sum_sq_err);
+    fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
+            x[0], x[1], x[2], x[3]);
+    if (grad) {
+        fprintf(stderr, ", grad = { %.6f, %.6f, %.6f, %.6f }",
+                grad[0], grad[1], grad[2], grad[3]);
+    }
+    fprintf(stderr, "\n");
+}
 
 /** \brief convenience function for non-weighted lcfit
  *
@@ -252,8 +265,7 @@ int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, c
         status = gsl_multifit_fdfsolver_iterate(s);
 
 #ifdef VERBOSE
-        printf("status = %s (%d)\n", gsl_strerror(status), status);
-        print_state(iter, s);
+        print_state_gsl(iter, s);
 #endif /* VERBOSE */
 
         if (status) {
@@ -264,39 +276,39 @@ int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, c
 
 #define FIT(i) gsl_vector_get(s->x, i)
 #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
-#ifdef VERBOSE
+#ifdef REALLY_VERBOSE
     gsl_matrix* covar = gsl_matrix_alloc(4, 4);
     gsl_multifit_covar(s->J, 0.0, covar);
-    gsl_matrix_fprintf(stdout, covar, "%g");
+    gsl_matrix_fprintf(stderr, covar, "%g");
 
-    printf("c = %.5f +/- %.5f\n", FIT(0), ERR(0));
-    printf("m = %.5f +/- %.5f\n", FIT(1), ERR(1));
-    printf("r = %.5f +/- %.5f\n", FIT(2), ERR(2));
-    printf("b = %.5f +/- %.5f\n", FIT(3), ERR(3));
+    fprintf(stderr, "c = %.5f +/- %.5f\n", FIT(0), ERR(0));
+    fprintf(stderr, "m = %.5f +/- %.5f\n", FIT(1), ERR(1));
+    fprintf(stderr, "r = %.5f +/- %.5f\n", FIT(2), ERR(2));
+    fprintf(stderr, "b = %.5f +/- %.5f\n", FIT(3), ERR(3));
 
-    printf("status = %s (%d)   iterations %d\n", gsl_strerror(status), status, iter);
     gsl_matrix_free(covar);
+#endif /* REALLY_VERBOSE */
+
+#ifdef VERBOSE
+    fprintf(stderr, "status = %s (%d)   iterations %d\n",
+            gsl_strerror(status), status, iter);
 #endif /* VERBOSE */
-    printf("status = %s (%d)   iterations %d\n", gsl_strerror(status), status, iter);
 
     // translate from GSL status to LCFIT status
     // GSL error codes are defined in gsl_errno.h
-    // a local copy can be found in ~matsengrp/local/include/gsl/gsl_errno.h
     // corresonding lcfit error codes can be found in lcfit.h
-    if (iter >= max_iter) {
-	status = LCFIT_MAXITER;
-    } else if (status == GSL_SUCCESS)
-	status = LCFIT_SUCCESS;
+    if (iter >= max_iter)
+        status = LCFIT_MAXITER;
+    else if (status == GSL_SUCCESS)
+        status = LCFIT_SUCCESS;
     else if (status ==  GSL_ENOPROG)
-	status = LCFIT_ENOPROG;
+        status = LCFIT_ENOPROG;
     else if (status == GSL_ETOLF)
-	status = LCFIT_ETOLF;
-    //else if (status == GSL_ETOLG)
-    //  status = LCFIT_ETOLG;
-    else {
-	fprintf(stderr, "GSL status - iteration: %d status: %d, %s\n", iter, status, gsl_strerror(status));
-	status = LCFIT_ERROR;
-    }
+        status = LCFIT_ETOLF;
+    else if (status == GSL_ETOLG)
+        status = LCFIT_ETOLG;
+    else
+        status = LCFIT_ERROR;
 
     // Update fit
     m->c = FIT(0);
@@ -362,6 +374,9 @@ double bsm_fit_objective(unsigned p,
         }
     }
 
+#ifdef VERBOSE
+    print_state_nlopt(fit_data->iterations, sum_sq_err, x, grad);
+#endif /* VERBOSE */
     ++fit_data->iterations;
     return sum_sq_err;
 }
@@ -422,6 +437,11 @@ int lcfit_fit_bsm_weight(const size_t n,
 
     int status = nlopt_optimize(opt, x, &minf);
 
+#ifdef VERBOSE
+    fprintf(stderr, "status = %s (%d)   iterations %zu\n",
+            nlopt_strerror(status), status, fit_data.iterations);
+#endif /* VERBOSE */
+
     switch (status) {
     case NLOPT_SUCCESS:
     case NLOPT_STOPVAL_REACHED:
@@ -431,8 +451,6 @@ int lcfit_fit_bsm_weight(const size_t n,
         status = LCFIT_SUCCESS;
         break;
     case NLOPT_MAXEVAL_REACHED:
-        //printf("status = %s (%d)   iterations %zu\n",
-        //       nlopt_strerror(status), status, fit_data.iterations);
         status = LCFIT_MAXITER;
         break;
     case NLOPT_FAILURE:
@@ -441,8 +459,6 @@ int lcfit_fit_bsm_weight(const size_t n,
     case NLOPT_ROUNDOFF_LIMITED:
     case NLOPT_FORCED_STOP:
     default:
-        //printf("status = %s (%d)   iterations %zu\n",
-        //       nlopt_strerror(status), status, fit_data.iterations);
         status = LCFIT_ERROR;
     }
 
