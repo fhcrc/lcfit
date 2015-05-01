@@ -178,9 +178,9 @@ int lcfit_pair_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J
     return GSL_SUCCESS;
 }
 
-void print_state_gsl(unsigned int iter, gsl_multifit_fdfsolver* s)
+void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
 {
-    fprintf(stderr, "[%4u] sum_sq_err = %.3f", iter, gsl_blas_dnrm2(s->f));
+    fprintf(stderr, "[%4zu] sum_sq_err = %.3f", iter, gsl_blas_dnrm2(s->f));
     fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
             gsl_vector_get(s->x, 0),
             gsl_vector_get(s->x, 1),
@@ -239,9 +239,8 @@ int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, c
 {
     double x[4] = {m->c, m->m, m->r, m->b};
     int status = GSL_SUCCESS;
-    unsigned int iter = 0;
 
-    struct data_to_fit d = {n, t, l, w};
+    struct data_to_fit d = { n, t, l, w, 0 };
     gsl_multifit_function_fdf fdf;
 
     /* Storing the contents of x on the stack.
@@ -260,19 +259,29 @@ int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, c
     assert(s != NULL && "Solver allocation failed!");
     gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
+#ifdef VERBOSE
+    /* We use the nlopt objective function here to avoid having to
+     * manually sum the residuals computed by the GSL objective
+     * function lcfit_pair_f. The nlopt objective function's only side
+     * effect is incrementing the data_to_fit struct's iteration
+     * counter, so we reset it to zero before proceeding. */
+    print_state_nlopt(0, bsm_fit_objective(4, x, NULL, &d), x, NULL);
+    d.iterations = 0;
+#endif
+
     do {
-        iter++;
+        d.iterations++;
         status = gsl_multifit_fdfsolver_iterate(s);
 
 #ifdef VERBOSE
-        print_state_gsl(iter, s);
+        print_state_gsl(d.iterations, s);
 #endif /* VERBOSE */
 
         if (status) {
             break;
-	}
+        }
         status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
-    } while(status == GSL_CONTINUE && iter < max_iter);
+    } while (status == GSL_CONTINUE && d.iterations < max_iter);
 
 #define FIT(i) gsl_vector_get(s->x, i)
 #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
@@ -291,13 +300,13 @@ int xxx_lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, c
 
 #ifdef VERBOSE
     fprintf(stderr, "status = %s (%d)   iterations %d\n",
-            gsl_strerror(status), status, iter);
+            gsl_strerror(status), status, d.iterations);
 #endif /* VERBOSE */
 
     // translate from GSL status to LCFIT status
     // GSL error codes are defined in gsl_errno.h
     // corresonding lcfit error codes can be found in lcfit.h
-    if (iter >= max_iter)
+    if (d.iterations >= max_iter)
         status = LCFIT_MAXITER;
     else if (status == GSL_SUCCESS)
         status = LCFIT_SUCCESS;
@@ -418,7 +427,7 @@ int lcfit_fit_bsm_weight(const size_t n,
                          bsm_t *m,
                          int max_iter)
 {
-    struct data_to_fit fit_data = { n, t, l, w };
+    struct data_to_fit fit_data = { n, t, l, w, 0 };
 
     const double lower_bounds[4] = { 1, 1, 1e-7, 1e-4 };
     const double upper_bounds[4] = { HUGE_VAL, HUGE_VAL, HUGE_VAL, 10 };
@@ -434,6 +443,10 @@ int lcfit_fit_bsm_weight(const size_t n,
 
     double x[4] = { m->c, m->m, m->r, m->b };
     double minf = 0.0;
+
+#ifdef VERBOSE
+    print_state_nlopt(0, bsm_fit_objective(4, x, NULL, &fit_data), x, NULL);
+#endif /* VERBOSE */
 
     int status = nlopt_optimize(opt, x, &minf);
 
