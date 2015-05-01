@@ -110,6 +110,16 @@ int lcfit_weights(const void* data, gsl_vector* weight)
     return GSL_SUCCESS;
 }
 
+void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
+{
+    fprintf(stderr, "[%4zu] sum_sq_err = %.3f", iter, gsl_blas_dnrm2(s->f));
+    fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
+            gsl_vector_get(s->x, 0),
+            gsl_vector_get(s->x, 1),
+            gsl_vector_get(s->x, 2),
+            gsl_vector_get(s->x, 3));
+    fprintf(stderr, "\n");
+}
 
 /* Evaluate the likelihood curve described in data at the point x. */
 int lcfit_pair_f(const gsl_vector* x, void* data, gsl_vector* f)
@@ -178,17 +188,6 @@ int lcfit_pair_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J
     return GSL_SUCCESS;
 }
 
-void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
-{
-    fprintf(stderr, "[%4zu] sum_sq_err = %.3f", iter, gsl_blas_dnrm2(s->f));
-    fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
-            gsl_vector_get(s->x, 0),
-            gsl_vector_get(s->x, 1),
-            gsl_vector_get(s->x, 2),
-            gsl_vector_get(s->x, 3));
-    fprintf(stderr, "\n");
-}
-
 void print_state_nlopt(size_t iter,
                        double sum_sq_err,
                        const double* x,
@@ -202,6 +201,65 @@ void print_state_nlopt(size_t iter,
                 grad[0], grad[1], grad[2], grad[3]);
     }
     fprintf(stderr, "\n");
+}
+
+/** \brief Least-squares objective function for fitting with NLopt.
+ *
+ * \param p Number of model parameters
+ * \param x Model parameters to evaluate
+ * \param grad Gradient of the objective function at \c x
+ * \param data Observed likelihood data to fit
+ * \return Sum of squared error from observed likelihoods
+ */
+double bsm_fit_objective(unsigned p,
+                         const double* x,
+                         double* grad,
+                         void* data)
+{
+    struct data_to_fit* fit_data = (struct data_to_fit*) data;
+
+    const size_t n = fit_data->n;
+    const double* t = fit_data->t;
+    const double* l = fit_data->l;
+    const double* w = fit_data->w;
+
+    const double c = x[0];
+    const double m = x[1];
+    const double r = x[2];
+    const double b = x[3];
+
+    double sum_sq_err = 0.0;
+
+    if (grad) {
+        grad[0] = 0.0;
+        grad[1] = 0.0;
+        grad[2] = 0.0;
+        grad[3] = 0.0;
+    }
+
+    for (size_t i = 0; i < n; ++i) {
+        const double u = exp(-r * (t[i] + b));
+        const double l_hat = c * log((1 + u) / 2) + m * log((1 - u) / 2);
+
+        const double err = l[i] - l_hat;
+
+        sum_sq_err += w[i] * pow(err, 2.0);
+
+        if (grad) {
+            grad[0] -= 2 * w[i] * err * log((1 + u) / 2);
+            grad[1] -= 2 * w[i] * err * log((1 - u) / 2);
+            grad[2] -= 2 * w[i] * err * (t[i] + b) *
+                (-c * u / (1 + u) + m * u / (1 - u));
+            grad[3] -= 2 * w[i] * err * r *
+                (-c * u / (1 + u) + m * u / (1 - u));
+        }
+    }
+
+#ifdef VERBOSE
+    print_state_nlopt(fit_data->iterations, sum_sq_err, x, grad);
+#endif /* VERBOSE */
+    ++fit_data->iterations;
+    return sum_sq_err;
 }
 
 /** \brief convenience function for non-weighted lcfit
@@ -350,65 +408,6 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
 
     gsl_multifit_fdfsolver_free(s);
     return status;
-}
-
-/** \brief Least-squares objective function for fitting with NLopt.
- *
- * \param p Number of model parameters
- * \param x Model parameters to evaluate
- * \param grad Gradient of the objective function at \c x
- * \param data Observed likelihood data to fit
- * \return Sum of squared error from observed likelihoods
- */
-double bsm_fit_objective(unsigned p,
-                         const double* x,
-                         double* grad,
-                         void* data)
-{
-    struct data_to_fit* fit_data = (struct data_to_fit*) data;
-
-    const size_t n = fit_data->n;
-    const double* t = fit_data->t;
-    const double* l = fit_data->l;
-    const double* w = fit_data->w;
-
-    const double c = x[0];
-    const double m = x[1];
-    const double r = x[2];
-    const double b = x[3];
-
-    double sum_sq_err = 0.0;
-
-    if (grad) {
-        grad[0] = 0.0;
-        grad[1] = 0.0;
-        grad[2] = 0.0;
-        grad[3] = 0.0;
-    }
-
-    for (size_t i = 0; i < n; ++i) {
-        const double u = exp(-r * (t[i] + b));
-        const double l_hat = c * log((1 + u) / 2) + m * log((1 - u) / 2);
-
-        const double err = l[i] - l_hat;
-
-        sum_sq_err += w[i] * pow(err, 2.0);
-
-        if (grad) {
-            grad[0] -= 2 * w[i] * err * log((1 + u) / 2);
-            grad[1] -= 2 * w[i] * err * log((1 - u) / 2);
-            grad[2] -= 2 * w[i] * err * (t[i] + b) *
-                (-c * u / (1 + u) + m * u / (1 - u));
-            grad[3] -= 2 * w[i] * err * r *
-                (-c * u / (1 + u) + m * u / (1 - u));
-        }
-    }
-
-#ifdef VERBOSE
-    print_state_nlopt(fit_data->iterations, sum_sq_err, x, grad);
-#endif /* VERBOSE */
-    ++fit_data->iterations;
-    return sum_sq_err;
 }
 
 const char* nlopt_strerror(int status)
