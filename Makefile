@@ -26,7 +26,7 @@ release: build-all lcfit-r
 
 debug: CMAKE_BUILD_TYPE=Debug
 debug: BUILD_DIR=$(BUILD)/debug
-debug: build-all lcfit-r
+debug: build-all
 
 build-all: setup-cmake
 	$(MAKE) -C $(BUILD_DIR) 
