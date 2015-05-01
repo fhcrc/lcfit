@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8)
 
 # Build the LCFIT C library
-project(libclfit C)
+project(liblcfit C)
 set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
 set(CMAKE_C_FLAGS_DEBUG "-DVERBOSE")
 
