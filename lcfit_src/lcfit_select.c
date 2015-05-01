@@ -336,6 +336,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     blit_points_to_arrays(points, n_pts, t, l);
     lcfit_fit_bsm(n_pts, t, l, model, 250);
 
+#ifdef VERBOSE
+    fprintf(stderr, "starting iterative fit\n");
+#endif /* VERBOSE */
+
     for(iter = 0; iter < MAX_ITERS; iter++) {
         ml_t = lcfit_bsm_ml_t(model);
 
@@ -391,5 +395,8 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     free(l);
     free(points);
 
+#ifdef VERBOSE
+    fprintf(stderr, "ending iterative fit after %zu iteration(s)\n", iter+1);
+#endif /* VERBOSE */
     return ml_t;
 }
