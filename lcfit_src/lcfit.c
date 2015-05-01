@@ -320,7 +320,7 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
 #endif /* REALLY_VERBOSE */
 
 #ifdef VERBOSE
-    fprintf(stderr, "status = %s (%d)   iterations %d\n",
+    fprintf(stderr, "status = %s (%d)   iterations %zu\n",
             gsl_strerror(status), status, d.iterations);
 #endif /* VERBOSE */
 
