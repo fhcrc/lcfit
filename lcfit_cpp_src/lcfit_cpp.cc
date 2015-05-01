@@ -90,8 +90,7 @@ vector<Point> select_points(std::function<double(double)> log_like, const std::v
 
             c = monotonicity(points);
 
-            assert(is_sorted(points.begin(), points.end(),
-                   [](const Point& p1, const Point& p2) -> bool { return p1.x < p2.x; }));
+            assert(is_sorted(points.begin(), points.end(), point_by_x()));
         } while(points.size() <= max_points && c != Monotonicity::NON_MONOTONIC);
 
         return points;
@@ -158,8 +157,7 @@ LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like, const
     cerr << "inside fit_bsm_log_likelihood\n";
 
     const vector<Point> points = lcfit::select_points(log_like, sample_points, max_points);
-    const Point p = *std::max_element(begin(points), end(points),
-            [](const Point& p1, const Point& p2) -> bool { return p1.y > p2.y; });
+    const Point p = *std::max_element(begin(points), end(points), point_by_y_desc());
     const double scale_factor = lcfit_bsm_scale_factor(p.x, p.y, &model);
     model.c *= scale_factor;
     model.m *= scale_factor;
