@@ -282,10 +282,11 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
 #ifdef VERBOSE
     /* We use the nlopt objective function here to avoid having to
      * manually sum the residuals computed by the GSL objective
-     * function lcfit_pair_f. The nlopt objective function's only side
-     * effect is incrementing the data_to_fit struct's iteration
+     * function lcfit_pair_f. As a bonus, since VERBOSE is defined,
+     * bsm_fit_objective will print the state for us, too. Its only
+     * side effect is incrementing the data_to_fit struct's iteration
      * counter, so we reset it to zero before proceeding. */
-    print_state_nlopt(0, bsm_fit_objective(4, x, NULL, &d), x, NULL);
+    bsm_fit_objective(4, x, NULL, &d);
     d.iterations = 0;
 #endif
 
@@ -465,7 +466,11 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
     double minf = 0.0;
 
 #ifdef VERBOSE
-    print_state_nlopt(0, bsm_fit_objective(4, x, NULL, &fit_data), x, NULL);
+    /* Since VERBOSE is defined, bsm_fit_objective will print the
+     * state for us, too. Its only side effect is incrementing the
+     * data_to_fit struct's iteration counter, which in this case is
+     * proper. */
+    bsm_fit_objective(4, x, NULL, &fit_data);
 #endif /* VERBOSE */
 
     int status = nlopt_optimize(opt, x, &minf);
