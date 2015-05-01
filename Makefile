@@ -45,8 +45,11 @@ lcfit-r:
 lcfit-compare: setup-cmake
 	$(MAKE) -C$(BUILD_DIR) $@
 
+lcfit-test: CMAKE_BUILD_TYPE=Debug
+lcfit-test: BUILD_DIR=$(BUILD)/debug
 lcfit-test: setup-cmake
 	$(MAKE) -C$(BUILD_DIR) $@
+	$(BUILD_DIR)/lcfit_cpp_src/lcfit-test -s
 
 setup-cmake:
 	mkdir -p $(BUILD_DIR)
