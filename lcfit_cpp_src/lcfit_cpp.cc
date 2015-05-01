@@ -15,6 +15,28 @@ using namespace std;
 namespace lcfit
 {
 
+void print_points(const std::vector<Point>& points, std::string prefix = "")
+{
+    Monotonicity c = monotonicity(points);
+    if (c == Monotonicity::MONO_DEC) {
+        prefix += "decreasing";
+    } else if (c == Monotonicity::MONO_INC) {
+        prefix += "increasing";
+    } else {
+        prefix += "!monotonic";
+    }
+
+    fprintf(stderr, "%s", prefix.c_str());
+    prefix = " ";
+
+    for (const Point& p : points) {
+        fprintf(stderr, "%s{ %.6f, %.3f }", prefix.c_str(), p.x, p.y);
+        prefix = ", ";
+    }
+
+    fprintf(stderr, "\n");
+}
+
 struct point_by_y_desc
 {
     inline bool operator()(const Point& p1, const Point& p2)
@@ -61,6 +83,9 @@ vector<Point> select_points(std::function<double(double)> log_like, const std::v
 {
         vector<Point> points(starting_pts);
 
+#ifdef VERBOSE
+        print_points(points, "PRE:  ");
+#endif /* VERBOSE */
 
         // Add additional samples until the evaluated branch lengths enclose a maximum.
         size_t offset; // Position
@@ -92,6 +117,10 @@ vector<Point> select_points(std::function<double(double)> log_like, const std::v
 
             assert(is_sorted(points.begin(), points.end(), point_by_x()));
         } while(points.size() <= max_points && c != Monotonicity::NON_MONOTONIC);
+
+#ifdef VERBOSE
+        print_points(points, "POST: ");
+#endif /* VERBOSE */
 
         return points;
 }
@@ -132,8 +161,6 @@ Monotonicity monotonicity(const std::vector<Point>& points)
     else if(maybe_dec) return Monotonicity::MONO_DEC;
     throw runtime_error("Monotonicity reached end of function.");
 }
-
-
 
 /**
  * /brief Calculate parameters to fit the lcfit function to a log-likelihood curve.
