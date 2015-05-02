@@ -288,6 +288,15 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, in
 int lcfit_fit_bsm_weighted_gsl(const size_t, const double*, const double*, const double*, bsm_t*, int);
 int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, const double*, bsm_t*, int);
 
+int check_model(const bsm_t* m)
+{
+    if (m->c < 1.0 || m->m < 1.0 || m->r < 1e-7 || m->b < 1e-7) {
+        return 1;
+    }
+
+    return 0;
+}
+
 /** \brief Fit the BSM
  *
  * \param n Number of observations in \c t and \c l
@@ -304,8 +313,20 @@ int lcfit_fit_bsm_weight(const size_t n,
                          bsm_t *m,
                          int max_iter)
 {
-    // TODO hybrid implementation goes here
-    return lcfit_fit_bsm_weighted_gsl(n, t, l, w, m, max_iter);
+    bsm_t initial_model = *m;
+
+    int status = lcfit_fit_bsm_weighted_gsl(n, t, l, w, m, max_iter);
+    if (check_model(m) != 0) {
+        /* GSL returned a bad model, so start over. */
+        *m = initial_model;
+        status = lcfit_fit_bsm_weighted_nlopt(n, t, l, w, m, max_iter);
+    } else if (status != LCFIT_SUCCESS) {
+        /* GSL returned a valid model but did not indicate success, so
+         * try and refine the model with NLopt. */
+        status = lcfit_fit_bsm_weighted_nlopt(n, t, l, w, m, max_iter);
+    }
+
+    return status;
 }
 
 int lcfit_fit_bsm_weighted_gsl(const size_t n,
