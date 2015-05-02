@@ -181,8 +181,6 @@ LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like, const
 {
     bsm_t model = init_model;
 
-    cerr << "inside fit_bsm_log_likelihood\n";
-
     const vector<Point> points = lcfit::select_points(log_like, sample_points, max_points);
     const Point p = *std::max_element(begin(points), end(points), point_by_y_desc());
     const double scale_factor = lcfit_bsm_scale_factor(p.x, p.y, &model);
@@ -202,7 +200,6 @@ LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like, const
     // but now that it can, we are frequently throwing an error here.
     // temporarily disable this test so SCons can complete the simulation in the face of errors.
     // if(status) throw runtime_error("lcfit_fit_bsm returned: " + std::to_string(status));
-    cerr << "returning from fit_bsm_log_likelihood\n";
 
     return {points, std::move(model)};
 }
