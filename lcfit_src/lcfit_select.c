@@ -354,19 +354,19 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
 
+        /* Add ml_t estimate */
+        if(ml_t == 0.0) {
+            *success = true;
+            ml_t = 1e-8;
+            break;
+        }
+
         /* Check for nonsensical ml_t - if the value is outside the bracketed
          * window, give up. */
         size_t max_idx = max_pt - points;
         if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
             *success = false;
             ml_t = NAN;
-            break;
-        }
-
-        /* Add ml_t estimate */
-        if(ml_t < 0) {
-            *success = true;
-            ml_t = 1e-8;
             break;
         }
 
