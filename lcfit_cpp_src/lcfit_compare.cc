@@ -230,8 +230,13 @@ public:
         NodeLikelihoodCalculator ll(calc, node_id);
         log_like_function_t fn { lcfit_ll, &ll };
         bool success = 1;
-        std::vector<double> pts = sample_points;
-        pts.push_back(1.0);
+
+        /* GSL requires at least four points for minimization. */
+        std::vector<Point> evaluated_points = lcfit::select_points(ll, sample_points, 4);
+        std::vector<double> pts;
+        for (const auto& point : evaluated_points) {
+            pts.push_back(point.x);
+        }
 
         const double result = estimate_ml_t(&fn,
                                             pts.data(),
