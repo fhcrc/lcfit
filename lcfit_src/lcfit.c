@@ -290,7 +290,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, con
 
 int check_model(const bsm_t* m)
 {
-    if (m->c < 1.0 || m->m < 1.0 || m->r < 1e-7 || m->b < 1e-7) {
+    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m || m->r < 1e-7 || m->b < 1e-7) {
         return 1;
     }
 
