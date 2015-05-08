@@ -45,7 +45,7 @@ struct point_by_y_desc
     };
 };
 
-struct point_by_y_asc
+struct point_by_y
 {
     inline bool operator()(const Point& p1, const Point& p2)
     {
@@ -190,7 +190,7 @@ LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like, const
     bsm_t model = init_model;
 
     const vector<Point> points = lcfit::select_points(log_like, sample_points, max_points);
-    const Point p = *std::max_element(begin(points), end(points), point_by_y_asc());
+    const Point p = *std::max_element(begin(points), end(points), point_by_y());
     const double scale_factor = lcfit_bsm_scale_factor(p.x, p.y, &model);
     model.c *= scale_factor;
     model.m *= scale_factor;
