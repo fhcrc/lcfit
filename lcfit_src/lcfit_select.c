@@ -354,20 +354,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
 
-        /* Add ml_t estimate */
+        /* If the BSM ml_t is zero or negative, add a new, smaller
+         * sample point instead. */
         if(ml_t == 0.0) {
-            *success = true;
-            ml_t = 1e-8;
-            break;
-        }
-
-        /* Check for nonsensical ml_t - if the value is outside the bracketed
-         * window, give up. */
-        size_t max_idx = max_pt - points;
-        if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
-            *success = false;
-            ml_t = NAN;
-            break;
+            ml_t = points[0].t / 10.0;
         }
 
         points[n_pts].t = ml_t;
