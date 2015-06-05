@@ -63,9 +63,9 @@ point_t*
 select_points(log_like_function_t *log_like, const point_t starting_pts[],
               /* IN/OUT */size_t *num_pts, size_t max_pts);
 
-/** \brief Sort by increasing x-value */
+/** \brief Sort by increasing t-value */
 void
-sort_by_x(point_t points[], const size_t n);
+sort_by_t(point_t points[], const size_t n);
 
 /** \brief Sort by decreasing log-likelihood */
 void
