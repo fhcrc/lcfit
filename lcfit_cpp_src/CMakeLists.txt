@@ -28,7 +28,9 @@ set(LCFIT_COMPARE_LIBS
 add_executable(lcfit-compare ${LCFIT_COMPARE_CPP})
 target_link_libraries(lcfit-compare ${LCFIT_COMPARE_LIBS})
 add_executable(lcfit-test EXCLUDE_FROM_ALL
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit_cpp.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.cc
   )
 target_link_libraries(lcfit-test

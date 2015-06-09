@@ -1,4 +1,3 @@
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 #include "lcfit.h"
 #include "lcfit_cpp.h"
