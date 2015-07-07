@@ -88,6 +88,9 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         REQUIRE(selected_pts[1].t == Approx(t[0]));
         REQUIRE(selected_pts[2].t == Approx(t[1]));
         REQUIRE(selected_pts[3].t == Approx(t[2]));
+
+        REQUIRE(selected_pts[1].ll > selected_pts[0].ll);
+        REQUIRE(selected_pts[1].ll > selected_pts[2].ll);
     }
 
     SECTION("when the maximum is to the right of the starting points") {
@@ -108,6 +111,9 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         REQUIRE(selected_pts[2].t == Approx(t[2]));
         REQUIRE(selected_pts[3].t == Approx(2.0 * t[2]));
         REQUIRE(selected_pts[4].t == Approx(2.0 * 2.0 * t[2]));
+
+        REQUIRE(selected_pts[3].ll > selected_pts[2].ll);
+        REQUIRE(selected_pts[3].ll > selected_pts[4].ll);
     }
 
     SECTION("when the maximum is enclosed by the starting points") {
@@ -126,6 +132,9 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         REQUIRE(selected_pts[0].t == Approx(t[0]));
         REQUIRE(selected_pts[1].t == Approx(t[1]));
         REQUIRE(selected_pts[2].t == Approx(t[2]));
+
+        REQUIRE(selected_pts[1].ll > selected_pts[0].ll);
+        REQUIRE(selected_pts[1].ll > selected_pts[2].ll);
     }
 }
 
