@@ -118,16 +118,8 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
     double d = 0.0;     /* Branch length */
 
     curve_type_t c = classify_curve(points, n);
-    do {
+    while (n < max_pts && c != CRV_ENC_MAXIMA) {
         switch(c) {
-            case CRV_ENC_MAXIMA:
-                /* Add a point between the first and second try */
-                d = points[0].t + ((points[1].t - points[0].t) / 2.0);
-                offset = 1;
-                /* shift */
-                memmove(points + offset + 1, points + offset,
-                        sizeof(point_t) * (n - offset));
-                break;
             case CRV_MONO_INC:
                 /* Double largest value */
                 d = points[n - 1].t * 2.0;
@@ -151,7 +143,7 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
         bracket_likelihood_calls++;
 
         c = classify_curve(points, ++n);
-    } while(n < max_pts && c != CRV_ENC_MAXIMA);
+    }
 
     *num_pts = n;
 
