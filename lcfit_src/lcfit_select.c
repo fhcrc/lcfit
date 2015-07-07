@@ -300,6 +300,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         evaluate_ll(log_like, DEFAULT_START, n, start_pts);
         points = select_points(log_like, start_pts, &n, DEFAULT_MAX_POINTS);
         if(points == NULL) {
+            fprintf(stderr, "ERROR: select_points returned NULL\n");
             free(l);
             *success = false;
             return NAN;
@@ -313,6 +314,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
           free(l);
           return ml_t;
         } else if (m != CRV_ENC_MAXIMA) {
+          fprintf(stderr, "ERROR: selected points don't enclose a maximum\n");
           *success = false;
           free(points);
           free(l);
@@ -344,6 +346,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         ml_t = lcfit_bsm_ml_t(model);
 
         if(isnan(ml_t)) {
+            fprintf(stderr,
+                    "ERROR: lcfit_bsm_ml_t returned NaN"
+                    ", model = { %.3f, %.3f, %.6f, %.6f }\n",
+                    model->c, model->m, model->r, model->b);
             *success = false;
             break;
         }
@@ -360,6 +366,16 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             ml_t = points[0].t / 10.0;
         }
 
+        /* Warn if ml_t is outside the bracketed window. */
+        size_t max_idx = max_pt - points;
+        if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
+            fprintf(stderr,
+                    "WARNING: BSM ml_t (%g) is outside bracketed window [%g, %g]"
+                    ", model = { %.3f, %.3f, %.6f, %.6f }\n",
+                    ml_t, points[max_idx - 1].t, points[max_idx + 1].t,
+                    model->c, model->m, model->r, model->b);
+        }
+
         points[n_pts].t = ml_t;
         points[n_pts].ll = log_like->fn(ml_t, log_like->args);
         ml_likelihood_calls++;
@@ -368,6 +384,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         sort_by_t(points, n_pts + 1);
 
         if(classify_curve(points, n_pts + 1) != CRV_ENC_MAXIMA) {
+            fprintf(stderr, "ERROR: after iteration points no longer enclose a maximum\n");
             *success = false;
             ml_t = NAN;
             break;
@@ -379,8 +396,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         max_pt = max_point(points, n_pts);
     }
 
-    if(iter == MAX_ITERS)
-      *success = false;
+    if(iter == MAX_ITERS) {
+        fprintf(stderr, "WARNING: maximum number of iterations reached\n");
+        *success = false;
+    }
 
     free(l);
     free(points);
