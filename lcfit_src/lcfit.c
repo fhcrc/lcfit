@@ -313,6 +313,11 @@ int lcfit_fit_bsm_weight(const size_t n,
                          bsm_t *m,
                          int max_iter)
 {
+    if (n < 4) {
+        fprintf(stderr, "ERROR: fitting a model requires at least four points\n");
+        return LCFIT_ERROR;
+    }
+
     bsm_t initial_model = *m;
 
     int status = lcfit_fit_bsm_weighted_gsl(n, t, l, w, m, max_iter);

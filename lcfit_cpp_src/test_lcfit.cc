@@ -248,6 +248,23 @@ TEST_CASE("test point subsets are selected properly", "[subset_points]") {
     }
 }
 
+TEST_CASE("trying to fit a model returns an error",
+          "[lcfit_fit_bsm_errors]") {
+
+    const int MAX_ITER = 250;
+
+    SECTION("when given fewer than four points to fit") {
+        std::vector<double> t = {0.1, 0.5, 1.0};
+        std::vector<double> l = {-100.0, -50.0, -90.0};
+
+        bsm_t model = DEFAULT_INIT;
+        int status = lcfit_fit_bsm(t.size(), t.data(), l.data(), &model,
+                                   MAX_ITER);
+
+        REQUIRE(status == LCFIT_ERROR);
+    }
+}
+
 TEST_CASE("estimated maximum likelihood branch length is within tolerance",
           "[estimate_ml_t]") {
     bsm_t true_model = {1200.0, 300.0, 1.0, 0.2}; // ml_t = 0.310826
