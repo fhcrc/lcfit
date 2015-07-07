@@ -82,8 +82,9 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         point_t* selected_pts = select_points(&log_like, starting_pts.data(),
                                               &n_pts, max_pts);
 
-        REQUIRE(selected_pts[0].t == Approx(t[0] / 10.0));
+        REQUIRE(n_pts == 4);
 
+        REQUIRE(selected_pts[0].t == Approx(t[0] / 10.0));
         REQUIRE(selected_pts[1].t == Approx(t[0]));
         REQUIRE(selected_pts[2].t == Approx(t[1]));
         REQUIRE(selected_pts[3].t == Approx(t[2]));
@@ -100,11 +101,13 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         point_t* selected_pts = select_points(&log_like, starting_pts.data(),
                                               &n_pts, max_pts);
 
+        REQUIRE(n_pts == 5);
+
         REQUIRE(selected_pts[0].t == Approx(t[0]));
         REQUIRE(selected_pts[1].t == Approx(t[1]));
         REQUIRE(selected_pts[2].t == Approx(t[2]));
-
         REQUIRE(selected_pts[3].t == Approx(2.0 * t[2]));
+        REQUIRE(selected_pts[4].t == Approx(2.0 * 2.0 * t[2]));
     }
 
     SECTION("when the maximum is enclosed by the starting points") {
@@ -117,6 +120,8 @@ TEST_CASE("test points are selected properly", "[select_points]") {
 
         point_t* selected_pts = select_points(&log_like, starting_pts.data(),
                                               &n_pts, max_pts);
+
+        REQUIRE (n_pts == 3);
 
         REQUIRE(selected_pts[0].t == Approx(t[0]));
         REQUIRE(selected_pts[1].t == Approx(t[1]));
