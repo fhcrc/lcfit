@@ -150,7 +150,7 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
         points[offset].ll = l;
         bracket_likelihood_calls++;
 
-        c = classify_curve(points, n++);
+        c = classify_curve(points, ++n);
     } while(n < max_pts && c != CRV_ENC_MAXIMA);
 
     *num_pts = n;
