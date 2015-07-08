@@ -19,7 +19,7 @@
 
 const static double LAMBDA = 50;
 
-const bsm_t DEFAULT_INIT = {1500.0, 1000.0, 1.0, 0.5};
+const bsm_t DEFAULT_INIT = {1100.0, 800.0, 2.0, 0.5};
 
 /* calculate the sum of logs */
 static double log_sum(const double x, const double y)

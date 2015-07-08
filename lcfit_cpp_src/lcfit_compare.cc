@@ -393,9 +393,9 @@ int run_main(int argc, char** argv)
 
     const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
             "lcfit.sample.branch.lengths",
-            params, ',', "0.1,0.15,0.5");
+            params, ',', "0.1,0.15,0.5,1.0");
     const vector<double> start = bpp::ApplicationTools::getVectorParameter<double>("lcfit.starting.values",
-                                 params, ',', "1500,1000,2.0,0.5");
+                                 params, ',', "1100,800,2.0,0.5");
     const vector<double> tolerance_values = bpp::ApplicationTools::getVectorParameter<double>(
             "lcfit.tolerance.values",
             params, ',', "1e-2,1e-3,1e-4,1e-5,1e-6");

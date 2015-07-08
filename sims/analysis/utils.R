@@ -1,8 +1,8 @@
 library(lcfit)
 
 # DEFAULT_MODEL=c(c=1500, m=1000,r=2.0,b=0.5)  # not sure where from - probably from inside lcfit.c
-# DEFAULT_MODEL=c(c=1100, m=800,r=2.0,b=0.5)   # from lcfit/sims/Sconstruct:initial_values
-DEFAULT_MODEL=c(c=1228, m=700,r=2.0,b=0.5)   # adjusted based on empirical observations.
+DEFAULT_MODEL=c(c=1100, m=800,r=2.0,b=0.5)   # from lcfit/sims/Sconstruct:initial_values
+# DEFAULT_MODEL=c(c=1228, m=700,r=2.0,b=0.5)   # adjusted based on empirical observations.
 
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   require(grid)
