@@ -240,7 +240,7 @@ def lcfit_plots(outdir, c):
 
 w.add_controls(env)
 
-agg_results = env.Command(['agg.csv', 'ml_branch_length_vs_kl.png', 't_vs_that.svg', 't_vs_that_iter.svg', 'hellinger.png', 'kl.svg', 'kl_hellinger.pdf'],
+agg_results = env.Command(['agg.csv', 'ml_branch_length_vs_kl.png', 'ml_branch_length_vs_rel_err.svg', 't_vs_that.svg', 't_vs_that_iter.svg', 'hellinger.png', 'kl.svg', 'kl_hellinger.pdf'],
                           [i['control'] for _, i in w],
                           'aggregate.R $SOURCES')
 # depends on all the lcfit_fit.csv files
