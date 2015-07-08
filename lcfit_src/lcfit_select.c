@@ -21,8 +21,6 @@ static int is_initialized = false;
 static size_t ml_likelihood_calls = 0;
 static size_t bracket_likelihood_calls = 0;
 
-const static double THRESHOLD = 1e-8;
-
 #ifdef LCFIT_DEBUG
 void show_likelihood_calls(void)
 {
@@ -39,8 +37,6 @@ void lcfit_select_initialize(void)
 }
 #endif
 
-static const double DEFAULT_START[] = {0.1, 0.5, 1.0};
-static const size_t N_DEFAULT_START = 3;
 /** Default maximum number of points to evaluate in select_points */
 static const size_t DEFAULT_MAX_POINTS = 8;
 
@@ -272,69 +268,62 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
               bool* success)
 {
     *success = false;
-    size_t iter = 0;
-    const point_t *max_pt;
-    double *l = malloc(sizeof(double) * n_pts);
 
-    /* We allocate an extra point for scratch */
-    point_t *points = malloc(sizeof(point_t) * (n_pts + 1));
-    evaluate_ll(log_like, t, n_pts, points);
+    point_t *starting_pts = malloc(sizeof(point_t) * n_pts);
+    evaluate_ll(log_like, t, n_pts, starting_pts);
 
-    /* First, classify points */
-    curve_type_t m = classify_curve(points, n_pts);
+    size_t n = n_pts;
+    point_t* points = select_points(log_like, starting_pts, &n,
+                                    DEFAULT_MAX_POINTS);
+    free(starting_pts);
 
-    /* If the function no longer encloses a maximum, starto over */
-    if(m != CRV_ENC_MAXIMA) {
-        free(points);
-
-        size_t n = N_DEFAULT_START;
-        point_t *start_pts = malloc(sizeof(point_t) * n);
-        evaluate_ll(log_like, DEFAULT_START, n, start_pts);
-        points = select_points(log_like, start_pts, &n, DEFAULT_MAX_POINTS);
-        if(points == NULL) {
-            fprintf(stderr, "ERROR: select_points returned NULL\n");
-            free(l);
-            *success = false;
-            return NAN;
-        }
-        free(start_pts);
-        m = classify_curve(points, n);
-        if(m == CRV_MONO_DEC) {
-          double ml_t = points[0].t;
-          *success = true;
-          free(points);
-          free(l);
-          return ml_t;
-        } else if (m != CRV_ENC_MAXIMA) {
-          fprintf(stderr, "ERROR: selected points don't enclose a maximum\n");
-          *success = false;
-          free(points);
-          free(l);
-          return NAN;
-        }
-        assert(n >= n_pts);
-        if(n > n_pts) {
-            /* Subset to top n_pts */
-            subset_points(points, n, n_pts);
-        }
-
-        /* Allocate an extra point for scratch */
-        points = realloc(points, sizeof(point_t) * (n_pts + 1));
+    if (points == NULL) {
+        fprintf(stderr, "ERROR: select_points returned NULL\n");
+        *success = false;
+        return NAN;
     }
 
-    max_pt = max_point(points, n_pts);
-    double ml_t = max_pt->t;
+    curve_type_t m = classify_curve(points, n_pts);
 
-    /* Re-fit */
-    lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
-    blit_points_to_arrays(points, n_pts, t, l);
-    lcfit_fit_bsm(n_pts, t, l, model, 250);
+    if (m == CRV_MONO_DEC) {
+        const double ml_t = points[0].t;
+        free(points);
+        *success = true;
+        return ml_t;
+    } else if (m != CRV_ENC_MAXIMA) {
+        fprintf(stderr, "ERROR: selected points don't enclose a maximum\n");
+        free(points);
+        *success = false;
+        return NAN;
+    }
+
+    assert(n >= n_pts);
+    if (n > n_pts) {
+        /* Subset to top n_pts */
+        subset_points(points, n, n_pts);
+    }
+
 
 #ifdef VERBOSE
     fprintf(stderr, "starting iterative fit\n");
 #endif /* VERBOSE */
 
+    /* Allocate an extra point for scratch */
+    points = realloc(points, sizeof(point_t) * (n_pts + 1));
+
+    size_t iter = 0;
+    const point_t* max_pt = NULL;
+    double* l = malloc(sizeof(double) * n_pts);
+    double ml_t = 0.0;
+
     for(iter = 0; iter < MAX_ITERS; iter++) {
+        max_pt = max_point(points, n_pts);
+
+        /* Re-fit */
+        lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
+        blit_points_to_arrays(points, n_pts, t, l);
+        lcfit_fit_bsm(n_pts, t, l, model, 250);
+
         ml_t = lcfit_bsm_ml_t(model);
 
         if(isnan(ml_t)) {
@@ -346,16 +335,16 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
 
-        /* convergence check */
-        if(fabs(ml_t - max_pt->t) <= tolerance) {
-            *success = true;
-            break;
-        }
-
         /* If the BSM ml_t is zero or negative, add a new, smaller
          * sample point instead. */
         if(ml_t == 0.0) {
             ml_t = points[0].t / 10.0;
+        }
+
+        /* convergence check */
+        if(fabs(ml_t - max_pt->t) <= tolerance) {
+            *success = true;
+            break;
         }
 
         /* Warn if ml_t is outside the bracketed window. */
@@ -382,10 +371,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
         subset_points(points, n_pts + 1, n_pts);
-
-        blit_points_to_arrays(points, n_pts, t, l);
-        lcfit_fit_bsm(n_pts, t, l, model, 250);
-        max_pt = max_point(points, n_pts);
     }
 
     if(iter == MAX_ITERS) {
