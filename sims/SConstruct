@@ -14,21 +14,13 @@ for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
 environ['SLURM_TIMELIMIT'] = '0-6'
 
 env = Environment(ENV=environ)
-env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
+#env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
 env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
-env.PrependENVPath('PATH', '../example')
-# env.PrependENVPath('PATH', '/home/matsengrp/local/encap/R-3.1.0/bin')
-env.PrependENVPath('PATH', './bin')
+#env.PrependENVPath('PATH', '../example')
+#env.PrependENVPath('PATH', './bin')
 
-# my slurm jobs routed to the wrong partition. scicomp
-# doesn't know why; suggested using '-A matsen_e' until problem is
-# resolved.
-env['SRUN'] = 'srun -A matsen_e'
+env['SRUN'] = 'srun'
 
-# nope, as of 10/16/2014 this does not work...
-# "User's group not permitted to use this partition"
-# env['SRUN'] = 'srun'
-    
 n = Nest(base_dict={'n_sites': 1000})
 w = SConsWrap(n, 'runs', alias_environment=env)
 
@@ -78,9 +70,9 @@ rdist = {
     'gamma4-0.2': 'Gamma(n=4, alpha=0.2)',
 }
 
-n.add('branch_length_rate', [10, 100])
-n.add('seed', range(10))
-n.add('n_leaves', [10], create_dir=False)
+w.add('branch_length_rate', [10, 100])
+w.add('seed', range(1))
+w.add('n_leaves', [10], create_dir=False)
 
 
 @w.add_target_with_env(env)
@@ -93,13 +85,13 @@ def source_tree(env, outdir, control):
                        """rate = $branch_length_rate), '$TARGET')" """)[0]
 
 
-n.add('model_name', models)
-n.add('model', lambda c: [models[c['model_name']]], create_dir=False)
-n.add('rdist_name', rdist)
-n.add('rdist', lambda c: [rdist[c['rdist_name']]], create_dir=False)
-n.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'),
+w.add('model_name', models)
+w.add('model', lambda c: [models[c['model_name']]], create_dir=False)
+w.add('rdist_name', rdist)
+w.add('rdist', lambda c: [rdist[c['rdist_name']]], create_dir=False)
+w.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'),
       create_dir=False)
-n.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'),
+w.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'),
       create_dir=False)
 
 
