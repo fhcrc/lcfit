@@ -258,6 +258,10 @@ agg_maxima = env.Command(os.path.join(w.dest_dir, 'agg_maxima.csv'),
                       'nestagg delim lcfit_maxima.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
 env.Depends(agg_maxima, [c['lcfit'][1] for _, c in w])
 
+performance_report = env.Command(os.path.join(w.dest_dir, 'performance.html'),
+                                 ['performance.Rmd', agg_maxima, agg_tol],
+                                 "R -e \"rmarkdown::render('${SOURCES[0]}', output_file = '$TARGET')\"")
+
 #
 # disabled targets
 #
