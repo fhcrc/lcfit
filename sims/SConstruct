@@ -262,6 +262,10 @@ performance_report = env.Command(os.path.join(w.dest_dir, 'performance.html'),
                                  ['performance.Rmd', agg_maxima, agg_tol],
                                  "R -e \"rmarkdown::render('${SOURCES[0]}', output_file = '$TARGET')\"")
 
+distribution_report = env.Command(os.path.join(w.dest_dir, 'distributions.html'),
+                                  ['distributions.Rmd', agg_maxima, agg_tol, agg_bls],
+                                  "R -e \"rmarkdown::render('${SOURCES[0]}', output_file = '$TARGET')\"")
+
 #
 # disabled targets
 #
