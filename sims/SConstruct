@@ -232,24 +232,47 @@ def lcfit_plots(outdir, c):
 
 w.add_controls(env)
 
-agg_results = env.Command(['agg.csv', 'ml_branch_length_vs_kl.png', 'ml_branch_length_vs_rel_err.svg', 't_vs_that.svg', 't_vs_that_iter.svg', 'hellinger.png', 'kl.svg', 'kl_hellinger.pdf'],
-                          [i['control'] for _, i in w],
-                          'aggregate.R $SOURCES')
-# depends on all the lcfit_fit.csv files
-env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
+#
+# aggregation
+#
 
-agg_ml_tol = env.Command('agg_mltol.csv',
-                         [i['control'] for _, i in w],
-                         'nestagg delim lcfit_tol.csv $SOURCES -o $TARGET -k model_name,rdist_name,branch_length_rate,seed')
-# depends on all the lcfit_fit.csv files
-env.Depends(agg_ml_tol, env.Flatten([c['lcfit'] for _, c in w]))
+agg_bls = env.Command(os.path.join(w.dest_dir, 'agg_bls.csv'),
+                      [c['control'] for _, c in w],
+                      'nestagg delim lcfit_bls.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_bls, [c['lcfit'][0] for _, c in w])
+
+agg_tol = env.Command(os.path.join(w.dest_dir, 'agg_tol.csv'),
+                      [c['control'] for _, c in w],
+                      'nestagg delim lcfit_tol.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_tol, [c['lcfit'][3] for _, c in w])
 
 
-# aggregate error measurements from all the simulated data sets
-agg_results = env.Command(['aggfit.csv'],
-                          [i['control'] for _, i in w],
-                          'aggfit.R $SOURCES >${TARGETS[0]}')
-# depends on all the lcfit_fit.csv files
+agg_fit = env.Command(os.path.join(w.dest_dir, 'agg_fit.csv'),
+                      [c['control'] for _, c in w],
+                      'nestagg delim lcfit_fit.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_fit, [c['lcfit'][2] for _, c in w])
 
-print([i['control'] for _, i in w][1])
-env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
+
+agg_maxima = env.Command(os.path.join(w.dest_dir, 'agg_maxima.csv'),
+                      [c['control'] for _, c in w],
+                      'nestagg delim lcfit_maxima.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_maxima, [c['lcfit'][1] for _, c in w])
+
+#
+# disabled targets
+#
+
+# agg_results = env.Command(['agg.csv', 'ml_branch_length_vs_kl.png', 'ml_branch_length_vs_rel_err.svg', 't_vs_that.svg', 't_vs_that_iter.svg', 'hellinger.png', 'kl.svg', 'kl_hellinger.pdf'],
+#                           [i['control'] for _, i in w],
+#                           'aggregate.R $SOURCES')
+# # depends on all the lcfit_fit.csv files
+# env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
+
+# # aggregate error measurements from all the simulated data sets
+# agg_results = env.Command(['aggfit.csv'],
+#                           [i['control'] for _, i in w],
+#                           'aggfit.R $SOURCES >${TARGETS[0]}')
+# # depends on all the lcfit_fit.csv files
+
+# print([i['control'] for _, i in w][1])
+# env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
