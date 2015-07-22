@@ -54,11 +54,11 @@ hellinger_log <- function(log_freqs1, log_freqs2) {
   sqrt(sum((sqrt(exp(log_freqs1)) - sqrt(exp(log_freqs2)))^2)) / sqrt(2)
 }
 
-by.node <- group_by(lcfit.dists.evals, node_id, n_sites, n_leaves, rate.dist, 
+by.node <- group_by(lcfit.dists.evals, node_id, n_sites, n_leaves, rate.dist,
                     model, seed, rate, source_tree, method)
 
-lcfit.dists <- summarise(by.node, 
-                         kl = kl_log(bpp_ll, fit_ll), 
+lcfit.dists <- summarise(by.node,
+                         kl = kl_log(bpp_ll, fit_ll),
                          hellinger = hellinger_log(bpp_ll, fit_ll))
 ```
 
