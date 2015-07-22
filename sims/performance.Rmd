@@ -1,7 +1,7 @@
 ---
 title: "lcfit performance evaluations"
 author: "Brian Claywell"
-date: "`r format(Sys.time(), %F %X')`"
+date: "`r format(Sys.time(), '%F %X')`"
 output: html_document
 ---
 
