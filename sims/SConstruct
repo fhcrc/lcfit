@@ -246,17 +246,19 @@ agg_tol = env.Command(os.path.join(w.dest_dir, 'agg_tol.csv'),
                       'nestagg delim lcfit_tol.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
 env.Depends(agg_tol, [c['lcfit'][3] for _, c in w])
 
-
 agg_fit = env.Command(os.path.join(w.dest_dir, 'agg_fit.csv'),
                       [c['control'] for _, c in w],
                       'nestagg delim lcfit_fit.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
 env.Depends(agg_fit, [c['lcfit'][2] for _, c in w])
 
-
 agg_maxima = env.Command(os.path.join(w.dest_dir, 'agg_maxima.csv'),
                       [c['control'] for _, c in w],
                       'nestagg delim lcfit_maxima.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
 env.Depends(agg_maxima, [c['lcfit'][1] for _, c in w])
+
+#
+# reports
+#
 
 performance_report = env.Command(os.path.join(w.dest_dir, 'performance.html'),
                                  ['performance.Rmd', agg_maxima, agg_tol],
