@@ -296,6 +296,69 @@ private:
     ostream* csv_fit_out;
 };
 
+class LogLikelihoodEvaluations {
+  private:
+    int node_id_;
+    std::vector<double> t_;
+    std::map<std::string, std::vector<double>> ll_;
+
+  public:
+    explicit LogLikelihoodEvaluations(int node_id, double t_min, double t_max,
+                                      size_t n) :
+            node_id_(node_id),
+            t_(n)
+    {
+        const double delta = (t_max - t_min) / (n - 1);
+        for (size_t i = 0; i < n; ++i) {
+            t_[i] = t_min + (i * delta);
+        }
+    }
+
+    int node_id() const {
+        return node_id_;
+    }
+
+    const std::vector<double>& branch_lengths() const
+    {
+        return t_;
+    }
+
+    size_t size() const
+    {
+        return t_.size();
+    }
+
+    void evaluate(std::function<double(double)> f, const std::string& key)
+    {
+        ll_[key] = std::vector<double>(t_.size());
+        std::vector<double>& values = ll_[key];
+
+        for (size_t i = 0; i < t_.size(); ++i) {
+            values[i] = f(t_[i]);
+        }
+    }
+
+    static std::string csv_header()
+    {
+        return "node_id,branch_length,ll,key\n";
+    }
+
+    void write_csv(std::ostream& os) const
+    {
+        for (auto map_iter = ll_.cbegin(); map_iter != ll_.cend(); ++map_iter) {
+            const std::string& key = map_iter->first;
+            const std::vector<double>& values = map_iter->second;
+
+            for (size_t i = 0; i < t_.size(); ++i) {
+                os << node_id_ << ","
+                   << t_[i] << ","
+                   << values[i] << ","
+                   << key << "\n";
+            }
+        }
+    }
+};
+
 // Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
 vector<LogLikelihoodComparison> compare_log_likelihoods(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const bsm_t& m)
 {
