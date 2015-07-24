@@ -301,16 +301,45 @@ vector<LogLikelihoodComparison> compare_log_likelihoods(Tree tree, TreeLikelihoo
 {
     vector<LogLikelihoodComparison> evaluations;
     const double ml_t = tree.getDistanceToFather(node_id);
+    const double ml_ll = calc->calculate_log_likelihood();
+    const double threshold = ml_ll - 100.0;
+
+    // Note this function's side effect of setting node_id's branch
+    // length to t!
+    //
+    // Also, would the threshold be better as a ratio of ml_ll instead
+    // of a constant offset?
+    auto bounds_fn = [&calc, node_id, threshold](double t) {
+        calc->set_branch_length(node_id, t);
+        return calc->calculate_log_likelihood() - threshold;
+    };
+
+    const int MAX_ITER = 100;
+    const double TOLERANCE = 0.1;
 
     // Limits are from Bio++: minimum branch length which may be considered is 1e-6
-    //const double lower = std::min(ml_t / 10, 1e-6);
-    //const double upper = std::max(ml_t * 10, 1e-5);
-    const double lower = 1e-6;
-    const double upper = 1.0;
-    const size_t n_samples = 500;
-    const double delta = (upper - lower) / static_cast<double>(n_samples - 1);
-    for (size_t i = 0; i < n_samples; i++) {
-        const double t = lower + (delta * i);
+    double lower = 1e-6;
+
+    // refine lower bound if possible
+    if (ml_t > lower && bounds_fn(lower) < 0.0) {
+        lower = gsl::find_root(bounds_fn, lower, ml_t, MAX_ITER, TOLERANCE);
+    }
+
+    double upper_min = ml_t;
+    double upper_max = ml_t * 2.0;
+
+    while (bounds_fn(upper_max) > 0.0) {
+        upper_min = upper_max;
+        upper_max *= 2.0;
+    }
+
+    double upper = gsl::find_root(bounds_fn, upper_min, upper_max, MAX_ITER, TOLERANCE);
+
+    const size_t N_SAMPLES = 501;
+    const double delta = (upper - lower) / (N_SAMPLES - 1);
+
+    for (size_t i = 0; i < N_SAMPLES; ++i) {
+        const double t = lower + (i * delta);
         calc->set_branch_length(node_id, t);
         double actual_ll = calc->calculate_log_likelihood();
         double fit_ll = lcfit_bsm_log_like(t, &m);
