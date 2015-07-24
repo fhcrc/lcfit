@@ -189,10 +189,12 @@ def bppml_file(outdir, c):
 @w.add_target()
 def ml_tree(outdir, c):
     target_base = os.path.join(outdir, 'ml_tree')
-    target = target_base + '.tre'
+    targets = [target_base + '.tre',
+               target_base + '.infos',
+               target_base + '.params.txt']
 
     env['ENV']['SLURM_JOB_NAME'] = 'bppml-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
-    return env.Command(target,
+    return env.Command(targets,
                        [c['bppml_file'], c['alignment'], c['source_tree']],
                        '${SRUN} bppml param=$SOURCE')[0]
 
