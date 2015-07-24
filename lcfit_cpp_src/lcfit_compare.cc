@@ -315,7 +315,7 @@ vector<LogLikelihoodComparison> compare_log_likelihoods(Tree tree, TreeLikelihoo
     };
 
     const int MAX_ITER = 100;
-    const double TOLERANCE = 0.1;
+    const double TOLERANCE = 1e-3;
 
     // Limits are from Bio++: minimum branch length which may be considered is 1e-6
     double lower = 1e-6;
