@@ -45,7 +45,7 @@ void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std:
     for(auto & i : v) {
         out << i << delim;
     }
-    out << endl;
+    out << "\n";
 }
 
 
@@ -76,7 +76,7 @@ void to_csv(ostream& out, const ModelFit& f)
         << f.c << ","
         << f.m << ","
         << f.r << ","
-        << f.b << endl;
+        << f.b << "\n";
 }
 
 template<typename ForwardIterator>
@@ -197,7 +197,7 @@ public:
         // Log fit
         if(csv_fit_out != nullptr) {
             for(const Point& p : fit_result.evaluated_points) {
-                *csv_fit_out << node_id << "," << std::setprecision(20) << p.x << "," << p.y << endl;
+                *csv_fit_out << node_id << "," << p.x << "," << p.y << "\n";
             }
         }
 
@@ -484,12 +484,13 @@ int run_main(int argc, char** argv)
     ofstream csv_ml_out(csv_ml_path);
     string csv_fit_path = bpp::ApplicationTools::getAFilePath("lcfit.output.fit_file", params, true, false);
     ofstream csv_fit_out(csv_fit_path);
-    csv_fit_out << "node_id,branch_length,ll" << endl;;
+    csv_fit_out << "node_id,branch_length,ll\n";
+    csv_fit_out << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     string csv_mltol_path = bpp::ApplicationTools::getAFilePath("lcfit.output.mltol_file", params, true, false);
     ofstream csv_mltol_out(csv_mltol_path);
-    csv_mltol_out << "node_id,tolerance,ml_t,ml_est,n_eval,ml_brent,n_eval_brent" << endl;
-
+    csv_mltol_out << "node_id,tolerance,ml_t,ml_est,n_eval,ml_brent,n_eval_brent\n";
+    csv_mltol_out << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
             "lcfit.sample.branch.lengths",
@@ -507,7 +508,8 @@ int run_main(int argc, char** argv)
     csv_like_out << LogLikelihoodEvaluations::csv_header();
     csv_like_out << std::setprecision(std::numeric_limits<double>::max_digits10);
 
-    csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
+    csv_ml_out << "node_id,t,t_hat,c,m,r,b\n";
+    csv_ml_out << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     for (const int & node_id : tree.getNodesId()) {
         clog << "[lcfit eval] Node " << setw(4) << node_id << "\n";
@@ -516,8 +518,8 @@ int run_main(int argc, char** argv)
         TreeLikelihoodCalculator likelihood_calc(*bpp_tree_like);
         LCFitter fitter(start, sample_points, &likelihood_calc, &csv_fit_out);
 
-        if (!tree.hasDistanceToFather(node_id)) 
-	    continue;
+        if (!tree.hasDistanceToFather(node_id))
+            continue;
 
         const bsm_t m = fitter.fit_model(node_id);
 
@@ -532,20 +534,21 @@ int run_main(int argc, char** argv)
         size_t n_evals, n_evals_brent;
         for(const double tol : tolerance_values) {
             std::stringstream ss;
-            ss << "iterative:" << std::scientific << std::setprecision(0) << tol;
-            std::string eval_key = ss.str();
+            ss << std::scientific << std::setprecision(0) << tol;
+            std::string tol_str = ss.str();
+            std::string eval_key = "iterative:" + tol_str;
 
             bsm_t model_out;
             std::tie<double, size_t>(ml_est, n_evals) = fitter.estimate_ml_branch_length(node_id, tol, &model_out);
             std::tie<double, size_t>(ml_brent, n_evals_brent) = fitter.estimate_ml_branch_length_brent(node_id, tol);
             csv_mltol_out << node_id
-                << ',' << tol
-                << ',' << tree.getDistanceToFather(node_id)
-                << ',' << ml_est
-                << ',' << n_evals
-                << ',' << ml_brent
-                << ',' << n_evals_brent
-                << '\n';
+                << "," << tol_str
+                << "," << tree.getDistanceToFather(node_id)
+                << "," << ml_est
+                << "," << n_evals
+                << "," << ml_brent
+                << "," << n_evals_brent
+                << "\n";
 
             auto iterative_ll_fn = [&model_out](double t) {
                 return lcfit_bsm_log_like(t, &model_out);
@@ -565,7 +568,7 @@ int main(int argc, char** argv)
     try {
         run_main(argc, argv);
     } catch(exception& e) {
-        cerr << "Error:" << e.what() << endl;
+        cerr << "Error:" << e.what() << std::endl;
         return 1;
     }
 }
