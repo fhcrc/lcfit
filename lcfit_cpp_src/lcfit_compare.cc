@@ -205,7 +205,7 @@ public:
         return fit_result.model_fit;
     }
 
-    pair<double, size_t> estimate_ml_branch_length(const int node_id, const double tol=1e-5)
+    pair<double, size_t> estimate_ml_branch_length(const int node_id, const double tol=1e-5, bsm_t* model_out=nullptr)
     {
         bsm_t m = {start[0], start[1], start[2], start[3]};
         NodeLikelihoodCalculator ll(calc, node_id);
@@ -225,6 +225,10 @@ public:
                                             tol,
                                             &m,
                                             &success);
+
+        if (model_out) {
+            *model_out = m;
+        }
 
         return pair<double, size_t>(result, ll.n_evals);
     }
@@ -517,6 +521,7 @@ int run_main(int argc, char** argv)
 
         const bsm_t m = fitter.fit_model(node_id);
 
+        // Evaluate Bio++ and normal (non-iterative) lcfit curves
         LogLikelihoodEvaluations evals =
                 compare_log_likelihoods(tree, &likelihood_calc, node_id, m);
 
@@ -526,7 +531,12 @@ int run_main(int argc, char** argv)
         double ml_est, ml_brent;
         size_t n_evals, n_evals_brent;
         for(const double tol : tolerance_values) {
-            std::tie<double, size_t>(ml_est, n_evals) = fitter.estimate_ml_branch_length(node_id, tol);
+            std::stringstream ss;
+            ss << "iterative:" << std::scientific << std::setprecision(0) << tol;
+            std::string eval_key = ss.str();
+
+            bsm_t model_out;
+            std::tie<double, size_t>(ml_est, n_evals) = fitter.estimate_ml_branch_length(node_id, tol, &model_out);
             std::tie<double, size_t>(ml_brent, n_evals_brent) = fitter.estimate_ml_branch_length_brent(node_id, tol);
             csv_mltol_out << node_id
                 << ',' << tol
@@ -536,6 +546,12 @@ int run_main(int argc, char** argv)
                 << ',' << ml_brent
                 << ',' << n_evals_brent
                 << '\n';
+
+            auto iterative_ll_fn = [&model_out](double t) {
+                return lcfit_bsm_log_like(t, &model_out);
+            };
+
+            evals.evaluate(iterative_ll_fn, eval_key);
         }
 
         evals.write_csv(csv_like_out);
