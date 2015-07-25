@@ -49,17 +49,6 @@ void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std:
 }
 
 
-/// LogLikelihoodComparison of the fit for a node at a given branch length
-struct LogLikelihoodComparison {
-    LogLikelihoodComparison(int node_id, double branch_length, double ll, double pred_ll) :
-        node_id(node_id),
-        branch_length(branch_length),
-        ll(ll),
-        pred_ll(pred_ll) {};
-    int node_id;
-    double branch_length, ll, pred_ll;
-};
-
 /// Model fit
 struct ModelFit {
     ModelFit(int node_id, double t, double t_hat, double c, double m, double r, double b) :
@@ -78,14 +67,6 @@ struct ModelFit {
            r,
            b;
 };
-
-void to_csv(ostream& out, const LogLikelihoodComparison& e)
-{
-    out << e.node_id << ","
-        << e.branch_length << ","
-        << e.ll << ","
-        << e.pred_ll << endl;
-}
 
 void to_csv(ostream& out, const ModelFit& f)
 {
@@ -359,10 +340,10 @@ class LogLikelihoodEvaluations {
     }
 };
 
-// Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
-vector<LogLikelihoodComparison> compare_log_likelihoods(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const bsm_t& m)
+const std::pair<double, double>
+compute_branch_length_bounds(Tree tree, TreeLikelihoodCalculator* calc,
+                             const int node_id)
 {
-    vector<LogLikelihoodComparison> evaluations;
     const double ml_t = tree.getDistanceToFather(node_id);
     const double ml_ll = calc->calculate_log_likelihood();
     const double threshold = ml_ll - 100.0;
@@ -398,16 +379,39 @@ vector<LogLikelihoodComparison> compare_log_likelihoods(Tree tree, TreeLikelihoo
 
     double upper = gsl::find_root(bounds_fn, upper_min, upper_max, MAX_ITER, TOLERANCE);
 
-    const size_t N_SAMPLES = 501;
-    const double delta = (upper - lower) / (N_SAMPLES - 1);
+    // Reset the branch length to its original value.
+    calc->set_branch_length(node_id, ml_t);
 
-    for (size_t i = 0; i < N_SAMPLES; ++i) {
-        const double t = lower + (i * delta);
+    return std::make_pair(lower, upper);
+}
+
+// Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
+LogLikelihoodEvaluations
+compare_log_likelihoods(Tree tree, TreeLikelihoodCalculator* calc,
+                        const int node_id, const bsm_t& m)
+{
+    const double ml_t = tree.getDistanceToFather(node_id);
+
+    double lower;
+    double upper;
+    std::tie(lower, upper) = compute_branch_length_bounds(tree, calc, node_id);
+
+    const size_t N_SAMPLES = 501;
+    LogLikelihoodEvaluations evaluations(node_id, lower, upper, N_SAMPLES);
+
+    auto bpp_ll_fn = [&calc, node_id](double t) {
         calc->set_branch_length(node_id, t);
-        double actual_ll = calc->calculate_log_likelihood();
-        double fit_ll = lcfit_bsm_log_like(t, &m);
-        evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
-    }
+        return calc->calculate_log_likelihood();
+    };
+
+    evaluations.evaluate(bpp_ll_fn, "bpp");
+
+    auto lcfit_ll_fn = [&m](double t) {
+        return lcfit_bsm_log_like(t, &m);
+    };
+
+    evaluations.evaluate(lcfit_ll_fn, "normal");
+
     calc->set_branch_length(node_id, ml_t);
     assert(tree.getDistanceToFather(node_id) == ml_t);
     return evaluations;
@@ -496,7 +500,9 @@ int run_main(int argc, char** argv)
     /*
      * Run evaluations on each node, write output
      */
-    csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
+    csv_like_out << LogLikelihoodEvaluations::csv_header();
+    csv_like_out << std::setprecision(std::numeric_limits<double>::max_digits10);
+
     csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
 
     for (const int & node_id : tree.getNodesId()) {
@@ -510,11 +516,9 @@ int run_main(int argc, char** argv)
 	    continue;
 
         const bsm_t m = fitter.fit_model(node_id);
-        const vector<LogLikelihoodComparison> evals = compare_log_likelihoods(tree, &likelihood_calc, node_id, m);
 
-        // Write to CSV
-        std::for_each(begin(evals), end(evals),
-            [&csv_like_out](const LogLikelihoodComparison & e) { to_csv(csv_like_out, e); });
+        LogLikelihoodEvaluations evals =
+                compare_log_likelihoods(tree, &likelihood_calc, node_id, m);
 
         const ModelFit fit = compare_ml_values(tree, node_id, m);
         to_csv(csv_ml_out, fit);
@@ -533,6 +537,8 @@ int run_main(int argc, char** argv)
                 << ',' << n_evals_brent
                 << '\n';
         }
+
+        evals.write_csv(csv_like_out);
     }
 
     return 0;
