@@ -13,3 +13,7 @@ lcfit_fit_bsm <- function(bl, ll, w, model, max_iter) {
     .Call('lcfit_rcpp_fit_bsm', PACKAGE = 'lcfit', bl, ll, w, model, max_iter)
 }
 
+lcfit_fit_bsm_iter <- function(fn, bl, tolerance, model, max_iter) {
+    .Call('lcfit_rcpp_fit_bsm_iter', PACKAGE = 'lcfit', fn, bl, tolerance, model, max_iter)
+}
+

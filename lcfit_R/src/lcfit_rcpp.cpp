@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "lcfit.h"
+#include "lcfit_select.h"
 
 using namespace std;
 using namespace Rcpp;
@@ -38,7 +39,7 @@ double rcpp_bsm_scale_factor(const double t, const double l, const List model)
 // [[Rcpp::export("lcfit_bsm_rescale")]]
 NumericVector rcpp_bsm_rescale(const double bl, const double ll, List model)
 {
-    // bl - branch lengths 
+    // bl - branch lengths
     // ll - log-likelihood values
     bsm_t m = {model["c"],model["m"],model["r"],model["b"]};
 
@@ -55,7 +56,7 @@ NumericVector rcpp_bsm_rescale(const double bl, const double ll, List model)
 // [[Rcpp::export("lcfit_fit_bsm")]]
 NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, List model, int max_iter)
 {
-    // bl - branch lengths 
+    // bl - branch lengths
     // ll - log-likelihood values
     int t_n = bl.size();
     int l_n = ll.size();
@@ -68,6 +69,25 @@ NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, 
     return(Rcpp::NumericVector::create(_["c"]=m.c, _["m"]=m.m, _["r"]=m.r, _["b"]=m.b, _["status"]=status));
 }
 
+double rcpp_log_like_function(double t, void* data)
+{
+    Function* fn = static_cast<Function*>(data);
+    return as<double>((*fn)(t));
+}
+
+// [[Rcpp::export("lcfit_fit_bsm_iter")]]
+NumericVector rcpp_fit_bsm_iter(Function fn, NumericVector bl, double tolerance, List model)
+{
+    log_like_function_t ll_fn = {rcpp_log_like_function, &fn};
+    // bl - branch lengths
+    int t_n = bl.size();
+    bsm_t m = {model["c"],model["m"],model["r"],model["b"]};
+    bool success;
+
+    estimate_ml_t(&ll_fn, bl.begin(), t_n, tolerance, &m, &success);
+
+    return(Rcpp::NumericVector::create(_["c"]=m.c, _["m"]=m.m, _["r"]=m.r, _["b"]=m.b, _["success"]=success));
+}
 
 // exposing enums outside a class definition does not work.
 // this workaround doesn't seem effective either
@@ -88,4 +108,3 @@ RCPP_MODULE(EnumMod) {
           .value("LCFIT_ERROR", LCFIT_ERROR)
           ;
 }
-
