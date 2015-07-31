@@ -347,6 +347,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
 
+#ifdef VERBOSE
         /* Warn if ml_t is outside the bracketed window. */
         size_t max_idx = max_pt - points;
         if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
@@ -356,6 +357,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
                     ml_t, points[max_idx - 1].t, points[max_idx + 1].t,
                     model->c, model->m, model->r, model->b);
         }
+#endif
 
         points[n_pts].t = ml_t;
         points[n_pts].ll = log_like->fn(ml_t, log_like->args);
