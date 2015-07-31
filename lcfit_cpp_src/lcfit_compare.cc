@@ -350,13 +350,10 @@ compute_branch_length_bounds(Tree tree, TreeLikelihoodCalculator* calc,
 {
     const double ml_t = tree.getDistanceToFather(node_id);
     const double ml_ll = calc->calculate_log_likelihood();
-    const double threshold = ml_ll - 100.0;
+    const double threshold = ml_ll - std::abs(0.01 * ml_ll);
 
     // Note this function's side effect of setting node_id's branch
     // length to t!
-    //
-    // Also, would the threshold be better as a ratio of ml_ll instead
-    // of a constant offset?
     auto bounds_fn = [&calc, node_id, threshold](double t) {
         calc->set_branch_length(node_id, t);
         return calc->calculate_log_likelihood() - threshold;
@@ -376,12 +373,16 @@ compute_branch_length_bounds(Tree tree, TreeLikelihoodCalculator* calc,
     double upper_min = ml_t;
     double upper_max = ml_t * 2.0;
 
-    while (bounds_fn(upper_max) > 0.0) {
+    // Bio++ maximum branch length is 10000
+    while (upper_max <= 10000.0 && bounds_fn(upper_max) > 0.0) {
         upper_min = upper_max;
         upper_max *= 2.0;
     }
 
-    double upper = gsl::find_root(bounds_fn, upper_min, upper_max, MAX_ITER, TOLERANCE);
+    double upper = ml_t * 10.0;
+    if (upper_max <= 10000.0) {
+        upper = gsl::find_root(bounds_fn, upper_min, upper_max, MAX_ITER, TOLERANCE);
+    }
 
     // Reset the branch length to its original value.
     calc->set_branch_length(node_id, ml_t);
