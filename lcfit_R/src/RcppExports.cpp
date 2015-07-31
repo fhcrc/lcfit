@@ -47,8 +47,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // rcpp_fit_bsm_iter
-NumericVector rcpp_fit_bsm_iter(Function fn, NumericVector bl, double tolerance, List model, int max_iter);
-RcppExport SEXP lcfit_rcpp_fit_bsm_iter(SEXP fnSEXP, SEXP blSEXP, SEXP toleranceSEXP, SEXP modelSEXP, SEXP max_iterSEXP) {
+NumericVector rcpp_fit_bsm_iter(Function fn, NumericVector bl, double tolerance, List model);
+RcppExport SEXP lcfit_rcpp_fit_bsm_iter(SEXP fnSEXP, SEXP blSEXP, SEXP toleranceSEXP, SEXP modelSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
@@ -56,8 +56,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type bl(blSEXP);
     Rcpp::traits::input_parameter< double >::type tolerance(toleranceSEXP);
     Rcpp::traits::input_parameter< List >::type model(modelSEXP);
-    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
-    __result = Rcpp::wrap(rcpp_fit_bsm_iter(fn, bl, tolerance, model, max_iter));
+    __result = Rcpp::wrap(rcpp_fit_bsm_iter(fn, bl, tolerance, model));
     return __result;
 END_RCPP
 }
