@@ -1,12 +1,14 @@
 cmake_minimum_required (VERSION 2.8)
 
 # Build the LCFIT C library
-project(libclfit C)
+project(liblcfit C)
 set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
+set(CMAKE_C_FLAGS_DEBUG "-DVERBOSE")
 
 # Find GSL
 include(FindGsl)
 find_package(Gsl REQUIRED)
+include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 
 set(LCFIT_LIB_C_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit.h
@@ -16,10 +18,12 @@ set(LCFIT_LIB_C_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_select.c)
 add_library(lcfit-static STATIC ${LCFIT_LIB_C_FILES})
 add_library(lcfit SHARED ${LCFIT_LIB_C_FILES})
-
-include_directories(SYSTEM ${GSL_INCLUDES})
-target_link_libraries(lcfit-static ${GSL_LIBRARIES})
-target_link_libraries(lcfit ${GSL_LIBRARIES})
+target_link_libraries(lcfit-static
+  ${GSL_LIBRARIES}
+  nlopt)
+target_link_libraries(lcfit
+  ${GSL_LIBRARIES}
+  nlopt)
 
 install(TARGETS lcfit DESTINATION lib)
 install(FILES ${LCFIT_LIB_C_HEADERS} DESTINATION include)

@@ -1,0 +1,5 @@
+useDynLib(lcfit)
+
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
+

@@ -2,3 +2,6 @@
 _build
 .sconsign.dblite
 /doc
+*.html
+README.pdf
+.Rproj.user

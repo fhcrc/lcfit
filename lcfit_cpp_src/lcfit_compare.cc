@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -10,23 +9,29 @@
 #include <set>
 #include <stdexcept>
 #include <vector>
+#include <utility>
 
 #include <Bpp/App/ApplicationTools.h>
 #include <Bpp/App/BppApplication.h>
-#include <Bpp/Phyl/App/PhylogeneticsApplicationTools.h>
-#include <Bpp/Seq/App/SequenceApplicationTools.h>
-
+#include <Bpp/Numeric/AutoParameter.h>
+#include <Bpp/Numeric/Function/BrentOneDimension.h>
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
+#include <Bpp/Phyl/App/PhylogeneticsApplicationTools.h>
+#include <Bpp/Phyl/Model/SubstitutionModelSetTools.h>
+#include <Bpp/Phyl/Likelihood/RNonHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
+#include <Bpp/Seq/App/SequenceApplicationTools.h>
 #include <Bpp/Seq/Container/SequenceContainer.h>
 #include <Bpp/Seq/Container/SiteContainer.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 #include <Bpp/Seq/Container/VectorSiteContainer.h>
-#include <Bpp/Seq/Io/ISequence.h>
 #include <Bpp/Seq/Io/IoSequenceFactory.h>
+#include <Bpp/Seq/Io/ISequence.h>
 #include <Bpp/Seq/SiteTools.h>
 
+#include "gsl.h"
 #include "lcfit.h"
+#include "lcfit_select.h"
 #include "lcfit_cpp.h"
 
 using namespace std;
@@ -40,19 +45,9 @@ void print_vector(std::vector<T> v, const char delim = '\t', ostream& out = std:
     for(auto & i : v) {
         out << i << delim;
     }
-    out << endl;
+    out << "\n";
 }
 
-/// Evaluation of the fit for a node at a given branch length
-struct Evaluation {
-    Evaluation(int node_id, double branch_length, double ll, double pred_ll) :
-        node_id(node_id),
-        branch_length(branch_length),
-        ll(ll),
-        pred_ll(pred_ll) {};
-    int node_id;
-    double branch_length, ll, pred_ll;
-};
 
 /// Model fit
 struct ModelFit {
@@ -73,14 +68,6 @@ struct ModelFit {
            b;
 };
 
-void to_csv(ostream& out, const Evaluation& e)
-{
-    out << e.node_id << ","
-        << e.branch_length << ","
-        << e.ll << ","
-        << e.pred_ll << endl;
-}
-
 void to_csv(ostream& out, const ModelFit& f)
 {
     out << f.node_id << ","
@@ -89,7 +76,7 @@ void to_csv(ostream& out, const ModelFit& f)
         << f.c << ","
         << f.m << ","
         << f.r << ","
-        << f.b << endl;
+        << f.b << "\n";
 }
 
 template<typename ForwardIterator>
@@ -130,44 +117,67 @@ inline size_t min_index(ForwardIterator first, const ForwardIterator last)
 class TreeLikelihoodCalculator
 {
 public:
-    TreeLikelihoodCalculator(bpp::SiteContainer* sites, bpp::SubstitutionModel* model, bpp::DiscreteDistribution* rate_dist) :
-        sites(sites),
-        model(model),
-        rate_dist(rate_dist) {};
+    TreeLikelihoodCalculator(const bpp::TreeLikelihood& tl) :
+        like(tl.clone())
+    {
+        like->initialize();
+    };
 
     /// Calculate log-likelihood
-    double calculate_log_likelihood(const Tree& tree)
+    double calculate_log_likelihood()
     {
-        bpp::RHomogeneousTreeLikelihood like(tree, *sites, model, rate_dist, false, false, false);
-        like.initialize();
-        like.computeTreeLikelihood();
-        return like.getLogLikelihood();
+        //like->computeTreeLikelihood();
+        return like->getLogLikelihood();
     }
-private:
-    bpp::SiteContainer* sites;
-    bpp::SubstitutionModel* model;
-    bpp::DiscreteDistribution* rate_dist;
+
+    void set_branch_length(const size_t node, double length)
+    {
+        length = std::max(length, 1e-6);
+        like->setParameterValue("BrLen" + std::to_string(node), length);
+    }
+
+    void get_branch_length(const size_t node) const
+    {
+        like->getParameterValue("BrLen" + std::to_string(node));
+    }
+//private:
+    std::unique_ptr<bpp::TreeLikelihood> like;
 };
 
 /// Calculate the log likelihood of a node given a branch length
-struct NodeLogLikelihoodCalculator
+struct NodeLikelihoodCalculator
 {
+    NodeLikelihoodCalculator(TreeLikelihoodCalculator *c,
+                             const int node_id) :
+        calc(c),
+        node_id(node_id),
+        n_evals(0)
+    {};
+
     TreeLikelihoodCalculator* calc;
-    Tree tree;
     const int node_id;
+    size_t n_evals;
 
     double operator()(double d)
     {
-        tree.setDistanceToFather(node_id, d);
-        return calc->calculate_log_likelihood(tree);
+        n_evals++;
+        calc->set_branch_length(node_id, d);
+        return calc->calculate_log_likelihood();
     };
+
 };
+
+double lcfit_ll(double t, void *data)
+{
+    NodeLikelihoodCalculator* calc = static_cast<NodeLikelihoodCalculator*>(data);
+    return (*calc)(t);
+}
 
 /// Runs lcfit, generating parameters for the BSM
 class LCFitter
 {
 public:
-    LCFitter(const vector<double> start, const vector<double> sample_points, TreeLikelihoodCalculator* calc, ostream* csv_fit_out) :
+    LCFitter(const vector<double>& start, const vector<double>& sample_points, TreeLikelihoodCalculator* calc, ostream* csv_fit_out) :
         start(start),
         sample_points(sample_points),
         calc(calc),
@@ -178,23 +188,91 @@ public:
     ///
     /// Given a set of starting points, attempts to add (branch_length, ll) points until the function is non-monotonic,
     /// then fits the BS model using these sampled points.
-    bsm_t fit_model(const Tree& tree, const int node_id)
+    bsm_t fit_model(const int node_id, const int max_iter = 250)
     {
-        const double original_dist = tree.getDistanceToFather(node_id);
         bsm_t m = {start[0], start[1], start[2], start[3]};
-        NodeLogLikelihoodCalculator ll{calc,tree,node_id};
-        lcfit::LCFitResult fit_result = lcfit::fit_bsm_log_likelihood(ll, m, sample_points, 8);
-        assert(tree.getDistanceToFather(node_id) == original_dist);
+        NodeLikelihoodCalculator ll(calc,node_id);
+        lcfit::LCFitResult fit_result = lcfit::fit_bsm_log_likelihood(ll, m, sample_points, 8, max_iter);
 
         // Log fit
         if(csv_fit_out != nullptr) {
             for(const Point& p : fit_result.evaluated_points) {
-                *csv_fit_out << node_id << "," << p.x << "," << p.y << endl;
+                *csv_fit_out << node_id << "," << p.x << "," << p.y << "\n";
             }
         }
 
         // Scale initial conditions to intersect with maximum likelihood point
         return fit_result.model_fit;
+    }
+
+    pair<double, size_t> estimate_ml_branch_length(const int node_id, const double tol=1e-5, bsm_t* model_out=nullptr)
+    {
+        bsm_t m = {start[0], start[1], start[2], start[3]};
+        NodeLikelihoodCalculator ll(calc, node_id);
+        log_like_function_t fn { lcfit_ll, &ll };
+        bool success = 1;
+
+        /* GSL requires at least four points for minimization. */
+        std::vector<Point> evaluated_points = lcfit::select_points(ll, sample_points, 4);
+        std::vector<double> pts;
+        for (const auto& point : evaluated_points) {
+            pts.push_back(point.x);
+        }
+
+        const double result = estimate_ml_t(&fn,
+                                            pts.data(),
+                                            pts.size(),
+                                            tol,
+                                            &m,
+                                            &success);
+
+        if (model_out) {
+            *model_out = m;
+        }
+
+        return pair<double, size_t>(result, ll.n_evals);
+    }
+
+    pair<double, size_t> estimate_ml_branch_length_brent(const int node_id,
+                                                         const double tolerance=1e-5,
+                                                         double left=1e-6,
+                                                         double right=2,
+                                                         double raw_start=0.1)
+    {
+        size_t n_eval = 0;
+
+        NodeLikelihoodCalculator ll(calc, node_id);
+        std::function<double(double)> f = [&ll, &n_eval](double d)->double {
+            n_eval++;
+            return -ll(d);
+        };
+
+        double lefty = f(left), righty = f(right);
+        double miny = std::min(lefty, righty);
+        double smaller = lefty < righty ? left : right;
+
+        double prev_start = raw_start;
+        for(size_t iteration = 0; ; iteration++) {
+
+            if(std::abs(prev_start - smaller) < tolerance)
+                return {smaller, n_eval}; // Abutting `left`
+
+            double prev_val = f(prev_start);
+            if(prev_val < miny) {
+                break; /* Appropriate starting point */
+            } else if(iteration > 100) {
+                throw std::runtime_error("Minimization_brent exceeded max iters");
+            } else {
+                prev_start = (prev_start + smaller) / 2;
+            }
+        }
+
+        double ml_bl = gsl::minimize(f, prev_start, left, right);
+
+        // gsl::minimize calls f(left), f(right), and f(prev_start)
+        // If we were smarter, could cache those.
+        // To make it fair, correct for double counting.
+        return {ml_bl, n_eval - 3};
     }
 private:
     const vector<double> start;
@@ -203,17 +281,144 @@ private:
     ostream* csv_fit_out;
 };
 
-// Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
-vector<Evaluation> evaluate_fit(Tree tree, TreeLikelihoodCalculator* calc, const int node_id, const bsm_t& m, const double delta=0.01) {
-    vector<Evaluation> evaluations;
-    const double t = tree.getDistanceToFather(node_id);
-    for(double t = delta; t <= 1.; t += delta) {
-        tree.setDistanceToFather(node_id, t);
-        double actual_ll = calc->calculate_log_likelihood(tree);
-        double fit_ll = lcfit_bsm_log_like(t, &m);
-        evaluations.emplace_back(node_id, t, actual_ll, fit_ll);
+class LogLikelihoodEvaluations {
+  private:
+    int node_id_;
+    std::vector<double> t_;
+    std::map<std::string, std::vector<double>> ll_;
+
+  public:
+    explicit LogLikelihoodEvaluations(int node_id, double t_min, double t_max,
+                                      size_t n) :
+            node_id_(node_id),
+            t_(n)
+    {
+        const double delta = (t_max - t_min) / (n - 1);
+        for (size_t i = 0; i < n; ++i) {
+            t_[i] = t_min + (i * delta);
+        }
     }
-    tree.setDistanceToFather(node_id, t);
+
+    int node_id() const {
+        return node_id_;
+    }
+
+    const std::vector<double>& branch_lengths() const
+    {
+        return t_;
+    }
+
+    size_t size() const
+    {
+        return t_.size();
+    }
+
+    void evaluate(std::function<double(double)> f, const std::string& key)
+    {
+        ll_[key] = std::vector<double>(t_.size());
+        std::vector<double>& values = ll_[key];
+
+        for (size_t i = 0; i < t_.size(); ++i) {
+            values[i] = f(t_[i]);
+        }
+    }
+
+    static std::string csv_header()
+    {
+        return "node_id,branch_length,ll,key\n";
+    }
+
+    void write_csv(std::ostream& os) const
+    {
+        for (auto map_iter = ll_.cbegin(); map_iter != ll_.cend(); ++map_iter) {
+            const std::string& key = map_iter->first;
+            const std::vector<double>& values = map_iter->second;
+
+            for (size_t i = 0; i < t_.size(); ++i) {
+                os << node_id_ << ","
+                   << t_[i] << ","
+                   << values[i] << ","
+                   << key << "\n";
+            }
+        }
+    }
+};
+
+const std::pair<double, double>
+compute_branch_length_bounds(Tree tree, TreeLikelihoodCalculator* calc,
+                             const int node_id)
+{
+    const double ml_t = tree.getDistanceToFather(node_id);
+    const double ml_ll = calc->calculate_log_likelihood();
+    const double threshold = ml_ll - std::abs(0.01 * ml_ll);
+
+    // Note this function's side effect of setting node_id's branch
+    // length to t!
+    auto bounds_fn = [&calc, node_id, threshold](double t) {
+        calc->set_branch_length(node_id, t);
+        return calc->calculate_log_likelihood() - threshold;
+    };
+
+    const int MAX_ITER = 100;
+    const double TOLERANCE = 1e-3;
+
+    // Limits are from Bio++: minimum branch length which may be considered is 1e-6
+    double lower = 1e-6;
+
+    // refine lower bound if possible
+    if (ml_t > lower && bounds_fn(lower) < 0.0) {
+        lower = gsl::find_root(bounds_fn, lower, ml_t, MAX_ITER, TOLERANCE);
+    }
+
+    double upper_min = ml_t;
+    double upper_max = ml_t * 2.0;
+
+    // Bio++ maximum branch length is 10000
+    while (upper_max <= 10000.0 && bounds_fn(upper_max) > 0.0) {
+        upper_min = upper_max;
+        upper_max *= 2.0;
+    }
+
+    double upper = ml_t * 10.0;
+    if (upper_max <= 10000.0) {
+        upper = gsl::find_root(bounds_fn, upper_min, upper_max, MAX_ITER, TOLERANCE);
+    }
+
+    // Reset the branch length to its original value.
+    calc->set_branch_length(node_id, ml_t);
+
+    return std::make_pair(lower, upper);
+}
+
+// Evaluate log-likelihood obtained by model fit versus actual log-likelihood at a variety of points
+LogLikelihoodEvaluations
+compare_log_likelihoods(Tree tree, TreeLikelihoodCalculator* calc,
+                        const int node_id, const bsm_t& m)
+{
+    const double ml_t = tree.getDistanceToFather(node_id);
+
+    double lower;
+    double upper;
+    std::tie(lower, upper) = compute_branch_length_bounds(tree, calc, node_id);
+
+    const size_t N_SAMPLES = 501;
+    LogLikelihoodEvaluations evaluations(node_id, lower, upper, N_SAMPLES);
+
+    auto bpp_ll_fn = [&calc, node_id](double t) {
+        calc->set_branch_length(node_id, t);
+        return calc->calculate_log_likelihood();
+    };
+
+    evaluations.evaluate(bpp_ll_fn, "bpp");
+
+    auto lcfit_ll_fn = [&m](double t) {
+        return lcfit_bsm_log_like(t, &m);
+    };
+
+    evaluations.evaluate(lcfit_ll_fn, "normal");
+
+    calc->set_branch_length(node_id, ml_t);
+    assert(tree.getDistanceToFather(node_id) == ml_t);
     return evaluations;
 }
 
@@ -236,19 +441,41 @@ int run_main(int argc, char** argv)
     /********************/
 
     // Alphabet
-    unique_ptr<bpp::Alphabet> alphabet(bpp::SequenceApplicationTools::getAlphabet(params, "", false));
+    const unique_ptr<bpp::Alphabet> alphabet(bpp::SequenceApplicationTools::getAlphabet(params, "", false));
+    // Genetic code
+    unique_ptr<bpp::GeneticCode> gcode;
+    if(bpp::CodonAlphabet* codon_alph = dynamic_cast<bpp::CodonAlphabet*>(alphabet.get())) {
+        const string code_desc = bpp::ApplicationTools::getStringParameter("genetic_code", params, "Standard", "", true, true);
+        bpp::ApplicationTools::displayResult("Genetic Code", code_desc);
+        gcode.reset(bpp::SequenceApplicationTools::getGeneticCode(codon_alph->getNucleicAlphabet(), code_desc));
+    }
     // Sites
     unique_ptr<bpp::VectorSiteContainer> all_sites(bpp::SequenceApplicationTools::getSiteContainer(alphabet.get(), params));
     unique_ptr<bpp::VectorSiteContainer> sites(bpp::SequenceApplicationTools::getSitesToAnalyse(*all_sites, params, "", true, false));
     all_sites.reset();
+    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sites);
+
     // Tree
     unique_ptr<bpp::Tree> in_tree(bpp::PhylogeneticsApplicationTools::getTree(params));
     bpp::TreeTemplate<bpp::Node> tree(*in_tree);
-    // Model
-    unique_ptr<bpp::SubstitutionModel> model(bpp::PhylogeneticsApplicationTools::getSubstitutionModel(alphabet.get(), sites.get(), params));
-    bpp::SiteContainerTools::changeGapsToUnknownCharacters(*sites);
     // Rate dist
     unique_ptr<bpp::DiscreteDistribution> rate_dist(bpp::PhylogeneticsApplicationTools::getRateDistribution(params));
+    // Model
+    // See bppSeqGen.cpp L253
+    const std::string nh_opt = bpp::ApplicationTools::getStringParameter("nonhomogeneous", params, "no", "", true, false);
+    unique_ptr<bpp::SubstitutionModel> model;
+    unique_ptr<bpp::SubstitutionModelSet> model_set;
+    unique_ptr<bpp::TreeLikelihood> bpp_tree_like;
+    if(nh_opt == "no") {
+        model.reset(bpp::PhylogeneticsApplicationTools::getSubstitutionModel(alphabet.get(), gcode.get(), sites.get(), params));
+        //unique_ptr<bpp::FrequenciesSet> fSet(new bpp::FixedFrequenciesSet(model->getAlphabet(), model->getFrequencies()));
+        //model_set.reset(bpp::SubstitutionModelSetTools::createHomogeneousModelSet(model.release(), fSet.release(), &tree));
+        bpp_tree_like.reset(new bpp::RHomogeneousTreeLikelihood(tree, *sites, model.get(), rate_dist.get(), false, false, false));
+    } else if(nh_opt == "general") {
+        model_set.reset(bpp::PhylogeneticsApplicationTools::getSubstitutionModelSet(alphabet.get(), gcode.get(), sites.get(), params));
+        bpp_tree_like.reset(new bpp::RNonHomogeneousTreeLikelihood(tree, *sites, model_set.get(), rate_dist.get(), false, false, false));
+    } else throw std::runtime_error("Unknown non-homogeneous option: " + nh_opt);
+
 
     // lcfit-specific
     // Output
@@ -258,33 +485,80 @@ int run_main(int argc, char** argv)
     ofstream csv_ml_out(csv_ml_path);
     string csv_fit_path = bpp::ApplicationTools::getAFilePath("lcfit.output.fit_file", params, true, false);
     ofstream csv_fit_out(csv_fit_path);
-    csv_fit_out << "node_id,branch_length,ll" << endl;;
+    csv_fit_out << "node_id,branch_length,ll\n";
+    csv_fit_out << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+    string csv_mltol_path = bpp::ApplicationTools::getAFilePath("lcfit.output.mltol_file", params, true, false);
+    ofstream csv_mltol_out(csv_mltol_path);
+    csv_mltol_out << "node_id,tolerance,ml_t,ml_est,n_eval,ml_brent,n_eval_brent\n";
+    csv_mltol_out << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     const vector<double> sample_points = bpp::ApplicationTools::getVectorParameter<double>(
             "lcfit.sample.branch.lengths",
-            params, ',', "0.1,0.15,0.5");
+            params, ',', "0.1,0.15,0.5,1.0");
     const vector<double> start = bpp::ApplicationTools::getVectorParameter<double>("lcfit.starting.values",
-                                 params, ',', "1500,1000,2.0,0.5");
+                                 params, ',', "1100,800,2.0,0.5");
+    const vector<double> tolerance_values = bpp::ApplicationTools::getVectorParameter<double>(
+            "lcfit.tolerance.values",
+            params, ',', "1e-2,1e-3,1e-4,1e-5,1e-6");
 
-    // Calculators
-    TreeLikelihoodCalculator likelihood_calc(sites.get(), model.get(), rate_dist.get());
-    LCFitter fit(start, sample_points, &likelihood_calc, &csv_fit_out);
 
     /*
      * Run evaluations on each node, write output
      */
-    csv_like_out << "node_id,branch_length,bpp_ll,fit_ll" << endl;
-    csv_ml_out << "node_id,t,t_hat,c,m,r,b" << endl;
-    for(const int & node_id : tree.getNodesId()) {
-        cerr << "Node " << node_id << "\r";
-        if(!tree.hasDistanceToFather(node_id)) continue;
-        const bsm_t m = fit.fit_model(tree, node_id);
-        const vector<Evaluation> evals = evaluate_fit(tree, &likelihood_calc, node_id, m, 0.01);
-        // Write to CSV
-        std::for_each(begin(evals), end(evals),
-            [&csv_like_out](const Evaluation & e) { to_csv(csv_like_out, e); });
+    csv_like_out << LogLikelihoodEvaluations::csv_header();
+    csv_like_out << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+    csv_ml_out << "node_id,t,t_hat,c,m,r,b\n";
+    csv_ml_out << std::setprecision(std::numeric_limits<double>::max_digits10);
+
+    for (const int & node_id : tree.getNodesId()) {
+        clog << "[lcfit eval] Node " << setw(4) << node_id << "\n";
+
+        // Calculators
+        TreeLikelihoodCalculator likelihood_calc(*bpp_tree_like);
+        LCFitter fitter(start, sample_points, &likelihood_calc, &csv_fit_out);
+
+        if (!tree.hasDistanceToFather(node_id))
+            continue;
+
+        const bsm_t m = fitter.fit_model(node_id);
+
+        // Evaluate Bio++ and normal (non-iterative) lcfit curves
+        LogLikelihoodEvaluations evals =
+                compare_log_likelihoods(tree, &likelihood_calc, node_id, m);
+
         const ModelFit fit = compare_ml_values(tree, node_id, m);
         to_csv(csv_ml_out, fit);
+
+        double ml_est, ml_brent;
+        size_t n_evals, n_evals_brent;
+        for(const double tol : tolerance_values) {
+            std::stringstream ss;
+            ss << std::scientific << std::setprecision(0) << tol;
+            std::string tol_str = ss.str();
+            std::string eval_key = "iterative:" + tol_str;
+
+            bsm_t model_out;
+            std::tie<double, size_t>(ml_est, n_evals) = fitter.estimate_ml_branch_length(node_id, tol, &model_out);
+            std::tie<double, size_t>(ml_brent, n_evals_brent) = fitter.estimate_ml_branch_length_brent(node_id, tol);
+            csv_mltol_out << node_id
+                << "," << tol_str
+                << "," << tree.getDistanceToFather(node_id)
+                << "," << ml_est
+                << "," << n_evals
+                << "," << ml_brent
+                << "," << n_evals_brent
+                << "\n";
+
+            auto iterative_ll_fn = [&model_out](double t) {
+                return lcfit_bsm_log_like(t, &model_out);
+            };
+
+            evals.evaluate(iterative_ll_fn, eval_key);
+        }
+
+        evals.write_csv(csv_like_out);
     }
 
     return 0;
@@ -295,7 +569,7 @@ int main(int argc, char** argv)
     try {
         run_main(argc, argv);
     } catch(exception& e) {
-        cerr << "Error:" << e.what() << endl;
+        cerr << "Error:" << e.what() << std::endl;
         return 1;
     }
 }

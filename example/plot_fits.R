@@ -4,6 +4,8 @@ library(ggplot2)
 library(plyr)
 library(reshape2)
 
+theme_set(theme_bw(16))
+
 main <- function(input_bls, input_maxima, input_fit, outfile) {
   d <- read.csv(input_bls, as.is=TRUE)
   maxima <- read.csv(input_maxima, as.is=TRUE)
@@ -31,7 +33,7 @@ main <- function(input_bls, input_maxima, input_fit, outfile) {
         geom_line(aes(x=branch_length,
                       y=value), data=piece) +
         ggtitle(sprintf("Node #%s\nRSS=%f\nc=%.2f m=%.2f r=%.2f b=%.2f", piece$node_id[1], rss,
-                           maximum$c, maximum$m, maximum$r, maximum$b)) +
+                        maximum$c, maximum$m, maximum$r, maximum$b)) +
         geom_vline(aes(xintercept=value, color=name, linetype=name), data=m) +
         geom_point(aes(x=branch_length, y=ll), data=f) +
         xlim(0, max(c(max(f$branch_length), 1)))

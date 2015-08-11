@@ -64,6 +64,8 @@ Monotonicity monotonicity(const std::vector<Point>& points);
 /// \param max_points Maximum number of points to sample. Passed to lcfit::select_points.
 std::vector<Point> select_points(std::function<double(double)>, const std::vector<double>& v, const size_t max_points=8);
 
+std::vector<Point> select_points(std::function<double(double)>, const std::vector<Point>&, const size_t max_points=8);
+
 /// Select the top \c n points from \c points by y-value
 ///
 /// \param points Input points
@@ -82,8 +84,9 @@ std::vector<Point> retain_top(const std::vector<Point>& points, const size_t n);
 /// \param sample_points Initial points to sample. <c>{0.1,0.15,0.5}</c> has given good results. More points will be added ot
 /// ensure that the function is non-monotonic on the interval.
 /// \param max_points Maximum number of points to sample. Passed to lcfit::select_points.
+/// \param max_iter Maximum number of iterations to run. Passed to lcfit::fit_bsm_log_likelihood.
 /// \returns The fit BSM, along with points evaluated during fitting
-LCFitResult fit_bsm_log_likelihood(std::function<double(double)>, const bsm_t&, const std::vector<double>&, const size_t max_points=8);
+LCFitResult fit_bsm_log_likelihood(std::function<double(double)>, const bsm_t&, const std::vector<double>&, const size_t max_points=8, const int max_iter=250);
 
 } // lcfit
 

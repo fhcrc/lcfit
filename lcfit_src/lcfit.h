@@ -81,10 +81,30 @@ void lcfit_bsm_rescale(const double t, const double l, bsm_t* m);
  * \param n Number of observations in \c t and \c l
  * \param t Branch length
  * \param l Log-likelihood values at \c t
+ * \param w weight for sample point at \c t
  * \param m Initial conditions for the model.
  * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
  */
-int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m);
+    int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double* w, bsm_t* m, int max_iter);
+
+/** \brief Fit the BSM
+ *
+ * \param n Number of observations in \c t and \c l
+ * \param t Branch length
+ * \param l Log-likelihood values at \c t
+ * \param m Initial conditions for the model.
+ * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
+ */
+    int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m, int max_iter);
+
+
+    typedef enum lcfit_status {	LCFIT_SUCCESS = 0,	// success
+		   		LCFIT_MAXITER = 1,	// exceeded maximum iterations without converging
+		   		LCFIT_ERROR = 2,	// non-specific error
+		   		LCFIT_ENOPROG = 27,	// iteration is not making progress towards solution
+		   		LCFIT_ETOLF = 29,	// cannot reach the specified tolerance in F
+		   		LCFIT_ETOLG = 31	// cannot reach the specified tolerance in gradient
+    } lcfit_status;
 
 #ifdef __cplusplus
 } // extern "C"
