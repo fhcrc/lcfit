@@ -9,10 +9,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "-DVERBOSE -gdwarf-2 ")
 
 set(LCFIT_LIB_CPP_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/gsl.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.h)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_rejection_sampler.h)
 set(LCFIT_LIB_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/gsl.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.cc)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_rejection_sampler.cc)
 
 add_library(lcfit_cpp-static STATIC ${LCFIT_LIB_CPP_FILES})
 add_library(lcfit_cpp SHARED ${LCFIT_LIB_CPP_FILES})

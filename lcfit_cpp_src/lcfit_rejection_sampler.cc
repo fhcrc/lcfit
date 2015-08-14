@@ -4,16 +4,15 @@
 #include <iostream>
 #include <numeric>
 #include <stdexcept>
-#include <tuple>
-#include <boost/math/tools/roots.hpp>
-#include <boost/numeric/quadrature/adaptive.hpp>
+#include <utility>
+#include <gsl/gsl_integration.h>
+#include <gsl/gsl_rng.h>
 
-#include <smctc.hh>
-#include <lcfit_cpp.h>
+#include "lcfit_cpp.h"
 
 namespace lcfit {
 
-rejection_sampler::rejection_sampler(smc::rng* rng, const lcfit::LCFitResult& fit_result) :
+rejection_sampler::rejection_sampler(gsl_rng* rng, const lcfit::LCFitResult& fit_result) :
     rng_(rng), fit_result_(fit_result), n_trials_(0), n_accepts_(0)
 {
     const bsm_t* model = &(fit_result_.model_fit);
@@ -51,8 +50,8 @@ double rejection_sampler::sample() const
     double y = 0.0;
 
     do {
-        t = rng_->Uniform(t_min_, t_max_);
-        y = rng_->Uniform(0.0, 1.0);
+        t = gsl_rng_uniform(rng_) * (t_max_ - t_min_) + t_min_;
+        y = gsl_rng_uniform(rng_);
         ++n_trials_;
 
         if (n_accepts_ == 0 && n_trials_ >= 1000) {
@@ -136,13 +135,24 @@ const std::pair<double, double> rejection_sampler::find_bounds() const
     return std::make_pair(t_min, t_max);
 }
 
+double relative_likelihood_callback(double t, void* data)
+{
+    return static_cast<const lcfit::rejection_sampler*>(data)->relative_likelihood(t);
+}
+
 double rejection_sampler::integrate() const
 {
-    auto f = [=](double t) { return relative_likelihood(t); };
+    gsl_function f;
+    f.function = &lcfit::relative_likelihood_callback;
+    f.params = static_cast<void*>(const_cast<rejection_sampler*>(this));
 
     double result = 0.0;
     double error = 0.0;
-    boost::numeric::quadrature::adaptive()(f, t_min_, t_max_, result, error);
+
+    gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(100);
+    gsl_integration_qag(&f, t_min_, t_max_, 0.0, 1e-5, 100, GSL_INTEG_GAUSS21,
+                        workspace, &result, &error);
+    gsl_integration_workspace_free(workspace);
 
     if (error > 1e-3) {
         throw std::runtime_error("lcfit failure: integration error");

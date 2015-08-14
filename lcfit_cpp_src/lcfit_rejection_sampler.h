@@ -9,16 +9,15 @@
 #ifndef LCFIT_REJECTION_SAMPLER_H
 #define LCFIT_REJECTION_SAMPLER_H
 
-#include <tuple>
-#include <lcfit_cpp.h>
-
-namespace smc { class rng; }	// forward declaration
+#include <utility>
+#include <gsl/gsl_rng.h>
+#include "lcfit_cpp.h"
 
 namespace lcfit {
 
 class rejection_sampler {
 private:
-    smc::rng* rng_;
+    gsl_rng* rng_;
     lcfit::LCFitResult fit_result_;
 
     double ml_t_;
@@ -33,7 +32,7 @@ private:
     mutable size_t n_accepts_;
 
 public:
-    rejection_sampler(smc::rng* rng, const lcfit::LCFitResult& fitResult);
+    rejection_sampler(gsl_rng* rng, const lcfit::LCFitResult& fitResult);
     virtual ~rejection_sampler();
 
     double sample() const;

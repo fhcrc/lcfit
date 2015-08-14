@@ -1,9 +1,12 @@
 #include "catch.hpp"
-#include "lcfit.h"
-#include "lcfit_cpp.h"
 
 #include <algorithm>
 #include <iostream>
+#include <gsl/gsl_rng.h>
+
+#include "lcfit.h"
+#include "lcfit_cpp.h"
+#include "lcfit_rejection_sampler.h"
 
 #define TOL 1e-4
 
@@ -122,4 +125,21 @@ TEST_CASE("test_bsm_fit", "Test fitting an actual BSM log-likelihood function")
     for(const Point& p : r.evaluated_points) {
         REQUIRE(std::abs(lcfit_bsm_log_like(p.x, fit) - p.y) < TOL);
     }
+}
+
+TEST_CASE("test_rejection_sampler", "Test sampling from a BSM log-likelihood function")
+{
+    auto log_like = [](const double t) -> double {
+        const static bsm_t m = {2000, 500, 2.0, 0.4};
+        return lcfit_bsm_log_like(t, &m);
+    };
+    const std::vector<double> t{0.1,0.15,0.5};
+    const bsm_t m = {1500, 1000, 1.0, 0.5};
+    lcfit::LCFitResult r = fit_bsm_log_likelihood(log_like, m, t);
+
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_default);
+
+    lcfit::rejection_sampler sampler(rng, r);
+    double s = sampler.sample();
+    REQUIRE(s > 0.0);
 }
