@@ -1,4 +1,4 @@
-K <- function(m, lambda, x) {
+lcfit_k_exp_prior <- function(m, lambda, x) {
   ve <- vector(length = m$c+1)
   vo <- vector(length = m$c+1)
 
@@ -22,7 +22,7 @@ K <- function(m, lambda, x) {
   sve <- sum(ve)
   svo <- sum(vo)
 
-  print(sprintf("%f > %f: %s", sve, svo, sve > svo))
+  # print(sprintf("%f > %f: %s", sve, svo, sve > svo))
   stopifnot(sve > svo)
 
   sv <- (sve - svo) * x^(lambda / m$r)
@@ -30,9 +30,4 @@ K <- function(m, lambda, x) {
   stopifnot(is.finite(sv))
 
   return(sv)
-}
-
-K.wrap <- function(m, lambda, t) {
-  x <- exp(-m$r * (m$b + t))
-  K(m, lambda, x)
 }
