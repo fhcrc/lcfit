@@ -1,39 +1,53 @@
 cmake_minimum_required (VERSION 2.8.1)
 
 # Comparison
-project(lcfitcompare C CXX)
+project(liblcfit_cpp C CXX)
 set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
 set(CMAKE_C_FLAGS_DEBUG "-DVERBOSE")
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-DVERBOSE -gdwarf-2 ")
 
-set(LCFIT_COMPARE_CPP
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_compare.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.cc
+set(LCFIT_LIB_CPP_HEADERS
+  ${CMAKE_CURRENT_SOURCE_DIR}/gsl.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.h)
+set(LCFIT_LIB_CPP_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/gsl.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/../lcfit_src/lcfit.c)
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.cc)
+
+add_library(lcfit_cpp-static STATIC ${LCFIT_LIB_CPP_FILES})
+add_library(lcfit_cpp SHARED ${LCFIT_LIB_CPP_FILES})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../lcfit_src)
+
+target_link_libraries(lcfit_cpp-static
+  ${GSL_LIBRARIES}
+  lcfit-static
+  nlopt)
+
+target_link_libraries(lcfit_cpp
+  ${GSL_LIBRARIES}
+  lcfit
+  nlopt)
+
+# lcfit-compare
+
+set(LCFIT_COMPARE_CPP
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_compare.cc)
 
 set(LCFIT_COMPARE_LIBS
   bpp-core
   bpp-seq
   bpp-phyl
-  ${GSL_LIBRARIES}
-  lcfit-static
-  nlopt)
+  lcfit_cpp-static)
 
-# LCFIT
 add_executable(lcfit-compare EXCLUDE_FROM_ALL ${LCFIT_COMPARE_CPP})
 target_link_libraries(lcfit-compare ${LCFIT_COMPARE_LIBS})
+
+# lcfit-test
+
 add_executable(lcfit-test EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit_cpp.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_cpp.cc
-  )
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cc)
 target_link_libraries(lcfit-test
-  gsl
-  gslcblas
-  lcfit-static
-  nlopt)
+  lcfit_cpp-static)
