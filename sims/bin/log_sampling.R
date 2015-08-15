@@ -94,7 +94,7 @@ lcfit_inv_exp_prior <- function(m, lambda, u, tolerance = 1e-6) {
   x <- 0.5
   al <- exp(lcfit_k_exp_prior_ln(m, lambda, x));
 
-  while (abs(al - u) > tolerance) {
+  while (abs(al - u) > tolerance && b - a > x * .Machine$double.eps) {
     if (al > u) {
       b <- x
     } else {
