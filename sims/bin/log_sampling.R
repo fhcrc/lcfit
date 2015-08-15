@@ -108,6 +108,27 @@ lcfit_inv_exp_prior <- function(m, lambda, u, tolerance = 1e-6) {
   return(x)
 }
 
+# Find the value x such that log(K(x)) ~= log(u) given a model and an exponential prior.
+lcfit_inv_exp_prior_ln <- function(m, lambda, lu, tolerance = 1e-6) {
+  a <- 0.0
+  b <- 1.0
+  x <- 0.5
+  lal <- lcfit_k_exp_prior_ln(m, lambda, x);
+
+  while (abs(exp(lal) - exp(lu)) > tolerance && b - a > x * .Machine$double.eps) {
+    if (lal > lu) {
+      b <- x
+    } else {
+      a <- x
+    }
+
+    x <- (a + b) / 2.0
+    lal <- lcfit_k_exp_prior_ln(m, lambda, x)
+  }
+
+  return(x)
+}
+
 # Generate N samples from the posterior on branch lengths given a model and an
 # exponential prior.
 lcfit_sample_exp_prior <- function(m, lambda, N) {
@@ -116,6 +137,17 @@ lcfit_sample_exp_prior <- function(m, lambda, N) {
   u <- runif(N)
 
   x <- vinv(m, lambda, (1 - u) * k0)
+  t <- -1.0 / m$r * log(x) - m$b
+
+  return(t)
+}
+
+lcfit_sample_exp_prior_ln <- function(m, lambda, N) {
+  lk0 <- lcfit_k_exp_prior_ln(m, lambda, exp(-m$r * m$b))
+  vinv <- Vectorize(lcfit_inv_exp_prior_ln, vectorize.args = "lu")
+  u <- runif(N)
+
+  x <- vinv(m, lambda, log1p(-u) + lk0)
   t <- -1.0 / m$r * log(x) - m$b
 
   return(t)
