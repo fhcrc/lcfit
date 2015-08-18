@@ -10,7 +10,7 @@ logsumexp <- function(x) {
 }
 
 # Compute the logarithm of the sampling helper function K(x) given a model and
-# an exponential prior.
+# an exponential prior by summing the series.
 #
 # K(x) = \sum_{i = 0}^{c} {
 #          \sum_{j = 0}^{m} {
@@ -43,7 +43,7 @@ logsumexp <- function(x) {
 # lsue, lsuo: "log sum u even" and "log sum u odd", the log of the sums of the even and odd inner terms
 #
 # etc.
-lcfit_k_exp_prior_ln <- function(m, lambda, x) {
+.k_exp_prior_series_ln <- function(m, lambda, x) {
   # Allocate vectors for the outer sums (even and odd terms).
   lve <- vector(length = m$c+1)
   lvo <- vector(length = m$c+1)
@@ -87,25 +87,26 @@ lcfit_k_exp_prior_ln <- function(m, lambda, x) {
   return(lsv)
 }
 
-# Find the value x such that K(x) ~= u given a model and an exponential prior.
-lcfit_inv_exp_prior <- function(m, lambda, u, tolerance = 1e-6) {
-  a <- 0.0
-  b <- 1.0
-  x <- 0.5
-  al <- exp(lcfit_k_exp_prior_ln(m, lambda, x));
+# Integrand of the integral representation of Appell's F1 function with y = -x.
+# http://functions.wolfram.com/HypergeometricFunctions/AppellF1/07/ShowAll.html
+.appell_integrand <- function(t, a, b1, b2, c, x)
+{
+  (1 - t)^(-1 - a + c) * t^(-1 + a) / ((1 - t*x)^b1 * (1 + t*x)^b2)
+}
 
-  while (abs(al - u) > tolerance && b - a > x * .Machine$double.eps) {
-    if (al > u) {
-      b <- x
-    } else {
-      a <- x
-    }
+# Compute the logarithm of the sampling helper function K(x) given a model and
+# an exponential prior by approximating the integral of Appell's F1 function.
+# http://functions.wolfram.com/HypergeometricFunctions/AppellF1/07/ShowAll.html
+.k_exp_prior_appell_ln <- function(m, lambda, x) {
+  a <- lambda / m$r
+  b1 <- -m$m
+  b2 <- -m$c
+  c <- (m$r + lambda) / m$r
 
-    x <- (a + b) / 2.0
-    al <- exp(lcfit_k_exp_prior_ln(m, lambda, x))
-  }
+  lv <- lgamma(c) - (lgamma(a) + lgamma(-a + c)) +
+    log(integrate(.appell_integrand, 0, 1, a, b1, b2, c, x)$value)
 
-  return(x)
+  ly <- log(m$r) + (lambda / m$r) * log(x) - log(lambda) + lv
 }
 
 # Find the value x such that log(K(x)) ~= log(u) given a model and an exponential prior.
@@ -132,17 +133,6 @@ lcfit_inv_exp_prior_ln <- function(m, lambda, lu, tolerance = 1e-6) {
 # Generate N samples from the posterior on branch lengths given a model and an
 # exponential prior.
 lcfit_sample_exp_prior <- function(m, lambda, N) {
-  k0 <- exp(lcfit_k_exp_prior_ln(m, lambda, exp(-m$r * m$b)))
-  vinv <- Vectorize(lcfit_inv_exp_prior, vectorize.args = "u")
-  u <- runif(N)
-
-  x <- vinv(m, lambda, (1 - u) * k0)
-  t <- -1.0 / m$r * log(x) - m$b
-
-  return(t)
-}
-
-lcfit_sample_exp_prior_ln <- function(m, lambda, N) {
   lk0 <- lcfit_k_exp_prior_ln(m, lambda, exp(-m$r * m$b))
   vinv <- Vectorize(lcfit_inv_exp_prior_ln, vectorize.args = "lu")
   u <- runif(N)
@@ -177,12 +167,12 @@ lcfit_sample_exp_prior_compare <- function(m, lambda, N) {
   d <- d / cons
 
   data <- data.frame(t = t, expected = d, observed = hobj$density)
-
-  ggplot(data, aes(x = t)) + geom_line(aes(y = expected)) +
-    geom_bar(aes(y = observed), stat = "identity", alpha = 0.4) +
-    ylab('probability') +
-    xlab('branch length')
 }
+
+#####
+
+# Choose the implementation of K(x) to use.
+lcfit_k_exp_prior_ln <- .k_exp_prior_appell_ln
 
 lambda <- 0.1
 
