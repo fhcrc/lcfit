@@ -89,8 +89,7 @@ logsumexp <- function(x) {
 
 # Integrand of the integral representation of Appell's F1 function with y = -x.
 # http://functions.wolfram.com/HypergeometricFunctions/AppellF1/07/ShowAll.html
-.appell_integrand <- function(t, a, b1, b2, c, x)
-{
+.appell_integrand <- function(t, a, b1, b2, c, x) {
   (1 - t)^(-1 - a + c) * t^(-1 + a) / ((1 - t*x)^b1 * (1 + t*x)^b2)
 }
 
@@ -143,21 +142,18 @@ lcfit_sample_exp_prior <- function(m, lambda, N) {
   return(t)
 }
 
-# Generate N samples from the posterior on branch lengths given a model and an
-# exponential prior and plot a comparison with the expected distribution.
-lcfit_sample_exp_prior_compare <- function(m, lambda, N) {
-  # Generate samples.
-  s <- lcfit_sample_exp_prior(m, lambda, N)
-
+# Compare branch lengths sampled from a model and an exponential prior with the
+# expected distribution.
+lcfit_sample_exp_prior_compare <- function(m, lambda, s) {
   # Compute sample histogram.
   nbins <- 100
   hobj <- hist(s, breaks = nbins, plot = FALSE)
   t <- hobj$mids
 
   # Compute expected likelihoods and (unnormalized) densities.
-  # x <- exp(-m$r*(m$b + t))
-  # l <- (1 + x)^m$c * (1 - x)^m$m * exp(-lambda * t)
-  l <- exp(lcfit_bsm_log_like(t, m) - lambda * t)
+  #l <- exp(lcfit_bsm_log_like(t, m) - lambda * t) # stability problems?
+  x <- exp(-m$r*(m$b + t))
+  l <- (1 + x)^m$c * (1 - x)^m$m * exp(-lambda * t)
   d <- l * m$r / exp(lambda * m$b)
 
   # Normalize densities by approximating the function and dividing by its
@@ -177,7 +173,20 @@ lcfit_k_exp_prior_ln <- .k_exp_prior_appell_ln
 lambda <- 0.1
 
 m.s <- list(c = 5, m = 8, r = 1, b = 0.5)
-print(system.time(p.s <- lcfit_sample_exp_prior_compare(m.s, lambda, 1000)))
+print(system.time(samples.s <- lcfit_sample_exp_prior(m.s, lambda, 10000)))
+data.s <- lcfit_sample_exp_prior_compare(m.s, lambda, samples.s)
 
-#m.m <- list(c = 100, m = 1, r = 1, b = 0.5)
-#print(lcfit_sample_exp_prior_compare(m.m, lambda, 1000))
+m.l <- list(c = 1100, m = 800, r = 2, b = 0.5)
+print(system.time(samples.m <- lcfit_sample_exp_prior(m.m, lambda, 10000)))
+data.m <- lcfit_sample_exp_prior_compare(m.m, lambda, samples.m)
+
+#
+# Plot results.
+#
+
+p.s <- ggplot(data.s, aes(x = t)) + geom_line(aes(y = expected)) +
+  geom_bar(aes(y = observed), stat = "identity", alpha = 0.4) +
+  ylab('probability') +
+  xlab('branch length')
+
+p.m <- p.s %+% data.m
