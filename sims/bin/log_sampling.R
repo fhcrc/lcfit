@@ -3,8 +3,10 @@ source("bin/lcfit.R")
 # Compute log(sum(exp(x))).
 # http://r.789695.n4.nabble.com/logsumexp-function-in-R-td3310119.html
 #
-# Note that sorting x in ascending order may increase precision of the result.
+# Note that sorting x in descending order may increase precision of the result.
 logsumexp <- function(x) {
+  #sort(x, decreasing = TRUE)
+  #i <- 1
   i <- which.max(x)
   log1p(sum(exp(x[-i] - x[i]))) + x[i]
 }
@@ -89,8 +91,15 @@ logsumexp <- function(x) {
 
 # Integrand of the integral representation of Appell's F1 function with y = -x.
 # http://functions.wolfram.com/HypergeometricFunctions/AppellF1/07/ShowAll.html
-.appell_integrand <- function(t, a, b1, b2, c, x) {
+.xxx_appell_integrand <- function(t, a, b1, b2, c, x) {
   (1 - t)^(-1 - a + c) * t^(-1 + a) / ((1 - t*x)^b1 * (1 + t*x)^b2)
+}
+
+# Integrand of the integral representation of Appell's F1 function with y = -x.
+# http://functions.wolfram.com/HypergeometricFunctions/AppellF1/07/ShowAll.html
+.appell_integrand <- function(t, a, b1, b2, c, x) {
+  y <- (-1 - a + c)*log(1 - t) + (-1 + a)*log(t) - b1*log(1 - t*x) - b2*log(1 + t*x)
+  exp(y)
 }
 
 # Compute the logarithm of the sampling helper function K(x) given a model and
