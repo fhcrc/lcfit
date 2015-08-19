@@ -1,5 +1,3 @@
-source("bin/lcfit.R")
-
 # Compute log(sum(exp(x))).
 # http://r.789695.n4.nabble.com/logsumexp-function-in-R-td3310119.html
 #
@@ -176,26 +174,24 @@ lcfit_sample_exp_prior_compare <- function(m, lambda, s) {
 
 #####
 
+set.seed(0)
+
 # Choose the implementation of K(x) to use.
 lcfit_k_exp_prior_ln <- .k_exp_prior_appell_ln
 
 lambda <- 0.1
 
 m.s <- list(c = 5, m = 8, r = 1, b = 0.5)
-print(system.time(samples.s <- lcfit_sample_exp_prior(m.s, lambda, 10000)))
+print(system.time(samples.s <- lcfit_sample_exp_prior(m.s, lambda, 1000)))
 data.s <- lcfit_sample_exp_prior_compare(m.s, lambda, samples.s)
-
-m.l <- list(c = 1100, m = 800, r = 2, b = 0.5)
-print(system.time(samples.m <- lcfit_sample_exp_prior(m.m, lambda, 10000)))
-data.m <- lcfit_sample_exp_prior_compare(m.m, lambda, samples.m)
-
-#
-# Plot results.
-#
 
 p.s <- ggplot(data.s, aes(x = t)) + geom_line(aes(y = expected)) +
   geom_bar(aes(y = observed), stat = "identity", alpha = 0.4) +
   ylab('probability') +
   xlab('branch length')
+
+m.m <- list(c = 1100, m = 800, r = 2, b = 0.5)
+print(system.time(samples.m <- lcfit_sample_exp_prior(m.m, lambda, 1000)))
+data.m <- lcfit_sample_exp_prior_compare(m.m, lambda, samples.m)
 
 p.m <- p.s %+% data.m
