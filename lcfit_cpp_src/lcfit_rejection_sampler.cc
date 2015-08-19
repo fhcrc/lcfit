@@ -12,17 +12,16 @@
 
 namespace lcfit {
 
-rejection_sampler::rejection_sampler(gsl_rng* rng, const lcfit::LCFitResult& fit_result) :
-    rng_(rng), fit_result_(fit_result), n_trials_(0), n_accepts_(0)
+rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model) :
+    rng_(rng), model_(model), n_trials_(0), n_accepts_(0)
 {
-    const bsm_t* model = &(fit_result_.model_fit);
-    ml_t_ = lcfit_bsm_ml_t(model);
+    ml_t_ = lcfit_bsm_ml_t(&model_);
 
     if (!std::isfinite(ml_t_)) {
         throw std::runtime_error("lcfit failure: non-finite ML branch length");
     }
 
-    ml_ll_ = lcfit_bsm_log_like(ml_t_, model);
+    ml_ll_ = lcfit_bsm_log_like(ml_t_, &model_);
 
     if (!std::isfinite(ml_ll_)) {
         throw std::runtime_error("lcfit failure: non-finite ML log-likelihood");
@@ -66,8 +65,7 @@ double rejection_sampler::sample() const
 
 double rejection_sampler::relative_log_likelihood(double t) const
 {
-    const bsm_t* model = &(fit_result_.model_fit);
-    return lcfit_bsm_log_like(t, model) - ml_ll_;
+    return lcfit_bsm_log_like(t, &model_) - ml_ll_;
 }
 
 double rejection_sampler::relative_likelihood(double t) const
@@ -83,15 +81,6 @@ double rejection_sampler::log_density(double t) const
 double rejection_sampler::density(double t) const
 {
     return std::exp(log_density(t));
-}
-
-const std::pair<double, double> rejection_sampler::find_bounds_easy() const
-{
-    // lcfit asserts that the list of selected points is sorted in
-    // increasing order by x, so we don't even have to search for the min
-    // and the max.
-    const auto& points = fit_result_.evaluated_points;
-    return std::make_pair(points.front().x, points.back().x);
 }
 
 const std::pair<double, double> rejection_sampler::find_bounds() const

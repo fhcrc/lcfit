@@ -18,7 +18,7 @@ namespace lcfit {
 class rejection_sampler {
 private:
     gsl_rng* rng_;
-    lcfit::LCFitResult fit_result_;
+    bsm_t model_;
 
     double ml_t_;
     double ml_ll_;
@@ -32,7 +32,7 @@ private:
     mutable size_t n_accepts_;
 
 public:
-    rejection_sampler(gsl_rng* rng, const lcfit::LCFitResult& fitResult);
+    rejection_sampler(gsl_rng* rng, const bsm_t& model);
     virtual ~rejection_sampler();
 
     double sample() const;
@@ -44,7 +44,6 @@ public:
     double density(double t) const;
 
 private:
-    const std::pair<double, double> find_bounds_easy() const;
     const std::pair<double, double> find_bounds() const;
 
     double integrate() const;

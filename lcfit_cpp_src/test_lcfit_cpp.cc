@@ -139,7 +139,7 @@ TEST_CASE("test_rejection_sampler", "Test sampling from a BSM log-likelihood fun
 
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_default);
 
-    lcfit::rejection_sampler sampler(rng, r);
+    lcfit::rejection_sampler sampler(rng, r.model_fit);
     double s = sampler.sample();
     REQUIRE(s > 0.0);
 }
