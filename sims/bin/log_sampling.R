@@ -88,12 +88,17 @@ logsumexp <- function(x) {
 }
 
 # Integrand of the integral representation of Appell's F1 function with y = -x.
+# This identity is only valid when Re(a) > 0 and Re(-a + c) > 0.
+#
 # http://functions.wolfram.com/HypergeometricFunctions/AppellF1/07/ShowAll.html
 .xxx_appell_integrand <- function(t, a, b1, b2, c, x) {
   (1 - t)^(-1 - a + c) * t^(-1 + a) / ((1 - t*x)^b1 * (1 + t*x)^b2)
 }
 
-# Integrand of the integral representation of Appell's F1 function with y = -x.
+# Integrand of the integral representation of Appell's F1 function with y = -x,
+# using logarithms for stability. This identity is only valid when Re(a) > 0 and
+# Re(-a + c) > 0.
+#
 # http://functions.wolfram.com/HypergeometricFunctions/AppellF1/07/ShowAll.html
 .appell_integrand <- function(t, a, b1, b2, c, x) {
   y <- (-1 - a + c)*log(1 - t) + (-1 + a)*log(t) - b1*log(1 - t*x) - b2*log(1 + t*x)
