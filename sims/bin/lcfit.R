@@ -1,5 +1,13 @@
 lcfit_bsm_ml_t <- function(m) {
-  ml_t <- ((log((m$c - m$m) / (m$c + m$m))) / (-m$r)) - m$b
+  if (m$c > m$m) {
+    ml_t <- ((log((m$c - m$m) / (m$c + m$m))) / (-m$r)) - m$b
+  } else {
+    ml_t <- Inf
+  }
+
+  if (is.finite(ml_t) && ml_t < 0) {
+    ml_t <- 0.0
+  }
   return(ml_t)
 }
 
