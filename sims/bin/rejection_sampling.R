@@ -1,3 +1,4 @@
+library(ggplot2)
 source("bin/lcfit.R")
 
 rejection_sampler <- function(m, lambda, N) {
@@ -60,28 +61,34 @@ rejection_sampler <- function(m, lambda, N) {
 #####
 
 source ("bin/log_sampling.R")
-library(dplyr)
 
+# small model
 print(system.time(rej.samples.s <- rejection_sampler(m.s, lambda, 1000)))
 rej.data.s <- lcfit_sample_exp_prior_compare(m.s, lambda, rej.samples.s)
 p.rej.s <- p.s %+% rej.data.s + ggtitle("rejection sampling, small model")
 
+# medium model
 print(system.time(rej.samples.m <- rejection_sampler(m.m, lambda, 1000)))
 rej.data.m <- lcfit_sample_exp_prior_compare(m.m, lambda, rej.samples.m)
 p.rej.m <- p.s %+% rej.data.m + ggtitle("rejection sampling, medium model")
 
-# m.w <- list(c = 2000, m = 500, r = 2, b = 0.4)
+# # weird model
 # print(system.time(rej.samples.w <- rejection_sampler(m.w, lambda, 1000)))
 # rej.data.w <- lcfit_sample_exp_prior_compare(m.w, lambda, rej.samples.w)
 # p.rej.w <- p.s %+% rej.data.w + ggtitle("rejection sampling, weird model")
 
-combined.s <- tbl_df(rbind(data.frame(t = samples.s, method = "exact"),
-                           data.frame(t = rej.samples.s, method = "rejection")))
-
+# small model, combined
+combined.s <- rbind(data.frame(t = samples.s, method = "exact"),
+                    data.frame(t = rej.samples.s, method = "rejection"))
+hist.s <- hist(combined.s$t, breaks = 100, plot = FALSE)
 p.all.s <- ggplot(combined.s, aes(t, fill = method)) +
-  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5)
+  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5,
+                 breaks = hist.s$breaks)
 
-combined.m <- tbl_df(rbind(data.frame(t = samples.m, method = "exact"),
-                           data.frame(t = rej.samples.m, method = "rejection")))
-
-p.all.m <- p.all.s %+% combined.m
+# medium model, combined
+combined.m <- rbind(data.frame(t = samples.m, method = "exact"),
+                    data.frame(t = rej.samples.m, method = "rejection"))
+hist.m <- hist(combined.m$t, breaks = 100, plot = FALSE)
+p.all.m <- ggplot(combined.m, aes(t, fill = method)) +
+  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5,
+                 breaks = hist.m$breaks)

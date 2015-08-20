@@ -1,7 +1,7 @@
 library(ggplot2)
 library(gridExtra)
 
-source("lcfit.R")
+source("bin/lcfit.R")
 
 model.regime <- function(m) {
   if (m$c == m$m) { return(-1) }
