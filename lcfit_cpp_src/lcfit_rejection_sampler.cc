@@ -1,24 +1,26 @@
 #include "lcfit_rejection_sampler.h"
 
 #include <cmath>
-#include <iostream>
-#include <numeric>
 #include <stdexcept>
-#include <utility>
 #include <gsl/gsl_integration.h>
+#include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
 #include "lcfit_cpp.h"
 
 namespace lcfit {
 
-rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model) :
-    rng_(rng), model_(model), n_trials_(0), n_accepts_(0)
+rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model, double lambda) :
+    rng_(rng), model_(model), mu_(1.0 / lambda)
 {
+    if (!std::isnormal(mu_)) {
+        throw std::invalid_argument("invalid exponential rate parameter");
+    }
+
     ml_t_ = lcfit_bsm_ml_t(&model_);
 
-    if (!std::isfinite(ml_t_)) {
-        throw std::runtime_error("lcfit failure: non-finite ML branch length");
+    if (std::isnan(ml_t_)) {
+        throw std::runtime_error("lcfit failure: ML branch length is NaN");
     }
 
     ml_ll_ = lcfit_bsm_log_like(ml_t_, &model_);
@@ -27,45 +29,33 @@ rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model) :
         throw std::runtime_error("lcfit failure: non-finite ML log-likelihood");
     }
 
-    std::tie(t_min_, t_max_) = find_bounds();
-
-    if (t_max_ <= 0.0) {
-        throw std::runtime_error("lcfit failure: invalid proposal range");
-    }
-
     log_auc_ = std::log(integrate());
 
     if (!std::isnormal(log_auc_)) {
-        throw std::runtime_error("lcfit failure: integration result");
+        throw std::runtime_error("lcfit failure: invalid integration result");
     }
 }
-
-rejection_sampler::~rejection_sampler()
-{ }
 
 double rejection_sampler::sample() const
 {
     double t = 0.0;
-    double y = 0.0;
+    double u = 0.0;
+    double f = 0.0;
 
     do {
-        t = gsl_rng_uniform(rng_) * (t_max_ - t_min_) + t_min_;
-        y = gsl_rng_uniform(rng_);
-        ++n_trials_;
+        t = gsl_ran_exponential(rng_, mu_);
+        u = gsl_rng_uniform(rng_);
+        f = std::exp(lcfit_bsm_log_like(t, &model_) - ml_ll_);
+    } while (u >= f);
 
-        if (n_accepts_ == 0 && n_trials_ >= 1000) {
-            throw std::runtime_error("lcfit failure: inefficient sampling");
-        }
-
-    } while (y > relative_likelihood(t));
-
-    ++n_accepts_;
     return t;
 }
 
 double rejection_sampler::relative_log_likelihood(double t) const
 {
-    return lcfit_bsm_log_like(t, &model_) - ml_ll_;
+    return lcfit_bsm_log_like(t, &model_)
+            + std::log(gsl_ran_exponential_pdf(t, mu_))
+            - ml_ll_;
 }
 
 double rejection_sampler::relative_likelihood(double t) const
@@ -83,47 +73,6 @@ double rejection_sampler::density(double t) const
     return std::exp(log_density(t));
 }
 
-const std::pair<double, double> rejection_sampler::find_bounds() const
-{
-    // preconditions: ml_t_ >= 0.0, ml_ll_ exists at ml_t_
-    const double ll_threshold = -100.0;
-    const double MIN_STEP = 1e-3;
-
-    double t_min;
-    if (ml_t_ == 0.0) {
-        t_min = 0.0;
-    } else {
-        double step = MIN_STEP;
-        do {
-            if (!std::isfinite(step)) {
-                throw std::runtime_error("lcfit failure: t_min infinite step");
-            }
-
-            t_min = ml_t_ - step;
-            step *= 2.0;
-        } while (t_min >= 0.0 && relative_log_likelihood(t_min) > ll_threshold);
-
-        if (t_min < 0.0) {
-            t_min = 0.0;
-        }
-    }
-
-    double t_max;
-    {
-        double step = MIN_STEP;
-        do {
-            if (!std::isfinite(step)) {
-                throw std::runtime_error("lcfit failure: t_max infinite step");
-            }
-
-            t_max = ml_t_ + step;
-            step *= 2.0;
-        } while (relative_log_likelihood(t_max) > ll_threshold);
-    }
-
-    return std::make_pair(t_min, t_max);
-}
-
 double relative_likelihood_callback(double t, void* data)
 {
     return static_cast<const lcfit::rejection_sampler*>(data)->relative_likelihood(t);
@@ -139,22 +88,14 @@ double rejection_sampler::integrate() const
     double error = 0.0;
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(100);
-    gsl_integration_qag(&f, t_min_, t_max_, 0.0, 1e-5, 100, GSL_INTEG_GAUSS21,
-                        workspace, &result, &error);
+    int status = gsl_integration_qagiu(&f, 0.0, 0.0, 1e-5, 100, workspace, &result, &error);
     gsl_integration_workspace_free(workspace);
 
-    if (error > 1e-3) {
-        throw std::runtime_error("lcfit failure: integration error");
+    if (status) {
+        throw std::runtime_error(gsl_strerror(status));
     }
 
     return result;
-}
-
-void rejection_sampler::print_acceptance_rate() const
-{
-    std::clog << "[rejection_sampler] acceptance rate = "
-              << static_cast<double>(n_accepts_) / n_trials_
-              << " [" << n_accepts_ << "/" << n_trials_ << "]\n";
 }
 
 } // namespace lcfit

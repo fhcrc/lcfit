@@ -129,17 +129,38 @@ TEST_CASE("test_bsm_fit", "Test fitting an actual BSM log-likelihood function")
 
 TEST_CASE("test_rejection_sampler", "Test sampling from a BSM log-likelihood function")
 {
-    auto log_like = [](const double t) -> double {
-        const static bsm_t m = {2000, 500, 2.0, 0.4};
-        return lcfit_bsm_log_like(t, &m);
-    };
-    const std::vector<double> t{0.1,0.15,0.5};
-    const bsm_t m = {1500, 1000, 1.0, 0.5};
-    lcfit::LCFitResult r = fit_bsm_log_likelihood(log_like, m, t);
-
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_default);
+    double lambda = 0.1;
 
-    lcfit::rejection_sampler sampler(rng, r.model_fit);
-    double s = sampler.sample();
-    REQUIRE(s > 0.0);
+    SECTION("in regime 1") {
+        bsm_t m = {10.0, 1.0, 1.0, 0.0};
+        lcfit::rejection_sampler sampler(rng, m, lambda);
+
+        double s = sampler.sample();
+        REQUIRE(s > 0.0);
+    }
+
+    SECTION("in regime 2") {
+        bsm_t m = {10.0, 1.0, 1.0, 0.1};
+        lcfit::rejection_sampler sampler(rng, m, lambda);
+
+        double s = sampler.sample();
+        REQUIRE(s > 0.0);
+    }
+
+    SECTION("in regime 3") {
+        bsm_t m = {10.0, 1.0, 1.0, 1.0};
+        lcfit::rejection_sampler sampler(rng, m, lambda);
+
+        double s = sampler.sample();
+        REQUIRE(s > 0.0);
+    }
+
+    SECTION("in regime 4") {
+        bsm_t m = {1.0, 10.0, 1.0, 0.1};
+        lcfit::rejection_sampler sampler(rng, m, lambda);
+
+        double s = sampler.sample();
+        REQUIRE(s > 0.0);
+    }
 }
