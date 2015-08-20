@@ -16,23 +16,41 @@ rejection_sampler <- function(m, lambda, N) {
     g <- function(t) { 1.0 }
   }
 
-  s <- vector(length = N)
   i <- 0
   trials <- 0
 
   pb <- txtProgressBar(min = 0, max = N, style = 3)
 
-  while (i <= N) {
-    t <- rexp(1, lambda)
-    u <- runif(1)
+#   # iterative implementation, for reference
+#   s <- vector(length = N)
+#   while (i <= N) {
+#     t <- rexp(1, lambda)
+#     u <- runif(1)
+#
+#     trials <- trials + 1
+#     if (u * g(t) < f(t)) {
+#       i <- i + 1
+#       s[i] <- t
+#       setTxtProgressBar(pb, i)
+#     }
+#   }
 
-    trials <- trials + 1
-    if (u * g(t) < f(t)) {
-      i <- i + 1
-      s[i] <- t
-      setTxtProgressBar(pb, i)
-    }
+  # vectorized implementation of the above
+  s <- NULL
+  batch_size <- min(N, 10000)
+  while (i <= N) {
+    t <- rexp(batch_size, lambda)
+    u <- runif(batch_size)
+
+    trials <- trials + batch_size
+    t <- t[u * g(t) < f(t)]
+    s <- c(s, t)
+
+    i <- i + length(t)
+    setTxtProgressBar(pb, min(N, i))
   }
+
+  s <- s[1:N]
 
   close(pb)
   print(sprintf("acceptance ratio: %g", i / trials))
