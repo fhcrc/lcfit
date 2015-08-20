@@ -5,17 +5,7 @@ rejection_sampler <- function(m, lambda, N) {
   ml_t <- lcfit_bsm_ml_t(m)
   ml_ll <- lcfit_bsm_log_like(ml_t, m)
 
-  if (is.finite(ml_t)) {
-    f <- function(t) {
-      exp(lcfit_bsm_log_like(t, m) + log(dexp(t, lambda)) - ml_ll - log(dexp(ml_t, lambda)))
-    }
-    g <- function(t) {
-      exp(log(dexp(t, lambda)) - log(dexp(ml_t, lambda)))
-    }
-  } else {
-    f <- function(t) { exp(lcfit_bsm_log_like(t, m) - ml_ll) }
-    g <- function(t) { 1.0 }
-  }
+  f <- function(t) { exp(lcfit_bsm_log_like(t, m) - ml_ll) }
 
   i <- 0
   trials <- 0
@@ -29,7 +19,7 @@ rejection_sampler <- function(m, lambda, N) {
 #     u <- runif(1)
 #
 #     trials <- trials + 1
-#     if (u * g(t) < f(t)) {
+#     if (u < f(t)) {
 #       i <- i + 1
 #       s[i] <- t
 #       setTxtProgressBar(pb, i)
@@ -44,7 +34,7 @@ rejection_sampler <- function(m, lambda, N) {
     u <- runif(batch_size)
 
     trials <- trials + batch_size
-    t <- t[u * g(t) < f(t)]
+    t <- t[u < f(t)]
     s <- c(s, t)
 
     i <- i + length(t)
