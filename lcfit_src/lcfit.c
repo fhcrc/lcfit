@@ -7,6 +7,7 @@
 #include "lcfit.h"
 
 #include <assert.h>
+#include <math.h>
 #include <limits.h>
 #include <stdlib.h>
 
@@ -52,6 +53,13 @@ static void log_normalize(gsl_vector* x)
 
 double lcfit_bsm_log_like(const double t, const bsm_t* m)
 {
+    if (t == 0.0 && m->b == 0.0 && m->c > m->m) {
+        return -INFINITY;
+    }
+    else if (t == INFINITY) {
+        return (m->c * log(0.5) + m->m * log(0.5));
+    }
+
     double expterm = exp(-m->r * (t + m->b));
     return (m->c * log((1 + expterm) / 2) + m->m * log((1 - expterm) / 2));
 }
@@ -59,6 +67,10 @@ double lcfit_bsm_log_like(const double t, const bsm_t* m)
 /* The ML branch length for c, m, r, b */
 double lcfit_bsm_ml_t(const bsm_t* m)
 {
+    if (m->c <= m->m) {
+        return INFINITY;
+    }
+
     double t = ((log((m->c - m->m) / (m->c + m->m))) / (-m->r)) - m->b;
     return t < 0.0 ? 0.0 : t;
 }

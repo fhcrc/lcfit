@@ -4,6 +4,40 @@
 #include "lcfit.h"
 #include "lcfit_select.h"
 
+TEST_CASE("model values are computed correctly", "[bsm_values]") {
+    SECTION("in regime 1") {
+        bsm_t m = {10.0, 1.0, 1.0, 0.0};
+        REQUIRE(lcfit_bsm_ml_t(&m) == Approx(0.2006707));
+        REQUIRE(lcfit_bsm_log_like(0.0, &m) == -INFINITY);
+        REQUIRE(lcfit_bsm_log_like(0.2, &m) == Approx(-3.351002));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));
+    }
+
+    SECTION("in regime 2") {
+        bsm_t m = {10.0, 1.0, 1.0, 0.1};
+        REQUIRE(lcfit_bsm_ml_t(&m) == Approx(0.1006707));
+        REQUIRE(lcfit_bsm_log_like(0.0, &m) == Approx(-3.532821));
+        REQUIRE(lcfit_bsm_log_like(0.1, &m) == Approx(-3.351002));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));
+    }
+
+    SECTION("in regime 3") {
+        bsm_t m = {10.0, 1.0, 1.0, 1.0};
+        REQUIRE(lcfit_bsm_ml_t(&m) == 0.0);
+        REQUIRE(lcfit_bsm_log_like(0.0, &m) == Approx(-4.950677));
+        REQUIRE(lcfit_bsm_log_like(0.1, &m) == Approx(-5.156038));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));
+    }
+
+    SECTION("in regime 4") {
+        bsm_t m = {1.0, 10.0, 1.0, 0.1};
+        REQUIRE(lcfit_bsm_ml_t(&m) == INFINITY);
+        REQUIRE(lcfit_bsm_log_like(0.0, &m) == Approx(-30.50191));
+        REQUIRE(lcfit_bsm_log_like(0.1, &m) == Approx(-24.1042));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));
+    }
+}
+
 TEST_CASE("curves are classified correctly", "[classify_curve]") {
     SECTION("when points are decreasing") {
         std::vector<point_t> pts = {{0.0, 1.0},
