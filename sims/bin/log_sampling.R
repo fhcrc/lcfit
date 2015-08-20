@@ -151,23 +151,22 @@ lcfit_sample_exp_prior <- function(m, lambda, N) {
 
 # Compare branch lengths sampled from a model and an exponential prior with the
 # expected distribution.
-lcfit_sample_exp_prior_compare <- function(m, lambda, s) {
+lcfit_sample_exp_prior_compare <- function(m, lambda, s, breaks = 100) {
   # Compute sample histogram.
-  nbins <- 100
-  hobj <- hist(s, breaks = nbins, plot = FALSE)
+  hobj <- hist(s, breaks = breaks, plot = FALSE)
   t <- hobj$mids
 
   # Compute expected likelihoods and (unnormalized) densities.
-  #l <- exp(lcfit_bsm_log_like(t, m) - lambda * t) # stability problems?
   x <- exp(-m$r*(m$b + t))
-  l <- (1 + x)^m$c * (1 - x)^m$m * exp(-lambda * t)
-  d <- l * m$r / exp(lambda * m$b)
+  ll <- m$c*log(1 + x) + m$m*log(1 - x) - lambda*t
+  ld <- ll + log(m$r) - lambda*m$b
 
   # Normalize densities by approximating the function and dividing by its
   # integral.
-  dfun <- approxfun(t, d)
+  ldfun <- approxfun(t, ld)
+  dfun <- function(t) { exp(ldfun(t)) }
   cons <- integrate(dfun, min(t), max(t))$value
-  d <- d / cons
+  d <- exp(ld - log(cons))
 
   data <- data.frame(t = t, expected = d, observed = hobj$density)
 }
