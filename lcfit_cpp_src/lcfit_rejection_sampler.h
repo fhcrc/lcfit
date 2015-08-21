@@ -11,7 +11,7 @@
 
 #include <gsl/gsl_rng.h>
 
-#include "lcfit_cpp.h"
+#include "lcfit.h"
 
 namespace lcfit {
 
