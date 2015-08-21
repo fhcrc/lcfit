@@ -29,7 +29,7 @@ using namespace Rcpp;
 // [[Rcpp::export("lcfit_bsm_scale_factor")]]
 double rcpp_bsm_scale_factor(const double t, const double l, const List model)
 {
-    bsm_t m = {model["c"],model["m"],model["r"],model["b"]};
+    bsm_t m = {model["c"], model["m"], model["r"], model["b"]};
 
     double v = lcfit_bsm_scale_factor(t, l, &m);
     return(v);
@@ -41,15 +41,15 @@ NumericVector rcpp_bsm_rescale(const double bl, const double ll, List model)
 {
     // bl - branch lengths
     // ll - log-likelihood values
-    bsm_t m = {model["c"],model["m"],model["r"],model["b"]};
+    bsm_t m = {model["c"], model["m"], model["r"], model["b"]};
 
     lcfit_bsm_rescale(bl, ll, &m);
 
     return(Rcpp::NumericVector::create(
-	       _["c"]=m.c,
-	       _["m"]=m.m,
-	       _["r"]=m.r,
-	       _["b"]=m.b));
+        _["c"]=m.c,
+        _["m"]=m.m,
+        _["r"]=m.r,
+        _["b"]=m.b));
 }
 
 
@@ -60,7 +60,7 @@ NumericVector rcpp_fit_bsm(NumericVector bl, NumericVector ll, NumericVector w, 
     // ll - log-likelihood values
     int t_n = bl.size();
     int l_n = ll.size();
-    bsm_t m = {model["c"],model["m"],model["r"],model["b"]};
+    bsm_t m = {model["c"], model["m"], model["r"], model["b"]};
     int status;
 
     assert(t_n == l_n);
@@ -81,7 +81,7 @@ NumericVector rcpp_fit_bsm_iter(Function fn, NumericVector bl, double tolerance,
     log_like_function_t ll_fn = {rcpp_log_like_function, &fn};
     // bl - branch lengths
     int t_n = bl.size();
-    bsm_t m = {model["c"],model["m"],model["r"],model["b"]};
+    bsm_t m = {model["c"], model["m"], model["r"], model["b"]};
     bool success;
 
     estimate_ml_t(&ll_fn, bl.begin(), t_n, tolerance, &m, &success);
