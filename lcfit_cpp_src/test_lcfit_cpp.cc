@@ -163,4 +163,6 @@ TEST_CASE("test_rejection_sampler", "Test sampling from a BSM log-likelihood fun
         double s = sampler.sample();
         REQUIRE(s > 0.0);
     }
+
+    gsl_rng_free(rng);
 }
