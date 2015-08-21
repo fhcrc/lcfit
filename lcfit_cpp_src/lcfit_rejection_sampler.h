@@ -24,7 +24,8 @@ private:
     double ml_t_;
     double ml_ll_;
 
-    double log_auc_;
+    mutable double log_auc_;
+    mutable bool log_auc_cached_;
 
   public:
     rejection_sampler(gsl_rng* rng, const bsm_t& model, double lambda);

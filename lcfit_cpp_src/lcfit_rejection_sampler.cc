@@ -11,7 +11,7 @@
 namespace lcfit {
 
 rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model, double lambda) :
-    rng_(rng), model_(model), mu_(1.0 / lambda)
+    rng_(rng), model_(model), mu_(1.0 / lambda), log_auc_cached_(false)
 {
     if (!std::isnormal(mu_)) {
         throw std::invalid_argument("invalid exponential rate parameter");
@@ -27,12 +27,6 @@ rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model, double la
 
     if (!std::isfinite(ml_ll_)) {
         throw std::runtime_error("lcfit failure: non-finite ML log-likelihood");
-    }
-
-    log_auc_ = std::log(integrate());
-
-    if (!std::isnormal(log_auc_)) {
-        throw std::runtime_error("lcfit failure: invalid integration result");
     }
 }
 
@@ -65,6 +59,11 @@ double rejection_sampler::relative_likelihood(double t) const
 
 double rejection_sampler::log_density(double t) const
 {
+    if (!log_auc_cached_) {
+        log_auc_ = std::log(integrate());
+        log_auc_cached_ = true;
+    }
+
     return relative_log_likelihood(t) - log_auc_;
 }
 
@@ -93,6 +92,10 @@ double rejection_sampler::integrate() const
 
     if (status) {
         throw std::runtime_error(gsl_strerror(status));
+    }
+
+    if (!std::isnormal(result)) {
+        throw std::runtime_error("lcfit failure: invalid integration result");
     }
 
     return result;
