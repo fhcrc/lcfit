@@ -33,8 +33,8 @@ private:
 
     double sample() const;
 
-    double relative_log_likelihood(double t) const;
-    double relative_likelihood(double t) const;
+    double log_likelihood(double t) const;
+    double likelihood(double t) const;
 
     double log_density(double t) const;
     double density(double t) const;

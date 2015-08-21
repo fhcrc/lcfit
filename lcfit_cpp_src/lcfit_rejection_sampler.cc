@@ -45,16 +45,16 @@ double rejection_sampler::sample() const
     return t;
 }
 
-double rejection_sampler::relative_log_likelihood(double t) const
+double rejection_sampler::log_likelihood(double t) const
 {
     return lcfit_bsm_log_like(t, &model_)
             + std::log(gsl_ran_exponential_pdf(t, mu_))
             - ml_ll_;
 }
 
-double rejection_sampler::relative_likelihood(double t) const
+double rejection_sampler::likelihood(double t) const
 {
-    return std::exp(relative_log_likelihood(t));
+    return std::exp(log_likelihood(t));
 }
 
 double rejection_sampler::log_density(double t) const
@@ -64,7 +64,7 @@ double rejection_sampler::log_density(double t) const
         log_auc_cached_ = true;
     }
 
-    return relative_log_likelihood(t) - log_auc_;
+    return log_likelihood(t) - log_auc_;
 }
 
 double rejection_sampler::density(double t) const
@@ -72,15 +72,15 @@ double rejection_sampler::density(double t) const
     return std::exp(log_density(t));
 }
 
-double relative_likelihood_callback(double t, void* data)
+double likelihood_callback(double t, void* data)
 {
-    return static_cast<const lcfit::rejection_sampler*>(data)->relative_likelihood(t);
+    return static_cast<const lcfit::rejection_sampler*>(data)->likelihood(t);
 }
 
 double rejection_sampler::integrate() const
 {
     gsl_function f;
-    f.function = &lcfit::relative_likelihood_callback;
+    f.function = &lcfit::likelihood_callback;
     f.params = static_cast<void*>(const_cast<rejection_sampler*>(this));
 
     double result = 0.0;
