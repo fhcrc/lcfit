@@ -1,9 +1,11 @@
 #include <Rcpp.h>
 #include <assert.h>
 #include <iostream>
+#include <gsl/gsl_rng.h>
 
 #include "lcfit.h"
 #include "lcfit_select.h"
+#include "lcfit_rejection_sampler.h"
 
 using namespace std;
 using namespace Rcpp;
@@ -87,6 +89,25 @@ NumericVector rcpp_fit_bsm_iter(Function fn, NumericVector bl, double tolerance,
     estimate_ml_t(&ll_fn, bl.begin(), t_n, tolerance, &m, &success);
 
     return(Rcpp::NumericVector::create(_["c"]=m.c, _["m"]=m.m, _["r"]=m.r, _["b"]=m.b, _["success"]=success));
+}
+
+// [[Rcpp::export("lcfit_bsm_sample")]]
+NumericVector rcpp_bsm_sample(List model, double lambda, int n_samples)
+{
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_default);
+    bsm_t m = {model["c"], model["m"], model["r"], model["b"]};
+
+    lcfit::rejection_sampler sampler(rng, m, lambda);
+
+    Rcpp::NumericVector samples(n_samples);
+
+    for (int i = 0; i < n_samples; ++i) {
+        samples[i] = sampler.sample();
+    }
+
+    gsl_rng_free(rng);
+
+    return samples;
 }
 
 // exposing enums outside a class definition does not work.

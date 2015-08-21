@@ -60,3 +60,16 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// rcpp_bsm_sample
+NumericVector rcpp_bsm_sample(List model, double lambda, int n_samples);
+RcppExport SEXP lcfit_rcpp_bsm_sample(SEXP modelSEXP, SEXP lambdaSEXP, SEXP n_samplesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< List >::type model(modelSEXP);
+    Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< int >::type n_samples(n_samplesSEXP);
+    __result = Rcpp::wrap(rcpp_bsm_sample(model, lambda, n_samples));
+    return __result;
+END_RCPP
+}

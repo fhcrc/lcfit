@@ -17,3 +17,7 @@ lcfit_fit_bsm_iter <- function(fn, bl, tolerance, model) {
     .Call('lcfit_rcpp_fit_bsm_iter', PACKAGE = 'lcfit', fn, bl, tolerance, model)
 }
 
+lcfit_bsm_sample <- function(model, lambda, n_samples) {
+    .Call('lcfit_rcpp_bsm_sample', PACKAGE = 'lcfit', model, lambda, n_samples)
+}
+
