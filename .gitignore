@@ -5,3 +5,7 @@ _build
 *.html
 README.pdf
 .Rproj.user
+.DS_Store
+.RData
+.Rhistory
+*.Rproj
