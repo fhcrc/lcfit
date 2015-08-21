@@ -178,28 +178,5 @@ lcfit_sample_exp_prior_compare <- function(m, lambda, s, breaks = 100) {
   data <- data.frame(t = t, expected = d, observed = hobj$density)
 }
 
-#####
-
-set.seed(0)
-
 # Choose the implementation of K(x) to use.
 lcfit_k_exp_prior_ln <- .k_exp_prior_appell_ln
-
-lambda <- 0.1
-
-# small model
-m.s <- list(c = 5, m = 8, r = 1, b = 0.5)
-print(system.time(samples.s <- lcfit_sample_exp_prior(m.s, lambda, 1000)))
-data.s <- lcfit_sample_exp_prior_compare(m.s, lambda, samples.s)
-p.s <- ggplot(data.s, aes(x = t)) + geom_line(aes(y = expected)) +
-  geom_bar(aes(y = observed), stat = "identity", alpha = 0.4) +
-  ylab('probability') +
-  xlab('branch length') +
-  ggtitle("exact sampling, small model")
-
-# medium model
-m.m <- list(c = 1100, m = 800, r = 2, b = 0.5)
-print(system.time(samples.m <- lcfit_sample_exp_prior(m.m, lambda, 1000)))
-data.m <- lcfit_sample_exp_prior_compare(m.m, lambda, samples.m)
-p.m <- p.s %+% data.m + ggtitle("exact sampling, medium model")
-

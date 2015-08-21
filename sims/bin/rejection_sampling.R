@@ -48,37 +48,88 @@ rejection_sampler <- function(m, lambda, N) {
   return(s)
 }
 
+test_sampler <- function(sampler, m, lambda, N, label = "unknown") {
+  message(paste("testing", label), ", model = (", m$c, ", ", m$m, ", ", m$r, ", ", m$b, ")")
+  print(system.time(samples <- sampler(m, lambda, N)))
+  data <- lcfit_sample_exp_prior_compare(m, lambda, samples)
+  p <- ggplot(data, aes(x = t)) + geom_line(aes(y = expected)) +
+    geom_bar(aes(y = observed), stat = "identity", alpha = 0.4) +
+    ylab("probability") +
+    xlab("branch length") +
+    ggtitle(bquote(atop(.(label), list(c==.(m$c), m==.(m$m), r==.(m$r), b==.(m$b), lambda==.(lambda)))))
+
+  return(list(model = m, lambda = lambda, samples = samples,
+              data = data, label = label, plot = p))
+}
+
+compare_results <- function(results1, results2)
+{
+  m1 <- results1$model
+  m2 <- results2$model
+  stopifnot(m1$c == m2$c, m1$m == m2$m, m1$r == m2$r, m1$b == m2$b,
+            results1$lambda == results2$lambda)
+
+  data <- rbind(data.frame(t = results1$samples, method = results1$label),
+                data.frame(t = results2$samples, method = results2$label))
+  hobj <- hist(data$t, breaks = 100, plot = FALSE)
+
+  p <- ggplot(data, aes(t, fill = method)) +
+    geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5,
+                   breaks = hobj$breaks) +
+    ylab("probability") +
+    xlab("branch length") +
+    ggtitle(bquote(list(c==.(m1$c), m==.(m1$m), r==.(m1$r), b==.(m1$b),
+                        lambda==.(results1$lambda))))
+
+  return(list(data = data, plot = p))
+}
+
 #####
 
 source ("bin/log_sampling.R")
 
+set.seed(0)
+
+lambda <- 0.1
+N <- 1000
+
 # small model
-print(system.time(rej.samples.s <- rejection_sampler(m.s, lambda, 1000)))
-rej.data.s <- lcfit_sample_exp_prior_compare(m.s, lambda, rej.samples.s)
-p.rej.s <- p.s %+% rej.data.s + ggtitle("rejection sampling, small model")
+m.s <- list(c = 5, m = 8, r = 1, b = 0.5)
+
+inv.s <- test_sampler(lcfit_sample_exp_prior, m.s, lambda, N,
+                      "inversion sampler")
+rejR.s <- test_sampler(rejection_sampler, m.s, lambda, N,
+                       "rejection sampler (R)")
+rejC.s <- test_sampler(lcfit::lcfit_bsm_sample, m.s, lambda, N,
+                       "rejection sampler (C++)")
+
+inv_vs_rejR.s <- compare_results(inv.s, rejR.s)
+inv_vs_rejC.s <- compare_results(inv.s, rejC.s)
+rejR_vs_rejC.s <- compare_results(rejR.s, rejC.s)
 
 # medium model
-print(system.time(rej.samples.m <- rejection_sampler(m.m, lambda, 1000)))
-rej.data.m <- lcfit_sample_exp_prior_compare(m.m, lambda, rej.samples.m)
-p.rej.m <- p.s %+% rej.data.m + ggtitle("rejection sampling, medium model")
+m.m <- list(c = 1100, m = 800, r = 2, b = 0.5)
 
-# # weird model
-# print(system.time(rej.samples.w <- rejection_sampler(m.w, lambda, 1000)))
-# rej.data.w <- lcfit_sample_exp_prior_compare(m.w, lambda, rej.samples.w)
-# p.rej.w <- p.s %+% rej.data.w + ggtitle("rejection sampling, weird model")
+inv.m <- test_sampler(lcfit_sample_exp_prior, m.m, lambda, N,
+                      "inversion sampler")
+rejR.m <- test_sampler(rejection_sampler, m.m, lambda, N,
+                       "rejection sampler (R)")
+rejC.m <- test_sampler(lcfit::lcfit_bsm_sample, m.m, lambda, N,
+                       "rejection sampler (C++)")
 
-# small model, combined
-combined.s <- rbind(data.frame(t = samples.s, method = "exact"),
-                    data.frame(t = rej.samples.s, method = "rejection"))
-hist.s <- hist(combined.s$t, breaks = 100, plot = FALSE)
-p.all.s <- ggplot(combined.s, aes(t, fill = method)) +
-  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5,
-                 breaks = hist.s$breaks)
+inv_vs_rejR.m <- compare_results(inv.m, rejR.m)
+inv_vs_rejC.m <- compare_results(inv.m, rejC.m)
+rejR_vs_rejC.m <- compare_results(rejR.m, rejC.m)
 
-# medium model, combined
-combined.m <- rbind(data.frame(t = samples.m, method = "exact"),
-                    data.frame(t = rej.samples.m, method = "rejection"))
-hist.m <- hist(combined.m$t, breaks = 100, plot = FALSE)
-p.all.m <- ggplot(combined.m, aes(t, fill = method)) +
-  geom_histogram(aes(y = ..density..), position = "identity", alpha = 0.5,
-                 breaks = hist.m$breaks)
+# long model
+m.l <- list(c = 2000, m = 500, r = 2, b = 0.5)
+inv.l <- test_sampler(lcfit_sample_exp_prior, m.l, lambda, N,
+                      "inversion sampler")
+rejR.l <- test_sampler(rejection_sampler, m.l, lambda, N,
+                       "rejection sampler (R)")
+rejC.l <- test_sampler(lcfit::lcfit_bsm_sample, m.l, lambda, N,
+                       "rejection sampler (C++)")
+
+inv_vs_rejR.l <- compare_results(inv.l, rejR.l)
+inv_vs_rejC.l <- compare_results(inv.l, rejC.l)
+rejR_vs_rejC.l <- compare_results(rejR.l, rejC.l)
