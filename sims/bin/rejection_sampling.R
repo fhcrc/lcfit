@@ -84,6 +84,17 @@ compare_results <- function(results1, results2)
   return(list(data = data, plot = p))
 }
 
+test_model <- function(m, lambda, N) {
+  inv <- test_sampler(lcfit_sample_exp_prior, m, lambda, N,
+                      "inversion sampler")
+  rejR <- test_sampler(rejection_sampler, m, lambda, N,
+                       "rejection sampler (R)")
+  rejC <- test_sampler(lcfit::lcfit_bsm_sample, m, lambda, N,
+                       "rejection sampler (C++)")
+
+  return(list(inv = inv, rejR = rejR, rejC = rejC))
+}
+
 #####
 
 source ("bin/log_sampling.R")
@@ -96,40 +107,29 @@ N <- 1000
 # small model
 m.s <- list(c = 5, m = 8, r = 1, b = 0.5)
 
-inv.s <- test_sampler(lcfit_sample_exp_prior, m.s, lambda, N,
-                      "inversion sampler")
-rejR.s <- test_sampler(rejection_sampler, m.s, lambda, N,
-                       "rejection sampler (R)")
-rejC.s <- test_sampler(lcfit::lcfit_bsm_sample, m.s, lambda, N,
-                       "rejection sampler (C++)")
+results.s <- test_model(m.s, lambda, N)
+#inv_vs_rejR.s <- compare_results(results.s$inv, results.s$rejR)
+inv_vs_rejC.s <- compare_results(results.s$inv, results.s$rejC)
+#rejR_vs_rejC.s <- compare_results(results.s$rejR, results.s$rejC)
 
-inv_vs_rejR.s <- compare_results(inv.s, rejR.s)
-inv_vs_rejC.s <- compare_results(inv.s, rejC.s)
-rejR_vs_rejC.s <- compare_results(rejR.s, rejC.s)
+inv_vs_rejC.s$plot
 
 # medium model
 m.m <- list(c = 1100, m = 800, r = 2, b = 0.5)
 
-inv.m <- test_sampler(lcfit_sample_exp_prior, m.m, lambda, N,
-                      "inversion sampler")
-rejR.m <- test_sampler(rejection_sampler, m.m, lambda, N,
-                       "rejection sampler (R)")
-rejC.m <- test_sampler(lcfit::lcfit_bsm_sample, m.m, lambda, N,
-                       "rejection sampler (C++)")
+results.m <- test_model(m.m, lambda, N)
+#inv_vs_rejR.m <- compare_results(results.m$inv, results.m$rejR)
+inv_vs_rejC.m <- compare_results(results.m$inv, results.m$rejC)
+#rejR_vs_rejC.m <- compare_results(results.m$rejR, results.m$rejC)
 
-inv_vs_rejR.m <- compare_results(inv.m, rejR.m)
-inv_vs_rejC.m <- compare_results(inv.m, rejC.m)
-rejR_vs_rejC.m <- compare_results(rejR.m, rejC.m)
+inv_vs_rejC.m$plot
 
 # long model
 m.l <- list(c = 2000, m = 500, r = 2, b = 0.5)
-inv.l <- test_sampler(lcfit_sample_exp_prior, m.l, lambda, N,
-                      "inversion sampler")
-rejR.l <- test_sampler(rejection_sampler, m.l, lambda, N,
-                       "rejection sampler (R)")
-rejC.l <- test_sampler(lcfit::lcfit_bsm_sample, m.l, lambda, N,
-                       "rejection sampler (C++)")
 
-inv_vs_rejR.l <- compare_results(inv.l, rejR.l)
-inv_vs_rejC.l <- compare_results(inv.l, rejC.l)
-rejR_vs_rejC.l <- compare_results(rejR.l, rejC.l)
+results.l <- test_model(m.l, lambda, N)
+#inv_vs_rejR.l <- compare_results(results.l$inv, results.l$rejR)
+inv_vs_rejC.l <- compare_results(results.l$inv, results.l$rejC)
+#rejR_vs_rejC.l <- compare_results(results.l$rejR, results.l$rejC)
+
+inv_vs_rejC.l$plot
