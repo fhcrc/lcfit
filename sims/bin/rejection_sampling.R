@@ -112,7 +112,7 @@ results.s <- test_model(m.s, lambda, N)
 inv_vs_rejC.s <- compare_results(results.s$inv, results.s$rejC)
 #rejR_vs_rejC.s <- compare_results(results.s$rejR, results.s$rejC)
 
-inv_vs_rejC.s$plot
+print(inv_vs_rejC.s$plot)
 
 # medium model
 m.m <- list(c = 1100, m = 800, r = 2, b = 0.5)
@@ -122,7 +122,7 @@ results.m <- test_model(m.m, lambda, N)
 inv_vs_rejC.m <- compare_results(results.m$inv, results.m$rejC)
 #rejR_vs_rejC.m <- compare_results(results.m$rejR, results.m$rejC)
 
-inv_vs_rejC.m$plot
+print(inv_vs_rejC.m$plot)
 
 # long model
 m.l <- list(c = 2000, m = 500, r = 2, b = 0.5)
@@ -132,4 +132,4 @@ results.l <- test_model(m.l, lambda, N)
 inv_vs_rejC.l <- compare_results(results.l$inv, results.l$rejC)
 #rejR_vs_rejC.l <- compare_results(results.l$rejR, results.l$rejC)
 
-inv_vs_rejC.l$plot
+print(inv_vs_rejC.l$plot)
