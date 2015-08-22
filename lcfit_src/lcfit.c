@@ -57,7 +57,7 @@ double lcfit_bsm_log_like(const double t, const bsm_t* m)
         return -INFINITY;
     }
     else if (t == INFINITY) {
-        return (m->c * log(0.5) + m->m * log(0.5));
+        return log(0.5) * (m->c + m->m);
     }
 
     double expterm = exp(-m->r * (t + m->b));
