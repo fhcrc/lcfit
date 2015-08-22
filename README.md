@@ -1,4 +1,4 @@
-# `lcfit`
+# lcfit [![build status](https://travis-ci.org/matsengrp/lcfit.svg?branch=master)](https://travis-ci.org/matsengrp/lcfit)
 
 Likelihood curve fitting by nonlinear least squares.
 
