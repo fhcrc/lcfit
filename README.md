@@ -2,55 +2,48 @@
 
 Likelihood curve fitting by nonlinear least squares.
 
-# Building
+## Building
 
-## Dependencies
+### Compile-time dependencies
 
-Building the library requires [cmake][1]
+Building the library requires [CMake](http://www.cmake.org).
 
-The lcfit C-library requires the [GNU Scientific Library][2] (`libgsl0-dev` on debian).
+Compiling the lcfit C library requires the [GNU Scientific Library](http://www.gnu.org/software/gsl/) and [NLopt](ab-initio.mit.edu/nlopt/).
+Compiling the lcfit C++ extension library, the `lcfit-compare` tool, and the test suite requires a C++11-compatible compiler.
+Additionally, the `lcfit-compare` tool requires the libraries `bpp-core`, `bpp-seq`, and `bpp-phyl` from [Bio++ 2.2.0](http://biopp.univ-montp2.fr/wiki/index.php/Installation).
 
-The `lcfit-compare` tool requires a C++11-compatible compiler, and the `bpp-core`, `bpp-seq`, and `bpp-phyl` libraries from the [Bio++ suite master branch ][3].
 
-We used:
+On Debian/Ubuntu:
 
-    bpp-core
-    commit 07e645acf4a90a81eb555d4a6ff7fe9ae951fd68
+```
+sudo apt-get install \
+    libgsl0-dev \
+    libnlopt-dev \
+    libbpp-core-dev \
+    libbpp-seq-dev \
+    libbpp-phyl-dev
+```
 
-    bpp-phyl
-    commit 498fa3fa6638bdad777e420c72873d8f3d68c00a
 
-    bpp-seq
-    commit 1ba912f48ad0eb42369269dc26209d66d7e1ccd9
-
-    bppsuite
-    commit 324d6f761c28c2fa4380a7233a59696e36b6a5e0
-
-Running the unit tests requires python.
-
-## Compiling
+### Compiling
 
 Run `make` to obtain static and dynamic libraries.
+Run `make doc` to build documentation (requires [Doxygen](http://doxygen.org)).
 
-Run `make doc` to build documentation.
 
-## Running unit tests
+### Running unit tests
 
-To run the test suite, run `make test`
+To build and run the test suite, run `make test`.
 
-[1]: http://www.cmake.org
-[2]: http://www.gnu.org/s/gsl
-[3]: http://biopp.univ-montp2.fr
 
-## Running simulations ##
+## Running simulations
 
-[Nestly](https://github.com/fhcrc/nestly) is used to build an extensive hierarchy of
-directories and configuration files to measure the behavior of lcfit
-when applied to a wide variety of data.  The simulations can take several hours to
-complete, but they can be run in parallel by passing the `-j` option
-to `scons`.   This will cause `scons` to launch multiple `slurm` jobs at
-once instead of running them sequentially.
+Running the simulations requires [SCons](http://www.scons.org), the Bio++ program suite (on Debian/Ubuntu, `sudo apt-get install bppsuite`), Python 2.7, and R 3.1.3.
+The required Python and R packages are listed in `sims/requirements.txt` and `sims/R-packages.txt`.
+
+[nestly](https://github.com/fhcrc/nestly) is used to build an extensive hierarchy of directories and configuration files to measure the behavior of `lcfit` when applied to a wide variety of data.
+The simulations can take several hours to complete, but they can be run in parallel by passing the `-j` option to `scons`.
+This will cause `scons` to launch multiple `slurm` jobs at once instead of running them sequentially.
 
     $ cd sims
-	$ scons -j 10
-	
+    $ scons -j 10
