@@ -127,7 +127,7 @@ double rejection_sampler::likelihood(double t) const
 double rejection_sampler::log_density(double t) const
 {
     if (!log_auc_cached_) {
-        log_auc_ = std::log(integrate());
+        log_auc_ = std::log(integrate(INFINITY));
         log_auc_cached_ = true;
     }
 
@@ -139,12 +139,22 @@ double rejection_sampler::density(double t) const
     return std::exp(log_density(t));
 }
 
+double rejection_sampler::cumulative_density(double t) const
+{
+    if (!log_auc_cached_) {
+        log_auc_ = std::log(integrate(INFINITY));
+        log_auc_cached_ = true;
+    }
+
+    return integrate(t) / std::exp(log_auc_);
+}
+
 double likelihood_callback(double t, void* data)
 {
     return static_cast<const lcfit::rejection_sampler*>(data)->likelihood(t);
 }
 
-double rejection_sampler::integrate() const
+double rejection_sampler::integrate(double t) const
 {
     gsl_function f;
     f.function = &lcfit::likelihood_callback;
@@ -154,7 +164,16 @@ double rejection_sampler::integrate() const
     double error = 0.0;
 
     gsl_integration_workspace* workspace = gsl_integration_workspace_alloc(100);
-    int status = gsl_integration_qagiu(&f, 0.0, 0.0, 1e-5, 100, workspace, &result, &error);
+    int status;
+
+    if (t == INFINITY) {
+        status = gsl_integration_qagiu(&f, 0.0, 0.0, 1e-5, 100,
+                                       workspace, &result, &error);
+    } else {
+        status = gsl_integration_qag(&f, 0.0, t, 0.0, 1e-5, 100, GSL_INTEG_GAUSS21,
+                                     workspace, &result, &error);
+    }
+
     gsl_integration_workspace_free(workspace);
 
     if (status) {

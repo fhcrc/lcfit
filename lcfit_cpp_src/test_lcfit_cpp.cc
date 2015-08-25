@@ -192,47 +192,44 @@ bool test_sample_distribution(const std::vector<double>& samples,
         gsl_histogram_increment(h, s);
     }
 
-    double area = 0.0;
+    gsl_histogram_pdf* pdf = gsl_histogram_pdf_alloc(n_bins);
+    gsl_histogram_pdf_init(pdf, h);
 
-    for (size_t i = 0; i < n_bins; ++i) {
-        double frequency = gsl_histogram_get(h, i) / samples.size();
-        area += frequency * bin_width;
-    }
+    size_t n_mismatches = 0;
 
-    gsl_histogram_scale(h, 1.0 / area);
+    for (size_t i = 1; i < n_bins; ++i) {
+        double lower_edge = 0.0;
+        double upper_edge = 0.0;
 
-    size_t n_matching = 0;
+        gsl_histogram_get_range(h, i, &lower_edge, &upper_edge);
 
-    for (size_t i = 0; i < n_bins; ++i) {
-        double lower = 0.0;
-        double upper = 0.0;
+        double observed = pdf->sum[i];
+        double expected = sampler.cumulative_density(lower_edge);
 
-        gsl_histogram_get_range(h, i, &lower, &upper);
-        double midpoint = (lower + upper) / 2.0;
-
-        double density = gsl_histogram_get(h, i) / samples.size();
-
-        if (std::abs(density - sampler.density(midpoint)) < tolerance) {
-            ++n_matching;
-        } else {
+        if (std::abs(expected - observed) > tolerance) {
+            ++n_mismatches;
             WARN("bin " << i << ": "
-                 << density << " != " << sampler.density(midpoint)
-                 << " +/- " << tolerance << "\n");
+                 << observed << " != " << expected
+                 << " +/- " << tolerance
+                 << " (" << expected - observed << ")");
         }
     }
 
+    if (n_mismatches > 0) {
+        WARN("* " << n_mismatches << "/" << n_bins
+             << " cumulative densities exceed tolerance");
+    }
+
+    gsl_histogram_pdf_free(pdf);
     gsl_histogram_free(h);
 
-    INFO("* " << n_matching << "/" << n_bins
-         << " bin densities within tolerance\n");
-
-    return n_matching == n_bins;
+    return n_mismatches == 0;
 }
 
 TEST_CASE("test_samples", "Test sample distribution")
 {
     const size_t n_samples = 1000000;
-    const size_t n_bins = 500;
+    const size_t n_bins = 1000;
     const double tolerance = 1e-3;
 
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_default);

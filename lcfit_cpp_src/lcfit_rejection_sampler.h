@@ -66,34 +66,44 @@ private:
     /** Generate multiple samples from the distribution. */
     std::vector<double> sample_n(size_t n) const;
 
-    /** Compute the log-likelihood of a given branch length. */
+    /** Compute the log-likelihood at a given branch length. */
     double log_likelihood(double t) const;
 
-    /** Compute the likelihood of a given branch length. */
+    /** Compute the likelihood at a given branch length. */
     double likelihood(double t) const;
 
     /**
-     * Compute the approximate log density of a given branch length.
+     * Compute the approximate log density at a given branch length.
      *
-     * The first time this function or rejection_sampler::log_density
-     * is called, the normalization constant will be approximated by
-     * numerical integration of the likelihood curve and cached for
-     * future calls.
+     * The first time any of the `density` functions is called, the
+     * normalization constant will be approximated by numerical
+     * integration of the likelihood curve and cached for future
+     * calls.
      */
     double log_density(double t) const;
 
     /**
-     * Compute the approximate density of a given branch length.
+     * Compute the approximate density at a given branch length.
      *
-     * The first time this function or rejection_sampler::density is
-     * called, the normalization constant will be approximated by
-     * numerical integration of the likelihood curve and cached for
-     * future calls.
+     * The first time any of the `density` functions is called, the
+     * normalization constant will be approximated by numerical
+     * integration of the likelihood curve and cached for future
+     * calls.
      */
     double density(double t) const;
 
+    /** Compute the approximate cumulative density at a given branch length.
+     *
+     * The first time any of the `density` functions is called, the
+     * normalization constant will be approximated by numerical
+     * integration of the likelihood curve and cached for future
+     * calls.
+     */
+    double cumulative_density(double t) const;
+
 private:
-    double integrate() const;
+    /** Compute the approximate integral of the unnormalized posterior. */
+    double integrate(double t) const;
 };
 
 } // namespace lcfit
