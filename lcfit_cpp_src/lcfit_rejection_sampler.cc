@@ -95,9 +95,9 @@ double rejection_sampler::sample() const
 
     do {
         t = gsl_ran_exponential(rng_, mu_);
-        u = gsl_rng_uniform(rng_);
+        u = 1.0 - gsl_rng_uniform(rng_); // 1 - [0, 1) = (0, 1]
         f = std::exp(lcfit_bsm_log_like(t, &model_) - ml_ll_);
-    } while (u >= f);
+    } while (u > f);
 
     return t;
 }
