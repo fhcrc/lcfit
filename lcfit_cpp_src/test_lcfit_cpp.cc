@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <gsl/gsl_histogram.h>
 #include <gsl/gsl_rng.h>
 
 #include "lcfit.h"
@@ -171,6 +172,77 @@ TEST_CASE("test_rejection_sampler", "Test sampling from a BSM log-likelihood fun
 
         double s = sampler.sample();
         REQUIRE(s > 0.0);
+    }
+
+    gsl_rng_free(rng);
+}
+
+bool test_sample_distribution(const std::vector<double>& samples,
+                              const lcfit::rejection_sampler& sampler,
+                              const size_t n_bins, const double tolerance)
+{
+    auto range = std::minmax_element(samples.begin(), samples.end());
+
+    gsl_histogram* h = gsl_histogram_alloc(n_bins);
+    gsl_histogram_set_ranges_uniform(h, *(range.first), *(range.second));
+    const double bin_width = (*(range.second) - *(range.first)) / n_bins;
+
+    for (const double& s : samples) {
+        gsl_histogram_increment(h, s);
+    }
+
+    double area = 0.0;
+
+    for (size_t i = 0; i < n_bins; ++i) {
+        double frequency = gsl_histogram_get(h, i) / samples.size();
+        area += frequency * bin_width;
+    }
+
+    gsl_histogram_scale(h, 1.0 / area);
+
+    size_t n_matching = 0;
+
+    for (size_t i = 0; i < n_bins; ++i) {
+        double lower = 0.0;
+        double upper = 0.0;
+
+        gsl_histogram_get_range(h, i, &lower, &upper);
+        double midpoint = (lower + upper) / 2.0;
+
+        double density = gsl_histogram_get(h, i) / samples.size();
+
+        if (std::abs(density - sampler.density(midpoint)) < tolerance) {
+            ++n_matching;
+        } else {
+            INFO("bin " << i << ": "
+                 << density << " != " << sampler.density(midpoint)
+                 << " +/- " << tolerance << "\n");
+        }
+    }
+
+    gsl_histogram_free(h);
+
+    WARN("* " << n_matching << "/" << n_bins
+         << " bin densities within tolerance\n");
+
+    return n_matching == n_bins;
+}
+
+TEST_CASE("test_samples", "Test sample distribution")
+{
+    const size_t n_samples = 1000000;
+    const size_t n_bins = 500;
+    const double tolerance = 1e-3;
+
+    gsl_rng* rng = gsl_rng_alloc(gsl_rng_default);
+    double lambda = 0.1;
+
+    SECTION("in regime 1") {
+        bsm_t m = {10.0, 1.0, 1.0, 0.0};
+        lcfit::rejection_sampler sampler(rng, m, lambda);
+
+        std::vector<double> samples = sampler.sample_n(n_samples);
+        CHECK(test_sample_distribution(samples, sampler, n_bins, tolerance));
     }
 
     gsl_rng_free(rng);
