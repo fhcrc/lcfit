@@ -13,6 +13,11 @@
 
 using namespace lcfit;
 
+const bsm_t REGIME_1 = {10.0, 1.0, 1.0, 0.0};
+const bsm_t REGIME_2 = {10.0, 1.0, 1.0, 0.1};
+const bsm_t REGIME_3 = {10.0, 1.0, 1.0, 1.0};
+const bsm_t REGIME_4 = {1.0, 10.0, 1.0, 0.1};
+
 TEST_CASE("retain_top", "")
 {
     const std::vector<Point> points{{0, 1}, {0.1, 1.2}, {2, 0.6}};
@@ -143,32 +148,28 @@ TEST_CASE("test_rejection_sampler", "Test sampling from a BSM log-likelihood fun
     }
 
     SECTION("in regime 1") {
-        bsm_t m = {10.0, 1.0, 1.0, 0.0};
-        lcfit::rejection_sampler sampler(rng, m, lambda);
+        lcfit::rejection_sampler sampler(rng, REGIME_1, lambda);
 
         double s = sampler.sample();
         REQUIRE(s > 0.0);
     }
 
     SECTION("in regime 2") {
-        bsm_t m = {10.0, 1.0, 1.0, 0.1};
-        lcfit::rejection_sampler sampler(rng, m, lambda);
+        lcfit::rejection_sampler sampler(rng, REGIME_2, lambda);
 
         double s = sampler.sample();
         REQUIRE(s > 0.0);
     }
 
     SECTION("in regime 3") {
-        bsm_t m = {10.0, 1.0, 1.0, 1.0};
-        lcfit::rejection_sampler sampler(rng, m, lambda);
+        lcfit::rejection_sampler sampler(rng, REGIME_3, lambda);
 
         double s = sampler.sample();
         REQUIRE(s > 0.0);
     }
 
     SECTION("in regime 4") {
-        bsm_t m = {1.0, 10.0, 1.0, 0.1};
-        lcfit::rejection_sampler sampler(rng, m, lambda);
+        lcfit::rejection_sampler sampler(rng, REGIME_4, lambda);
 
         double s = sampler.sample();
         REQUIRE(s > 0.0);
@@ -238,8 +239,7 @@ TEST_CASE("test_samples", "Test sample distribution")
     double lambda = 0.1;
 
     SECTION("in regime 1") {
-        bsm_t m = {10.0, 1.0, 1.0, 0.0};
-        lcfit::rejection_sampler sampler(rng, m, lambda);
+        lcfit::rejection_sampler sampler(rng, REGIME_1, lambda);
 
         std::vector<double> samples = sampler.sample_n(n_samples);
         CHECK(test_sample_distribution(samples, sampler, n_bins, tolerance));
