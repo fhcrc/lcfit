@@ -245,5 +245,26 @@ TEST_CASE("test_samples", "Test sample distribution")
         CHECK(test_sample_distribution(samples, sampler, n_bins, tolerance));
     }
 
+    SECTION("in regime 2") {
+        lcfit::rejection_sampler sampler(rng, REGIME_2, lambda);
+
+        std::vector<double> samples = sampler.sample_n(n_samples);
+        CHECK(test_sample_distribution(samples, sampler, n_bins, tolerance));
+    }
+
+    SECTION("in regime 3") {
+        lcfit::rejection_sampler sampler(rng, REGIME_3, lambda);
+
+        std::vector<double> samples = sampler.sample_n(n_samples);
+        CHECK(test_sample_distribution(samples, sampler, n_bins, tolerance));
+    }
+
+    SECTION("in regime 4") {
+        lcfit::rejection_sampler sampler(rng, REGIME_4, lambda);
+
+        std::vector<double> samples = sampler.sample_n(n_samples);
+        CHECK(test_sample_distribution(samples, sampler, n_bins, tolerance));
+    }
+
     gsl_rng_free(rng);
 }
