@@ -215,7 +215,7 @@ bool test_sample_distribution(const std::vector<double>& samples,
         if (std::abs(density - sampler.density(midpoint)) < tolerance) {
             ++n_matching;
         } else {
-            INFO("bin " << i << ": "
+            WARN("bin " << i << ": "
                  << density << " != " << sampler.density(midpoint)
                  << " +/- " << tolerance << "\n");
         }
@@ -223,7 +223,7 @@ bool test_sample_distribution(const std::vector<double>& samples,
 
     gsl_histogram_free(h);
 
-    WARN("* " << n_matching << "/" << n_bins
+    INFO("* " << n_matching << "/" << n_bins
          << " bin densities within tolerance\n");
 
     return n_matching == n_bins;
