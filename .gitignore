@@ -9,3 +9,4 @@ README.pdf
 .RData
 .Rhistory
 *.Rproj
+/lcfit_R/src/Makevars
