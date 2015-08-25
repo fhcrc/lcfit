@@ -9,6 +9,7 @@
 #ifndef LCFIT_REJECTION_SAMPLER_H
 #define LCFIT_REJECTION_SAMPLER_H
 
+#include <vector>
 #include <gsl/gsl_rng.h>
 
 #include "lcfit.h"
@@ -32,6 +33,7 @@ private:
     virtual ~rejection_sampler() = default;
 
     double sample() const;
+    std::vector<double> sample_n(size_t n) const;
 
     double log_likelihood(double t) const;
     double likelihood(double t) const;

@@ -132,6 +132,15 @@ TEST_CASE("test_rejection_sampler", "Test sampling from a BSM log-likelihood fun
     gsl_rng* rng = gsl_rng_alloc(gsl_rng_default);
     double lambda = 0.1;
 
+    SECTION("multiple times") {
+        bsm_t m = {10.0, 1.0, 1.0, 0.0};
+        lcfit::rejection_sampler sampler(rng, m, lambda);
+
+        std::vector<double> samples = sampler.sample_n(1000);
+        REQUIRE(std::all_of(samples.begin(), samples.end(),
+                            [](const double x) { return x > 0.0; }));
+    }
+
     SECTION("in regime 1") {
         bsm_t m = {10.0, 1.0, 1.0, 0.0};
         lcfit::rejection_sampler sampler(rng, m, lambda);

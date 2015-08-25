@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 #include <gsl/gsl_integration.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
@@ -43,6 +44,16 @@ double rejection_sampler::sample() const
     } while (u >= f);
 
     return t;
+}
+
+std::vector<double> rejection_sampler::sample_n(size_t n) const
+{
+    std::vector<double> samples(n);
+
+    std::generate(samples.begin(), samples.end(),
+                  [this]() { return sample(); });
+
+    return samples;
 }
 
 double rejection_sampler::log_likelihood(double t) const
