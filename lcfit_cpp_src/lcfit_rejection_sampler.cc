@@ -31,6 +31,62 @@ rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model, double la
     }
 }
 
+/**
+ * Rejection sampling generates samples from an arbitrary distribution
+ * \f$ f(x) \f$ using a proposal distribution \f$ g(x) \f$ subject
+ * only to the constraint that \f$ f(x) \leq c g(x) \f$ for some
+ * constant \f$ c > 0 \f$. Let \f$ f(t) \f$ be the unnormalized
+ * posterior on branch lengths given an exponential prior,
+ *
+ * \f[
+ *   f(t) = \lambda e^{- \lambda t} \ell(t ~|~ \theta)
+ * \f]
+ *
+ * where \f$ \ell(t ~|~ \theta) \f$ is the likelihood function for the
+ * binary symmetric model parameterized by \f$ \theta \f$. Let \f$
+ * g(t) \f$ be the pdf of the exponential distribution with rate \f$
+ * \lambda \f$,
+ *
+ * \f[
+ *   g(t) = \lambda e^{- \lambda t}
+ * \f]
+ *
+ * Clearly the ratio \f$ f(t) / g(t) = \ell(t ~|~ \theta) \f$, so we
+ * choose \f$ c \f$ to be the maximum likelihood value
+ *
+ * \f[
+ *   c = \ell(\hat{t} ~|~ \theta)
+ * \f]
+ *
+ * where \f$ \hat{t} \f$ is the BSM maximum-likelihood branch length
+ * and can be computed directly. Then we have the ratio
+ *
+ * \f[
+ *   \frac{f(t)}{c g(t)} =
+ *     \frac{\ell(t ~|~ \theta)}{\ell(\hat{t} ~|~ \theta)} \leq 1
+ * \f]
+ *
+ * which satisfies the requirement for rejection sampling.
+ *
+ * The procedure for generating a sample from the distribution begins
+ * by drawing a branch length \f$ t \f$ from the exponential
+ * distribution with rate \f$ \lambda \f$ and a value \f$ u \f$ from
+ * the uniform distribution over \f$ (0, 1] \f$. If
+ *
+ * \f[
+ *   u \leq \frac{f(t)}{c g(t)} = \frac{\ell(t ~|~ \theta)}{c}
+ * \f]
+ *
+ * the sample is accepted; otherwise, the sample is rejected and the
+ * procedure is repeated.
+ *
+ * In addition to simplifying the calculation, eliminating the prior
+ * \f$ g(t) \f$ from the acceptance calculation allows sampling from
+ * the distribution even when the BSM maximum likelihood branch length
+ * is infinite (i.e., regime 4), since the asymptotic maximum
+ * likelihood can still be calculated. See \ref lcfit_bsm_log_like for
+ * details.
+ */
 double rejection_sampler::sample() const
 {
     double t = 0.0;
