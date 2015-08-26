@@ -31,10 +31,7 @@ namespace lcfit {
  * double lambda = 0.1;
  *
  * lcfit::rejection_sampler sampler(rng, model, lambda);
- *
- * std::vector<double> samples(1000);
- * std::generate(samples.begin(), samples.end(),
- *               [&sampler]() { return sampler.sample(); });
+ * std::vector<double> samples = sampler.sample_n(1000);
  * \endcode
  */
 class rejection_sampler {
