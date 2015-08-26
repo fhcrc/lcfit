@@ -1,10 +1,11 @@
 /**
  * \file lcfit.h
- * \brief lcfit C-API
+ * \brief lcfit C API
  *
- * Fit the binary-symmetric model using Levenberg-Marquardt.
- * See http://www.gnu.org/software/gsl/manual/html_node/Nonlinear-Least_002dSquares-Fitting.html
- * for method details.
+ * This file provides functions for fitting the binary symmetric model
+ * to empirical likelihood data using non-linear least squares
+ * methods.
+ *
  */
 #ifndef LCFIT_H
 #define LCFIT_H
@@ -15,96 +16,150 @@
 extern "C" {
 #endif
 
-/** \brief Fit of the binary-symmetric model */
+/** Binary symmetric model parameters. */
 typedef struct {
-    /** \brief Number of constant sites */
+    /** Number of constant sites. */
     double c;
-    /** \brief Number of mutated sites */
+    /** Number of mutated sites. */
     double m;
-    /** \brief Rate of mutation */
+    /** Rate of mutation. */
     double r;
-    /** \brief Minimum branch length */
+    /** Branch length offset */
     double b;
 } bsm_t;
 
-/** \brief Default initial conditions */
+/** Default initial conditions. */
 extern const bsm_t DEFAULT_INIT;
 
-/** \brief The log likelihood for the Binary Symmetric Model at a given branch length
+/** Status codes returned by lcfit_fit_bsm and lcfit_fit_bsm_weight. */
+typedef enum {
+    /** Success. */
+    LCFIT_SUCCESS = 0,
+    /** Exceeded maximum number of iterations without converging. */
+    LCFIT_MAXITER = 1,
+    /** A non-specific error occurred. */
+    LCFIT_ERROR = 2,
+    /** Iterations are not making progress toward a solution. */
+    LCFIT_ENOPROG = 27,
+    /** Cannot reach the tolerance specified for the objective function. */
+    LCFIT_ETOLF = 29,
+    /** Cannot reach the tolerance specified for the objective function's gradient. */
+    LCFIT_ETOLG = 31
+} lcfit_status;
+
+/** Compute the BSM log-likelihood at a given branch length.
+ *
+ *  In general,
  *
  *  \f[
  *    L(t|c,m,r,b) = c \log\left(\frac{1+e^{-r (t+b)}}{2}\right)+
  *                   m \log\left(\frac{1-e^{-r (t+b)}}{2}\right)
  *  \f]
  *
- *  \param t Branch length
- *  \param m Model
- *  \return Log-likelihood under \c m
+ *  This function handles two special cases:
+ *
+ *   -# If the model is in regime 1 and t is 0.0, the function
+ *      properly returns \c -INFINITY.
+ *
+ *   -# If t is \c INFINITY (see #lcfit_bsm_ml_t), the function
+ *      returns the limit
+ *
+ *      \f[
+ *        \lim_{t \to \infty} L(t|c,m,r,b) = (c + m) \log(0.5)
+ *      \f]
+ *
+ *      This result enables rejection sampling even when the model is
+ *      in regime 4 and the likelihood curve is monotonically
+ *      increasing; see lcfit::rejection_sampler::sample for details.
+ *
+ *  \param[in] t  Branch length.
+ *  \param[in] m  Model parameters.
+ *
+ *  \return The log-likelihood under \c m.
  */
 double lcfit_bsm_log_like(double t, const bsm_t* m);
 
-/** \brief The ML branch length for model \c m
+/** Compute the maximum-likelihood branch length for a given model.
  *
- * The branch length is constrainted to be positive.
- * If the maximum likelihood length under \c m is negative, this function returns 0.
+ * In general,
  *
- * \param m Model
- * \return The maximum-likelihood branch length under \c m
+ * \f[
+ *   \hat{t} = -b + \frac{1}{r} \log \left( \frac{c + m}{c - m} \right)
+ * \f]
+ *
+ * The branch length is constrained to be non-negative; if the above
+ * calculation yields a negative value, the function returns 0.0
+ * instead.
+ *
+ * If the model is in regime 4 (i.e., <c>m.c < m.m</c>), where the
+ * likelihood curve is monotonically increasing, the function properly
+ * returns \c INFINITY for use with #lcfit_bsm_log_like.
+ *
+ * \param[in] m  Model parameters.
+ *
+ * \return The maximum-likelihood branch length under \c m.
  */
 double lcfit_bsm_ml_t(const bsm_t* m);
 
-/** \brief Determine a scale factor for \c m to intersect with \f$(t, l)\f$
+/** Compute a scale factor for a given model to intersect with \f$(t, l)\f$.
  *
- * Generates a scaling parameter for the values \c m.c and \c m.m to obtain
- * log-likelihood value \c l at branch-length \c t, keeping \c m.r and \c m.b fixed.
+ * This function computes a scaling parameter for the values \c m.c
+ * and \c m.m to obtain log-likelihood value \c l at branch-length \c
+ * t, keeping \c m.r and \c m.b fixed.
  *
- * \param t Branch length
- * \param l Log-likelihood
- * \param m Model
- * \return A value \c v, such that the likelihood curve for the model <c>{c / v, m / v, r, b}</c> intersects with \f$(t, l)\f$
+ * \param[in] t  Branch length.
+ * \param[in] l  Log-likelihood.
+ * \param[in] m  Model parameters.
+ *
+ * \return A value \c v, such that the likelihood curve for the model
+ *         <c>{c / v, m / v, r, b}</c> intersects with \f$(t, l)\f$
  */
 double lcfit_bsm_scale_factor(const double t, const double l, const bsm_t* m);
 
 /**
- * \brief Rescale \c m to intersect with \f$(t, l)\f$.
+ * Rescale a given model to intersect with \f$(t, l)\f$.
  *
- * \see lcfit_bsm_scale_factor
+ * See #lcfit_bsm_scale_factor.
  *
- * \param t Branch length
- * \param l Log-likelihood
- * \param m Model - updated
+ * \param[in]     t  Branch length.
+ * \param[in]     l  Log-likelihood.
+ * \param[in,out] m  Model parameters, updated in-place.
  */
 void lcfit_bsm_rescale(const double t, const double l, bsm_t* m);
 
-/** \brief Fit the BSM
+/** Fit a given model to empirical likelihood data with weighting.
  *
- * \param n Number of observations in \c t and \c l
- * \param t Branch length
- * \param l Log-likelihood values at \c t
- * \param w weight for sample point at \c t
- * \param m Initial conditions for the model.
- * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
- */
-    int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double* w, bsm_t* m, int max_iter);
-
-/** \brief Fit the BSM
+ * This function fits the binary symmetric model to weighted empirical
+ * likelihood samples using non-linear least squares methods, starting
+ * with the initial conditions specified by \c m. Combine
+ * #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting
+ * conditions.
  *
- * \param n Number of observations in \c t and \c l
- * \param t Branch length
- * \param l Log-likelihood values at \c t
- * \param m Initial conditions for the model.
- * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
+ * \param[in]     n  Number of observations in \c t and \c l.
+ * \param[in]     t  Branch lengths.
+ * \param[in]     l  Log-likelihood value at each \c t.
+ * \param[in]     w  Weight for sample point at each \c t.
+ * \param[in,out] m  Model parameters, updated in-place.
+ *
+ * \return An #lcfit_status code, zero for success, non-zero otherwise.
  */
-    int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m, int max_iter);
+int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double* w, bsm_t* m, int max_iter);
 
-
-    typedef enum lcfit_status {	LCFIT_SUCCESS = 0,	// success
-		   		LCFIT_MAXITER = 1,	// exceeded maximum iterations without converging
-		   		LCFIT_ERROR = 2,	// non-specific error
-		   		LCFIT_ENOPROG = 27,	// iteration is not making progress towards solution
-		   		LCFIT_ETOLF = 29,	// cannot reach the specified tolerance in F
-		   		LCFIT_ETOLG = 31	// cannot reach the specified tolerance in gradient
-    } lcfit_status;
+/** Fit a given model to empirical likelihood data without weighting.
+ *
+ * This is a convenience function for fitting a model without sample
+ * weighting; it simply calls #lcfit_fit_bsm_weight with equal weights
+ * for the samples. See that function's documentation for more
+ * information.
+ *
+ * \param[in]     n  Number of observations in \c t and \c l.
+ * \param[in]     t  Branch lengths.
+ * \param[in]     l  Log-likelihood value at each \c t.
+ * \param[in,out] m  Model parameters, updated in-place.
+ *
+ * \return An #lcfit_status code, zero for success, non-zero otherwise.
+  */
+int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m, int max_iter);
 
 #ifdef __cplusplus
 } // extern "C"

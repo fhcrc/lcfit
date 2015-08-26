@@ -215,12 +215,13 @@ void print_state_nlopt(size_t iter,
     fprintf(stderr, "\n");
 }
 
-/** \brief Least-squares objective function for fitting with NLopt.
+/** Least-squares objective function for fitting with NLopt.
  *
- * \param p Number of model parameters
- * \param x Model parameters to evaluate
- * \param grad Gradient of the objective function at \c x
- * \param data Observed likelihood data to fit
+ * \param[in]  p     Number of model parameters.
+ * \param[in]  x     Model parameters to evaluate.
+ * \param[out] grad  Gradient of the objective function at \c x.
+ * \param[in]  data  Observed likelihood data to fit.
+ *
  * \return Sum of squared error from observed likelihoods
  */
 double bsm_fit_objective(unsigned p,
@@ -274,16 +275,6 @@ double bsm_fit_objective(unsigned p,
     return sum_sq_err;
 }
 
-/** \brief convenience function for non-weighted lcfit
- *
- * \param n Number of observations in \c t and \c l
- * \param t Branch length
- * \param l Log-likelihood values at \c t
- * \param m Initial conditions for the model.
- * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
- *
- * @return status==0 for success, non-zero otherwise
- */
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, int max_iter)
 {
     double *w = calloc(n, sizeof(double));
@@ -309,14 +300,37 @@ int check_model(const bsm_t* m)
     return 0;
 }
 
-/** \brief Fit the BSM
+/**
+ * The fitting procedure first tries unconstrained Levenberg-Marquardt
+ * optimization to fit the model parameters to the data. See <a
+ * href="http://www.gnu.org/software/gsl/manual/html_node/Nonlinear-Least_002dSquares-Fitting.html">
+ * GSL's documentation</a> for method details.
  *
- * \param n Number of observations in \c t and \c l
- * \param t Branch length
- * \param l Log-likelihood values at \c t
- * \param w weight for sample point at \c t
- * \param m Initial conditions for the model.
- * Combine #DEFAULT_INIT and #lcfit_bsm_scale_factor for reasonable starting conditions.
+ * If the Levenberg-Marquardt algorithm fails to converge, returns an
+ * error, or returns an invalid model, the function tries constrained
+ * optimization using the SLSQP algorithm. See <a
+ * href="http://ab-initio.mit.edu/wiki/index.php/NLopt_Algorithms#SLSQP">NLopt's
+ * documentation</a> for method details.
+ *
+ * SLSQP is started differently depending on the reason the LM
+ * algorithm failed. If LM returned a valid model, but did not
+ * indicate success (e.g., failure to converge), SLSQP is used to
+ * refine that model. On the other hand, if LM returned an invalid
+ * model, or indicated complete failure, SLSQP starts over with the
+ * original initial conditions.
+ *
+ * A model is considered invalid if any of the following are true:
+ * - <c>m.c < 1</c>
+ * - <c>m.m < 1</c>
+ * - <c>m.c < m.m</c> (regime 4; see below)
+ * - <c>m.r < 1e-7</c> (we assumed that the mutation rate is greater than zero)
+ * - <c>m.b < 1e-7</c> (potentially regime 1; TODO why?)
+ *
+ * Regime 4 is considered invalid in this scenario because, assuming a
+ * tree with finite branch lengths, the probability of having more
+ * mutated sites than constant sites approaches zero as sequences
+ * become long.
+ *
  */
 int lcfit_fit_bsm_weight(const size_t n,
                          const double* t,
