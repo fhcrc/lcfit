@@ -31,7 +31,7 @@ typedef struct {
 /** Default initial conditions. */
 extern const bsm_t DEFAULT_INIT;
 
-/** Status codes returned by lcfit_fit_bsm and lcfit_fit_bsm_weight. */
+/** Status codes returned by #lcfit_fit_bsm and #lcfit_fit_bsm_weight. */
 typedef enum {
     /** Success. */
     LCFIT_SUCCESS = 0,
