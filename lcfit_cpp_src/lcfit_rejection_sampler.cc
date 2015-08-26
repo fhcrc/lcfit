@@ -1,5 +1,6 @@
 #include "lcfit_rejection_sampler.h"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <vector>
