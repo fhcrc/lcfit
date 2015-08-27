@@ -75,7 +75,8 @@ rejection_sampler::rejection_sampler(gsl_rng* rng, const bsm_t& model, double la
  * the uniform distribution over \f$ (0, 1] \f$. If
  *
  * \f[
- *   u \leq \frac{f(t)}{c g(t)} = \frac{\ell(t ~|~ \theta)}{c}
+ *   u \leq \frac{f(t)}{c g(t)} = \frac{\ell(t ~|~ \theta)}
+ *                                     {\ell(\hat{t} ~|~ \theta)}
  * \f]
  *
  * the sample is accepted; otherwise, the sample is rejected and the
