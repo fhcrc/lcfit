@@ -389,6 +389,25 @@ TEST_CASE("fitting actually improves fit", "[lcfit_fit_bsm]") {
     fail_unless_fit_improves(&m, t, l);
 }
 
+TEST_CASE("maximum-likelihood branch lengths are computed properly",
+          "[lcfit_bsm_ml_t]") {
+    SECTION("in regime 1") {
+        REQUIRE(lcfit_bsm_ml_t(&REGIME_1) == Approx(0.2006707));
+    }
+
+    SECTION("in regime 2") {
+        REQUIRE(lcfit_bsm_ml_t(&REGIME_2) == Approx(0.1006707));
+    }
+
+    SECTION("in regime 3") {
+        REQUIRE(lcfit_bsm_ml_t(&REGIME_3) == 0.0);
+    }
+
+    SECTION("in regime 4") {
+        REQUIRE(lcfit_bsm_ml_t(&REGIME_4) == INFINITY);
+    }
+}
+
 TEST_CASE("log-likelihoods are computed properly", "[lcfit_bsm_log_like]") {
     SECTION("in regime 1") {
         REQUIRE(lcfit_bsm_log_like(0.0, &REGIME_1) == -INFINITY);
