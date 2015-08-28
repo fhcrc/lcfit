@@ -335,22 +335,22 @@ TEST_CASE("estimated maximum likelihood branch length is within tolerance",
 }
 
 TEST_CASE("model scale factors are computed correctly", "[lcfit_bsm_scale_factor]") {
-  const bsm_t m = {1500, 1000, 1, 0.5};
-  bsm_t scaled = m;
-  REQUIRE(scaled.m == m.m);
+    const bsm_t m = {1500, 1000, 1, 0.5};
+    bsm_t scaled = m;
+    REQUIRE(scaled.m == m.m);
 
-  REQUIRE(&m != &scaled);
+    REQUIRE(&m != &scaled);
 
-  const double t = 0.5, l = -23804.3;
-  /* Try scaling */
-  const double scale = lcfit_bsm_scale_factor(t, l, &m);
+    const double t = 0.5, l = -23804.3;
+    /* Try scaling */
+    const double scale = lcfit_bsm_scale_factor(t, l, &m);
 
-  /* Test LL at t */
-  scaled.c *= scale;
-  scaled.m *= scale;
-  const double calc_ll = lcfit_bsm_log_like(t, &scaled);
+    /* Test LL at t */
+    scaled.c *= scale;
+    scaled.m *= scale;
+    const double calc_ll = lcfit_bsm_log_like(t, &scaled);
 
-  REQUIRE(l == Approx(calc_ll));
+    REQUIRE(l == Approx(calc_ll));
 }
 
 /* Run a single fit, require that it converge, and the residuals decrase from
@@ -358,31 +358,31 @@ TEST_CASE("model scale factors are computed correctly", "[lcfit_bsm_scale_factor
 void
 fail_unless_fit_improves(const bsm_t* m, const double t[4], const double l[4])
 {
-  bsm_t fit = *m;
+    bsm_t fit = *m;
 
-  int result = lcfit_fit_bsm(4, t, l, &fit, 500);
-  REQUIRE(!result);
+    int result = lcfit_fit_bsm(4, t, l, &fit, 500);
+    REQUIRE(!result);
 
-  /* Estimates must improve */
-  int i;
-  double init_residuals = 0, updated_residuals = 0;
-  for(i = 0; i < 4; ++i) {
-      double init_fit_ll = lcfit_bsm_log_like(t[i], m),
-              new_fit_ll = lcfit_bsm_log_like(t[i], &fit);
-      init_residuals += fabs(init_fit_ll - l[i]);
-      updated_residuals += fabs(new_fit_ll - l[i]);
-  }
+    /* Estimates must improve */
+    int i;
+    double init_residuals = 0, updated_residuals = 0;
+    for(i = 0; i < 4; ++i) {
+        double init_fit_ll = lcfit_bsm_log_like(t[i], m),
+                new_fit_ll = lcfit_bsm_log_like(t[i], &fit);
+        init_residuals += fabs(init_fit_ll - l[i]);
+        updated_residuals += fabs(new_fit_ll - l[i]);
+    }
 
-  REQUIRE(init_residuals > updated_residuals);
+    REQUIRE(init_residuals > updated_residuals);
 }
 
 /* Basic test of fit_ll - just makes sure it runs */
 TEST_CASE("fitting actually improves fit", "[lcfit_fit_bsm]") {
-  /* Scaled c and m from inputs to test_scale */
-  const bsm_t m = {20739.66, 13826.44, 1.0, 0.5};
-  const double t[4] = {0.1, 0.2, 0.5, 1.0};
-  const double l[4] = {-23912.9, -23861.9, -23804.3, -23820.9};
-  fail_unless_fit_improves(&m, t, l);
+    /* Scaled c and m from scale factor test */
+    const bsm_t m = {20739.66, 13826.44, 1.0, 0.5};
+    const double t[4] = {0.1, 0.2, 0.5, 1.0};
+    const double l[4] = {-23912.9, -23861.9, -23804.3, -23820.9};
+    fail_unless_fit_improves(&m, t, l);
 }
 
 /* Check a few evaluations of BSM */
