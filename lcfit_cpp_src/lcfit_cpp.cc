@@ -182,7 +182,7 @@ LCFitResult fit_bsm_log_likelihood(std::function<double(double)> log_like,
     // temporarily disable this test so SCons can complete the simulation in the face of errors.
     // if(status) throw runtime_error("lcfit_fit_bsm returned: " + std::to_string(status));
 
-    return {points, std::move(model)};
+    return {points, model};
 }
 
 } // namespace lcfit
