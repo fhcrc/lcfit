@@ -90,18 +90,16 @@ vector<Point> select_points(std::function<double(double)> log_like,
     double d;      // Branch length
 
     Monotonicity c = monotonicity(points);
-    do {
+    while (points.size() < max_points && c != Monotonicity::NON_MONOTONIC) {
         switch (c) {
-            case Monotonicity::NON_MONOTONIC:
-                d = (points[1].x + points[2].x) / 2.0; // Add a point between the first and second try
-                offset = 2;
-                break;
             case Monotonicity::MONO_INC:
-                d = points.back().x * 2.0; // Double largest value
+                // Double largest value
+                d = points.back().x * 2.0;
                 offset = points.size();
                 break;
             case Monotonicity::MONO_DEC:
-                d = points[0].x / 10.0; // Add new smallest value - order of magnitude lower
+                // Add new smallest value - order of magnitude lower
+                d = points[0].x / 10.0;
                 offset = 0;
                 break;
             default:
@@ -114,7 +112,7 @@ vector<Point> select_points(std::function<double(double)> log_like,
         c = monotonicity(points);
 
         assert(is_sorted(points.begin(), points.end(), point_by_x()));
-    } while (points.size() <= max_points && c != Monotonicity::NON_MONOTONIC);
+    }
 
 #ifdef VERBOSE
     print_points(points, "POST: ");
