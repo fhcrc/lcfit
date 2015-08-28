@@ -143,7 +143,8 @@ void lcfit_bsm_rescale(const double t, const double l, bsm_t* m);
  *
  * \return An #lcfit_status code, zero for success, non-zero otherwise.
  */
-int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const double* w, bsm_t* m, int max_iter);
+int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l,
+                         const double* w, bsm_t* m, int max_iter);
 
 /** Fit a given model to empirical likelihood data without weighting.
  *
@@ -159,7 +160,8 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l, const
  *
  * \return An #lcfit_status code, zero for success, non-zero otherwise.
   */
-int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m, int max_iter);
+int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m,
+                  int max_iter);
 
 #ifdef __cplusplus
 } // extern "C"
