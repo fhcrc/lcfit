@@ -4,6 +4,11 @@
 #include "lcfit.h"
 #include "lcfit_select.h"
 
+const bsm_t REGIME_1 = {10.0, 1.0, 1.0, 0.0};
+const bsm_t REGIME_2 = {10.0, 1.0, 1.0, 0.1};
+const bsm_t REGIME_3 = {10.0, 1.0, 1.0, 1.0};
+const bsm_t REGIME_4 = {1.0, 10.0, 1.0, 0.1};
+
 TEST_CASE("model values are computed correctly", "[bsm_values]") {
     SECTION("in regime 1") {
         bsm_t m = {10.0, 1.0, 1.0, 0.0};
@@ -376,7 +381,6 @@ fail_unless_fit_improves(const bsm_t* m, const double t[4], const double l[4])
     REQUIRE(init_residuals > updated_residuals);
 }
 
-/* Basic test of fit_ll - just makes sure it runs */
 TEST_CASE("fitting actually improves fit", "[lcfit_fit_bsm]") {
     /* Scaled c and m from scale factor test */
     const bsm_t m = {20739.66, 13826.44, 1.0, 0.5};
@@ -385,12 +389,28 @@ TEST_CASE("fitting actually improves fit", "[lcfit_fit_bsm]") {
     fail_unless_fit_improves(&m, t, l);
 }
 
-/* Check a few evaluations of BSM */
-TEST_CASE("log-likelihoods are computed properly", "[lcfit_bsm_log_like]")
-{
-    bsm_t m1 = {100, 1, 0.2, 0.4};
-    REQUIRE(lcfit_bsm_log_like(0.2, &m1) == Approx(-8.692919));
+TEST_CASE("log-likelihoods are computed properly", "[lcfit_bsm_log_like]") {
+    SECTION("in regime 1") {
+        REQUIRE(lcfit_bsm_log_like(0.0, &REGIME_1) == -INFINITY);
+        REQUIRE(lcfit_bsm_log_like(0.1, &REGIME_1) == Approx(-3.532821));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &REGIME_1) == Approx(-7.624619));
+    }
 
-    bsm_t m2 = {1000, 250, 0.2, 0.4};
-    REQUIRE(lcfit_bsm_log_like(0.6, &m2) == Approx(-695.2381));
+    SECTION("in regime 2") {
+        REQUIRE(lcfit_bsm_log_like(0.0, &REGIME_2) == Approx(-3.532821));
+        REQUIRE(lcfit_bsm_log_like(0.1, &REGIME_2) == Approx(-3.351002));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &REGIME_2) == Approx(-7.624619));
+    }
+
+    SECTION("in regime 3") {
+        REQUIRE(lcfit_bsm_log_like(0.0, &REGIME_3) == Approx(-4.950677));
+        REQUIRE(lcfit_bsm_log_like(0.1, &REGIME_3) == Approx(-5.156038));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &REGIME_2) == Approx(-7.624619));
+    }
+
+    SECTION("in regime 4") {
+        REQUIRE(lcfit_bsm_log_like(0.0, &REGIME_4) == Approx(-30.50191));
+        REQUIRE(lcfit_bsm_log_like(0.1, &REGIME_4) == Approx(-24.1042));
+        REQUIRE(lcfit_bsm_log_like(INFINITY, &REGIME_2) == Approx(-7.624619));
+    }
 }
