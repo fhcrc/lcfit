@@ -33,6 +33,59 @@ TEST_CASE("retain_top", "")
     REQUIRE(result == expected);
 }
 
+
+TEST_CASE("test points are selected properly (C++)", "[select_points_cpp]") {
+    bsm_t model = {1200.0, 300.0, 1.0, 0.2}; // ml_t = 0.310826
+    auto log_like = [model](double t) { return lcfit_bsm_log_like(t, &model); };
+    const size_t max_pts = 8;
+
+    SECTION("when the maximum is to the left of the starting points") {
+        std::vector<double> t = {0.5, 1.0, 1.1};
+        std::vector<Point> selected_pts = select_points(log_like, t, max_pts);
+
+        REQUIRE(selected_pts.size() == 4);
+
+        REQUIRE(selected_pts[0].x == Approx(t[0] / 10.0));
+        REQUIRE(selected_pts[1].x == Approx(t[0]));
+        REQUIRE(selected_pts[2].x == Approx(t[1]));
+        REQUIRE(selected_pts[3].x == Approx(t[2]));
+
+        REQUIRE(selected_pts[1].y > selected_pts[0].y);
+        REQUIRE(selected_pts[1].y > selected_pts[2].y);
+    }
+
+    SECTION("when the maximum is to the right of the starting points") {
+        std::vector<double> t = {0.01, 0.1, 0.2};
+        std::vector<Point> selected_pts = select_points(log_like, t, max_pts);
+
+        REQUIRE(selected_pts.size() == 5);
+
+        REQUIRE(selected_pts[0].x == Approx(t[0]));
+        REQUIRE(selected_pts[1].x == Approx(t[1]));
+        REQUIRE(selected_pts[2].x == Approx(t[2]));
+        REQUIRE(selected_pts[3].x == Approx(2.0 * t[2]));
+        REQUIRE(selected_pts[4].x == Approx(2.0 * 2.0 * t[2]));
+
+        REQUIRE(selected_pts[3].y > selected_pts[2].y);
+        REQUIRE(selected_pts[3].y > selected_pts[4].y);
+    }
+
+    SECTION("when the maximum is enclosed by the starting points") {
+        std::vector<double> t = {0.1, 0.5, 1.0};
+        std::vector<Point> selected_pts = select_points(log_like, t, max_pts);
+
+        REQUIRE (selected_pts.size() == 3);
+
+        REQUIRE(selected_pts[0].x == Approx(t[0]));
+        REQUIRE(selected_pts[1].x == Approx(t[1]));
+        REQUIRE(selected_pts[2].x == Approx(t[2]));
+
+        REQUIRE(selected_pts[1].y > selected_pts[0].y);
+        REQUIRE(selected_pts[1].y > selected_pts[2].y);
+    }
+}
+
+
 TEST_CASE("monotonicity_decreasing", "Ensure that monotonicity correctly identifies decreasing points")
 {
     REQUIRE(monotonicity({{0, 1}, {0.1, 0.8}, {2, 0.6}}) == Monotonicity::MONO_DEC);
