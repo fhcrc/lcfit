@@ -123,13 +123,15 @@ sort_by_like(point_t points[], const size_t n);
  * \param [in]     tolerance  Required fit tolerance.
  * \param [in,out] model      Model parameters, updated in-place.
  * \param [out]    success    A \c bool indicating success or failure.
+ * \param [in]       min_t    Lower bound on branch length.
+ * \param [out]      max_t    Upper bound on branch length.
  *
  * \return The estimated ML branch length, or \c NAN if an error occurs.
   */
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model,
-              bool* success);
+              bool* success, const double min_t, const double max_t);
 
 /**
  * Choose the top \c k points by log-likelihood while maintaining monotonicity.

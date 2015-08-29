@@ -224,7 +224,9 @@ public:
                                             pts.size(),
                                             tol,
                                             &m,
-                                            &success);
+                                            &success,
+                                            1e-6, /* Bio++ min branch length */
+                                            1e4); /* Bio++ max branch length */
 
         if (model_out) {
             *model_out = m;

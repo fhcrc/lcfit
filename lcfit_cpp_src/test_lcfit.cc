@@ -9,6 +9,9 @@ const bsm_t REGIME_2 = {10.0, 1.0, 1.0, 0.1};
 const bsm_t REGIME_3 = {10.0, 1.0, 1.0, 1.0};
 const bsm_t REGIME_4 = {1.0, 10.0, 1.0, 0.1};
 
+const double MIN_BL = 1e-6;
+const double MAX_BL = 1e4;
+
 TEST_CASE("model values are computed correctly", "[bsm_values]") {
     SECTION("in regime 1") {
         bsm_t m = {10.0, 1.0, 1.0, 0.0};
@@ -321,7 +324,8 @@ TEST_CASE("estimated maximum likelihood branch length is within tolerance",
             std::vector<double> t = {0.1, 0.5, 1.0, 1.5};
 
             double result = estimate_ml_t(&log_like, t.data(), t.size(),
-                                          tolerance, &model, &success);
+                                          tolerance, &model, &success,
+                                          MIN_BL, MAX_BL);
 
             REQUIRE(success == true);
             REQUIRE(result == Approx(true_ml_t).epsilon(tolerance));
@@ -331,7 +335,8 @@ TEST_CASE("estimated maximum likelihood branch length is within tolerance",
             std::vector<double> t = {1.0, 1.1, 1.4, 1.5};
 
             double result = estimate_ml_t(&log_like, t.data(), t.size(),
-                                          tolerance, &model, &success);
+                                          tolerance, &model, &success,
+                                          MIN_BL, MAX_BL);
 
             REQUIRE(success == true);
             REQUIRE(result == Approx(true_ml_t).epsilon(tolerance));

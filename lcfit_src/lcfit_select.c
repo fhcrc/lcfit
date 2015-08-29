@@ -265,7 +265,7 @@ blit_points_to_arrays(const point_t points[], const size_t n,
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model,
-              bool* success)
+              bool* success, const double min_t, const double max_t)
 {
     *success = false;
 
@@ -303,6 +303,8 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         subset_points(points, n, n_pts);
     }
 
+    assert(points[0].t >= min_t);
+    assert(points[n_pts - 1].t <= max_t);
 
 #ifdef VERBOSE
     fprintf(stderr, "starting iterative fit\n");
@@ -335,12 +337,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
 
-        /* If the BSM ml_t is zero or negative, add a new, smaller
-         * sample point instead. */
-        if(ml_t == 0.0) {
-            ml_t = points[0].t / 10.0;
-        }
-
         /* convergence check */
         if(fabs(ml_t - max_pt->t) <= tolerance) {
             *success = true;
@@ -359,8 +355,26 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         }
 #endif
 
-        points[n_pts].t = ml_t;
-        points[n_pts].ll = log_like->fn(ml_t, log_like->args);
+        double next_t = ml_t;
+
+        // Ensure the next branch length to evaluate is within bounds.
+        if (next_t < min_t) {
+            next_t = min_t;
+        } else if (next_t > max_t) {
+            next_t = max_t;
+        }
+
+        // If the next branch length is equal to the minimum or
+        // maximum of the already-evaluated branch lengths, split the
+        // difference between it and its neighbor instead.
+        if (next_t == points[0].t) {
+            next_t = (points[1].t - points[0].t) / 2.0;
+        } else if (next_t == points[n_pts - 1].t) {
+            next_t = (points[n_pts - 1].t - points[n_pts - 2].t) / 2.0;
+        }
+
+        points[n_pts].t = next_t;
+        points[n_pts].ll = log_like->fn(next_t, log_like->args);
         ml_likelihood_calls++;
 
         /* Retain top n_pts by log-likelihood */
