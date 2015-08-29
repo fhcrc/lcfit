@@ -86,7 +86,7 @@ NumericVector rcpp_fit_bsm_iter(Function fn, NumericVector bl, double tolerance,
     bsm_t m = {model["c"], model["m"], model["r"], model["b"]};
     bool success;
 
-    estimate_ml_t(&ll_fn, bl.begin(), t_n, tolerance, &m, &success);
+    estimate_ml_t(&ll_fn, bl.begin(), t_n, tolerance, &m, &success, 1e-6, 1e4);
 
     return(Rcpp::NumericVector::create(_["c"]=m.c, _["m"]=m.m, _["r"]=m.r, _["b"]=m.b, _["success"]=success));
 }
