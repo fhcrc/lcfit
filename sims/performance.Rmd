@@ -30,6 +30,7 @@ models <- unique(lcfit$model)
 rate.dists <- unique(lcfit$rate.dist)
 rates <- unique(lcfit$rate)
 tolerances <- unique(lcfit$tolerance)
+tolerance.levels <- sort(tolerances, decreasing = TRUE)
 
 nestly.keys <- c('node_id', 't_ml', 'n_sites', 'n_leaves', 'rate.dist', 'model',
                  'seed', 'rate', 'tolerance', 'source_tree')
@@ -172,7 +173,7 @@ lcfit.iter_vs_brent <- left_join(lcfit.iter, lcfit.brent, by = nestly.keys) %>%
 ```{r iter.vs_brent}
 p.iter.vs_brent <- ggplot(lcfit.iter_vs_brent,
                           aes(x = n_eval.x, y = n_eval.y,
-                              color = factor(tolerance, levels = c(1e-2, 1e-3, 1e-4, 1e-5, 1e-6)))) +
+                              color = factor(tolerance, levels = tolerance.levels))) +
   geom_abline() +
   expand_limits(x = 0, y = 0) +
   ylab("log-likelihood evaluations (Brent)") +
@@ -201,7 +202,7 @@ lcfit.filtered <- union(lcfit.noniter, union(lcfit.iter, lcfit.brent))
 
 p.err <-
   ggplot(lcfit.filtered,
-         aes(fill = factor(tolerance, levels = c(1e-2, 1e-3, 1e-4, 1e-5, 1e-6)),
+         aes(fill = factor(tolerance, levels = tolerance.levels),
              y = err, x = factor(method, levels = c('normal', 'iterative', 'brent')))) +
   geom_hline(yintercept = 0, linetype = 'dashed') +
   scale_fill_discrete("tolerance") +
