@@ -31,19 +31,25 @@ target_link_libraries(lcfit_cpp
   lcfit
   nlopt)
 
-# lcfit-compare
+# applications
 
 set(LCFIT_COMPARE_CPP
   ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_compare.cc)
 
-set(LCFIT_COMPARE_LIBS
+set(LCFIT_BAKEOFF_CPP
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_bakeoff.cc)
+
+set(LCFIT_APP_LIBS
   bpp-core
   bpp-seq
   bpp-phyl
   lcfit_cpp-static)
 
 add_executable(lcfit-compare EXCLUDE_FROM_ALL ${LCFIT_COMPARE_CPP})
-target_link_libraries(lcfit-compare ${LCFIT_COMPARE_LIBS})
+target_link_libraries(lcfit-compare ${LCFIT_APP_LIBS})
+
+add_executable(lcfit-bakeoff EXCLUDE_FROM_ALL ${LCFIT_BAKEOFF_CPP})
+target_link_libraries(lcfit-bakeoff ${LCFIT_APP_LIBS})
 
 # lcfit-test
 

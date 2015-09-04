@@ -39,8 +39,12 @@ lcfit-r:
 	R -e "Rcpp::compileAttributes('lcfit_R')"
 	R CMD INSTALL --library=$(PWD)/sims/venv/lib/R lcfit_R
 
-# lcfit-compare: release
 lcfit-compare: setup-cmake
+	$(MAKE) -C$(BUILD_DIR) $@
+
+lcfit-bakeoff: CMAKE_BUILD_TYPE=Debug
+lcfit-bakeoff: BUILD_DIR=$(BUILD)/debug
+lcfit-bakeoff: setup-cmake
 	$(MAKE) -C$(BUILD_DIR) $@
 
 lcfit-test: CMAKE_BUILD_TYPE=Debug
