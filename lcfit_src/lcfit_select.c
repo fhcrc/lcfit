@@ -283,19 +283,17 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         return NAN;
     }
 
-    curve_type_t m = classify_curve(points, n_pts);
+    curve_type_t curvature = classify_curve(points, n_pts);
 
-    if (m == CRV_MONO_DEC) {
-        const double ml_t = points[0].t;
-        free(points);
-        *success = true;
-        return ml_t;
-    } else if (m != CRV_ENC_MAXIMA) {
-        fprintf(stderr, "ERROR: selected points don't enclose a maximum\n");
+    if (curvature == CRV_ENC_MINIMA || curvature == CRV_UNKNOWN) {
+        fprintf(stderr, "ERROR: selected points enclose a minimum or monotonicity unknown\n");
         free(points);
         *success = false;
         return NAN;
     }
+
+    // Below, curvature is CRV_ENV_MAXIMA, CRV_MONO_INC, or
+    // CRV_MONO_DEC.
 
     assert(n >= n_pts);
     if (n > n_pts) {
@@ -329,24 +327,39 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         ml_t = lcfit_bsm_ml_t(model);
 
         if(isnan(ml_t)) {
-            fprintf(stderr,
-                    "ERROR: lcfit_bsm_ml_t returned NaN"
+            fprintf(stderr, "ERROR: "
+                    "lcfit_bsm_ml_t returned NaN"
                     ", model = { %.3f, %.3f, %.6f, %.6f }\n",
                     model->c, model->m, model->r, model->b);
             *success = false;
             break;
         }
 
-        /* convergence check */
-        if(fabs(ml_t - max_pt->t) <= tolerance) {
-            *success = true;
-            break;
-        }
+        // Here ml_t is zero, positive, or infinity.
+
+        if (curvature == CRV_ENC_MAXIMA) {
+            // Here ml_t is should only be positive. If our model's
+            // ml_t is zero or infinity, the model is in the wrong
+            // regime. Print a warning if this isn't the first
+            // iteration.
+            if ((ml_t == 0.0 || ml_t == INFINITY) && iter > 0) {
+                fprintf(stderr, "WARNING: "
+                        "model is in the wrong regime"
+                        ", model = { %.3f, %.3f, %.6f, %.6f }"
+                        ", ml_t = %f, iteration %zd\n",
+                        model->c, model->m, model->r, model->b, ml_t, iter);
+            }
+
+            /* convergence check */
+            if (fabs(ml_t - max_pt->t) <= tolerance) {
+                *success = true;
+                break;
+            }
 
 #ifdef VERBOSE
-        /* Warn if ml_t is outside the bracketed window. */
-        size_t max_idx = max_pt - points;
-        if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
+            /* Warn if ml_t is outside the bracketed window. */
+            size_t max_idx = max_pt - points;
+            if (ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
             fprintf(stderr, "WARNING: "
                     "BSM ml_t (%g) is outside bracketed window [%g, %g]"
                     ", model = { %.3f, %.3f, %.6f, %.6f }\n",
@@ -354,6 +367,8 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
                     model->c, model->m, model->r, model->b);
         }
 #endif
+
+        } // Now ml_t is zero, positive, or infinity again.
 
         double next_t = ml_t;
 
@@ -381,12 +396,32 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         /* Retain top n_pts by log-likelihood */
         sort_by_t(points, n_pts + 1);
 
-        if(classify_curve(points, n_pts + 1) != CRV_ENC_MAXIMA) {
-            fprintf(stderr, "ERROR: after iteration points no longer enclose a maximum\n");
+        curve_type_t prev_curvature = curvature;
+        curvature = classify_curve(points, n_pts + 1);
+
+        bool failure = false;
+        if (curvature == CRV_ENC_MINIMA || curvature == CRV_UNKNOWN) {
+            fprintf(stderr, "ERROR: "
+                    "after iteration points enclose a minimum "
+                    "or monotonicity unknown\n");
+            failure = true;
+        } else if (prev_curvature == CRV_ENC_MAXIMA && curvature != CRV_ENC_MAXIMA) {
+            fprintf(stderr, "ERROR: "
+                    "after iteration points no longer enclose a maximum\n");
+            failure = true;
+        } else if ((prev_curvature == CRV_MONO_INC && curvature == CRV_MONO_DEC) ||
+                   (prev_curvature == CRV_MONO_DEC && curvature == CRV_MONO_INC)) {
+            fprintf(stderr, "ERROR: "
+                    "after iteration points switched monotonicity\n");
+            failure = true;
+        }
+
+        if (failure) {
             *success = false;
             ml_t = NAN;
             break;
         }
+
         subset_points(points, n_pts + 1, n_pts);
     }
 

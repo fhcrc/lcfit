@@ -287,7 +287,7 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, in
     int status, i;
 
     for (i = 0; i < n; i++)
-	w[i] = 1.0L;
+        w[i] = 1.0L;
     status = lcfit_fit_bsm_weight(n, t, l, w, m, max_iter);
     free(w);
     return(status);
@@ -299,7 +299,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, con
 
 int check_model(const bsm_t* m)
 {
-    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m || m->r < BSM_R_MIN || m->b < BSM_B_MIN) {
+    if (m->c < 1.0 || m->m < 1.0 || m->r < BSM_R_MIN || m->b < BSM_B_MIN) {
         return 1;
     }
 
