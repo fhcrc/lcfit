@@ -70,12 +70,15 @@ classify_curve(const point_t[], const size_t);
  *                              points returned.
  * \param[in]     max_pts       Maximum number of points to try, including those
  *                              in \c starting_pts.
+ * \param[in]     min_t         Lower bound on branch length.
+ * \param[in]     max_t         Upper bound on branch length.
  *
- * \return An array of #point_t enclosing a maximum, or \c NULL if unable to do so.
+ * \return An array of #point_t covering the function, or \c NULL if unable to do so.
  */
 point_t*
 select_points(log_like_function_t *log_like, const point_t starting_pts[],
-              size_t *num_pts, size_t max_pts);
+              size_t *num_pts, size_t max_pts, const double min_t,
+              const double max_t);
 
 /** Sort an array of #point_t by increasing branch length. */
 void
