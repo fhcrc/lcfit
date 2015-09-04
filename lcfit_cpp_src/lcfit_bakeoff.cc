@@ -230,7 +230,7 @@ int run_main(int argc, char** argv)
         TreeLikelihoodCalculator likelihood_calc(*bpp_tree_like);
         LCFitter fitter(start, sample_points, &likelihood_calc);
 
-        if (!tree.hasDistanceToFather(node_id))
+        if (!tree.hasDistanceToFather(node_id) || tree.isRoot(node_id))
             continue;
 
         for (const double tol : tolerance_values) {
