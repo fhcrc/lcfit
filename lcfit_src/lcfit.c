@@ -20,6 +20,12 @@
 
 const static double LAMBDA = 50;
 
+/** Minimum bound on mutation rate. */
+const static double BSM_R_MIN = 1e-9;
+
+/** Minimum bound on branch length offset. */
+const static double BSM_B_MIN = 1e-12;
+
 const bsm_t DEFAULT_INIT = {1100.0, 800.0, 2.0, 0.5};
 
 /* calculate the sum of logs */
@@ -293,7 +299,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, con
 
 int check_model(const bsm_t* m)
 {
-    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m || m->r < 1e-7 || m->b < 1e-7) {
+    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m || m->r < BSM_R_MIN || m->b < BSM_B_MIN) {
         return 1;
     }
 
@@ -323,8 +329,8 @@ int check_model(const bsm_t* m)
  * - <c>m.c < 1</c>
  * - <c>m.m < 1</c>
  * - <c>m.c < m.m</c> (regime 4; see below)
- * - <c>m.r < 1e-7</c> (we assumed that the mutation rate is greater than zero)
- * - <c>m.b < 1e-7</c> (potentially regime 1; TODO why?)
+ * - <c>m.r < BSM_R_MIN</c> (we assumed that the mutation rate is greater than zero)
+ * - <c>m.b < BSM_B_MIN</c> (a small positive tolerance to aid convergence)
  *
  * Regime 4 is considered invalid in this scenario because, assuming a
  * tree with finite branch lengths, the probability of having more
@@ -501,7 +507,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
 {
     struct data_to_fit fit_data = { n, t, l, w, 0 };
 
-    const double lower_bounds[4] = { 1, 1, 1e-7, 1e-7 };
+    const double lower_bounds[4] = { 1, 1, BSM_R_MIN, BSM_B_MIN };
 
     nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 4);
     nlopt_set_min_objective(opt, bsm_fit_objective, &fit_data);
