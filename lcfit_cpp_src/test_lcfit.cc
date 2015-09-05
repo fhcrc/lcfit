@@ -386,12 +386,47 @@ fail_unless_fit_improves(const bsm_t* m, const double t[4], const double l[4])
     REQUIRE(init_residuals > updated_residuals);
 }
 
+void lcfit_bsm_log_like(size_t n, const double* t, double* lnl, const bsm_t* m)
+{
+    for (size_t i = 0; i < n; ++i) {
+        lnl[i] = lcfit_bsm_log_like(t[i], m);
+    }
+}
+
 TEST_CASE("fitting actually improves fit", "[lcfit_fit_bsm]") {
-    /* Scaled c and m from scale factor test */
-    const bsm_t m = {20739.66, 13826.44, 1.0, 0.5};
     const double t[4] = {0.1, 0.2, 0.5, 1.0};
-    const double l[4] = {-23912.9, -23861.9, -23804.3, -23820.9};
-    fail_unless_fit_improves(&m, t, l);
+    double l[4];
+
+    SECTION("in regime 1") {
+        const bsm_t m = DEFAULT_INIT;
+        lcfit_bsm_log_like(4, t, l, &REGIME_1);
+        fail_unless_fit_improves(&m, t, l);
+    }
+
+    SECTION("in regime 2") {
+        const bsm_t m = DEFAULT_INIT;
+        lcfit_bsm_log_like(4, t, l, &REGIME_2);
+        fail_unless_fit_improves(&m, t, l);
+    }
+
+    SECTION("in regime 3") {
+        const bsm_t m = DEFAULT_INIT;
+        lcfit_bsm_log_like(4, t, l, &REGIME_3);
+        fail_unless_fit_improves(&m, t, l);
+    }
+
+    SECTION("in regime 4") {
+        const bsm_t m = DEFAULT_INIT;
+        lcfit_bsm_log_like(4, t, l, &REGIME_4);
+        fail_unless_fit_improves(&m, t, l);
+    }
+
+    SECTION("using original test case") {
+        /* Scaled c and m from scale factor test */
+        const bsm_t m = {20739.66, 13826.44, 1.0, 0.5};
+        l[0] = -23912.9; l[1] = -23861.9; l[2] = -23804.3; l[3] = -23820.9;
+        fail_unless_fit_improves(&m, t, l);
+    }
 }
 
 TEST_CASE("maximum-likelihood branch lengths are computed properly",
