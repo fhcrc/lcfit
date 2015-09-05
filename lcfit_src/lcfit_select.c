@@ -353,7 +353,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
                     ml_t, points[max_idx - 1].t, points[max_idx + 1].t,
                     model->c, model->m, model->r, model->b);
         }
-#endif
+#endif /* VERBOSE */
 
         double next_t = ml_t;
 

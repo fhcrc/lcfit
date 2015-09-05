@@ -274,9 +274,9 @@ double bsm_fit_objective(unsigned p,
         }
     }
 
-#ifdef VERBOSE
+#ifdef REALLY_VERBOSE
     print_state_nlopt(fit_data->iterations, sum_sq_err, x, grad);
-#endif /* VERBOSE */
+#endif /* REALLY_VERBOSE */
     ++fit_data->iterations;
     return sum_sq_err;
 }
@@ -395,24 +395,25 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
     assert(s != NULL && "Solver allocation failed!");
     gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
-#ifdef VERBOSE
+#ifdef REALLY_VERBOSE
     /* We use the nlopt objective function here to avoid having to
      * manually sum the residuals computed by the GSL objective
-     * function lcfit_pair_f. As a bonus, since VERBOSE is defined,
-     * bsm_fit_objective will print the state for us, too. Its only
-     * side effect is incrementing the data_to_fit struct's iteration
-     * counter, so we reset it to zero before proceeding. */
+     * function lcfit_pair_f. As a bonus, since REALLY_VERBOSE is
+     * defined, bsm_fit_objective will print the state for us,
+     * too. Its only side effect is incrementing the data_to_fit
+     * struct's iteration counter, so we reset it to zero before
+     * proceeding. */
     bsm_fit_objective(4, x, NULL, &d);
     d.iterations = 0;
-#endif
+#endif /* REALLY_VERBOSE */
 
     do {
         d.iterations++;
         status = gsl_multifit_fdfsolver_iterate(s);
 
-#ifdef VERBOSE
+#ifdef REALLY_VERBOSE
         print_state_gsl(d.iterations, s);
-#endif /* VERBOSE */
+#endif /* REALLY_VERBOSE */
 
         if (status) {
             break;
@@ -436,7 +437,7 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
 #endif /* REALLY_VERBOSE */
 
 #ifdef VERBOSE
-    fprintf(stderr, "status = %s (%d)   iterations %zu\n",
+    fprintf(stderr, "[G] status = %s (%d)   iterations %zu\n",
             gsl_strerror(status), status, d.iterations);
 #endif /* VERBOSE */
 
@@ -520,18 +521,18 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
     double x[4] = { m->c, m->m, m->r, m->b };
     double minf = 0.0;
 
-#ifdef VERBOSE
-    /* Since VERBOSE is defined, bsm_fit_objective will print the
-     * state for us, too. Its only side effect is incrementing the
+#ifdef REALLY_VERBOSE
+    /* Since REALLY_VERBOSE is defined, bsm_fit_objective will print
+     * the state for us, too. Its only side effect is incrementing the
      * data_to_fit struct's iteration counter, which in this case is
      * proper. */
     bsm_fit_objective(4, x, NULL, &fit_data);
-#endif /* VERBOSE */
+#endif /* REALLY_VERBOSE */
 
     int status = nlopt_optimize(opt, x, &minf);
 
 #ifdef VERBOSE
-    fprintf(stderr, "status = %s (%d)   iterations %zu\n",
+    fprintf(stderr, "[N] status = %s (%d)   iterations %zu\n",
             nlopt_strerror(status), status, fit_data.iterations);
 #endif /* VERBOSE */
 
