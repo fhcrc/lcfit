@@ -299,7 +299,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, con
 
 int check_model(const bsm_t* m)
 {
-    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m || m->r < BSM_R_MIN || m->b < BSM_B_MIN) {
+    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m || m->r <= 0.0 || m->b < 0.0) {
         return 1;
     }
 
@@ -329,8 +329,8 @@ int check_model(const bsm_t* m)
  * - <c>m.c < 1</c>
  * - <c>m.m < 1</c>
  * - <c>m.c < m.m</c> (regime 4; see below)
- * - <c>m.r < BSM_R_MIN</c> (we assumed that the mutation rate is greater than zero)
- * - <c>m.b < BSM_B_MIN</c> (a small positive tolerance to aid convergence)
+ * - <c>m.r <= 0</c> (we assumed that the mutation rate is greater than zero)
+ * - <c>m.b < 0</c> (branch length offset must be non-negative)
  *
  * Regime 4 is considered invalid in this scenario because, assuming a
  * tree with finite branch lengths, the probability of having more
