@@ -293,7 +293,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         return NAN;
     }
 
-    curve_type_t m = classify_curve(points, n_pts);
+    curve_type_t m = classify_curve(points, n);
 
     if (m == CRV_MONO_DEC) {
         const double ml_t = points[0].t;
