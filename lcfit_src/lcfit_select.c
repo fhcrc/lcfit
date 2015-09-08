@@ -95,58 +95,68 @@ classify_curve(const point_t points[], const size_t n)
 
 point_t*
 select_points(log_like_function_t *log_like, const point_t starting_pts[],
-              size_t *num_pts, const size_t max_pts)
+              size_t *num_pts, const size_t max_pts, const double min_t,
+              const double max_t)
 {
-    point_t* points = malloc(sizeof(point_t) * (max_pts));
-    size_t i, n = *num_pts;
-    assert(n > 0 && "num_pts must be > 0");
+    size_t n = *num_pts;
+    assert(n >= 3);
+
+    point_t* points = malloc(sizeof(point_t) * max_pts);
 
     /* Copy already-evaluated points */
     memcpy(points, starting_pts, sizeof(point_t) * n);
-    /* Initialize the rest - for debugging */
-    for(i = n; i < max_pts; ++i) {
-        points[i].t = -1; points[i].ll = -1;
-    }
 
     /* Add additional samples until the evaluated branch lengths enclose a
-     * maximum. */
-    size_t offset = 0;  /* Position to maintain sort order */
-    double d = 0.0;     /* Branch length */
+     * maximum or the maximum number of points is reached. */
+    for (; n < max_pts; ++n) {
+        curve_type_t curvature = classify_curve(points, n);
 
-    curve_type_t c = classify_curve(points, n);
-    while (n < max_pts && c != CRV_ENC_MAXIMA) {
-        switch(c) {
-            case CRV_MONO_INC:
-                /* Double largest value */
-                d = points[n - 1].t * 2.0;
-                offset = n;
-                break;
-            case CRV_MONO_DEC:
-                /* Add new smallest value - order of magnitude lower */
-                d = points[0].t / 10.0;
-                offset = 0;
-                /* shift */
-                memmove(points + 1, points, sizeof(point_t) * n);
-                break;
-            default:
-                free(points);
-                return NULL;
+        if (curvature == CRV_ENC_MAXIMA) {
+            break;
+        } else if (curvature == CRV_ENC_MINIMA || curvature == CRV_UNKNOWN) {
+            free(points);
+            return NULL;
         }
 
-        const double l = log_like->fn(d, log_like->args);
-        points[offset].t = d;
-        points[offset].ll = l;
+        double next_t = 0.0;
+
+        if (curvature == CRV_MONO_INC) {
+            next_t = points[n - 1].t * 2.0;
+        } else { /* curvature == CRV_MONO_DEC */
+            next_t = points[0].t / 10.0;
+        }
+
+        /* Ensure the next branch length to evaluate is within bounds. */
+        if (next_t < min_t) {
+            next_t = min_t;
+        } else if (next_t > max_t) {
+            next_t = max_t;
+        }
+
+        /* If the next branch length is equal to the minimum or
+         * maximum of the already-evaluated branch lengths, split the
+         * difference between it and its neighbor instead. */
+        if (next_t == points[0].t) {
+            next_t = points[0].t + (points[1].t - points[0].t) / 2.0;
+        } else if (next_t == points[n - 1].t) {
+            next_t = points[n - 2].t +
+                     (points[n - 1].t - points[n - 2].t) / 2.0;
+        }
+
+        points[n].t = next_t;
+        points[n].ll = log_like->fn(next_t, log_like->args);
         bracket_likelihood_calls++;
 
-        c = classify_curve(points, ++n);
+        sort_by_t(points, n + 1);
     }
 
     *num_pts = n;
 
-    if(n < max_pts)
+    if (n < max_pts) {
         return realloc(points, sizeof(point_t) * n);
-    else
-        return points;
+    }
+
+    return points;
 }
 
 static int
@@ -274,7 +284,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
     size_t n = n_pts;
     point_t* points = select_points(log_like, starting_pts, &n,
-                                    DEFAULT_MAX_POINTS);
+                                    DEFAULT_MAX_POINTS, min_t, max_t);
     free(starting_pts);
 
     if (points == NULL) {

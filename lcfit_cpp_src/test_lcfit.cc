@@ -122,7 +122,7 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         const size_t max_pts = 8;
 
         point_t* selected_pts = select_points(&log_like, starting_pts.data(),
-                                              &n_pts, max_pts);
+                                              &n_pts, max_pts, 0.0, INFINITY);
 
         REQUIRE(n_pts == 4);
 
@@ -144,7 +144,7 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         const size_t max_pts = 8;
 
         point_t* selected_pts = select_points(&log_like, starting_pts.data(),
-                                              &n_pts, max_pts);
+                                              &n_pts, max_pts, 0.0, INFINITY);
 
         REQUIRE(n_pts == 5);
 
@@ -167,7 +167,7 @@ TEST_CASE("test points are selected properly", "[select_points]") {
         const size_t max_pts = 8;
 
         point_t* selected_pts = select_points(&log_like, starting_pts.data(),
-                                              &n_pts, max_pts);
+                                              &n_pts, max_pts, 0.0, INFINITY);
 
         REQUIRE (n_pts == 3);
 
