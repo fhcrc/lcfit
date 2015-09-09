@@ -353,6 +353,19 @@ TEST_CASE("estimated maximum likelihood branch length is within tolerance",
                 REQUIRE(result == Approx(t_min).epsilon(tolerance));
             }
         }
+
+        SECTION("and the maximum is to the right of the starting points") {
+            std::vector<double> t = {1e-4, 1e-3, 1e-2, 0.1};
+
+            SECTION("and the bounds include the maximum") {
+                double result = estimate_ml_t(&log_like, t.data(), t.size(),
+                                              tolerance, &model, &success,
+                                              MIN_BL, MAX_BL);
+
+                REQUIRE(success == true);
+                REQUIRE(result == Approx(true_ml_t).epsilon(tolerance));
+            }
+        }
     }
 }
 
