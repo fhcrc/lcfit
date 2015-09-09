@@ -227,13 +227,26 @@ point_max_index(const point_t p[], const size_t n)
 void
 subset_points(point_t p[], const size_t n, const size_t k)
 {
-    assert(classify_curve(p, n) == CRV_ENC_MAXIMA);
-    if(k == n) return;
-    assert(k <= n);
+    sort_by_t(p, n);
+
+    if (k == n) return;
+    assert(k < n);
+
+    curve_type_t curvature = classify_curve(p, n);
+    assert(curvature == CRV_ENC_MAXIMA || curvature == CRV_MONO_DEC);
+
+    if (curvature == CRV_MONO_DEC) {
+        /* Keep leftmost k points, which are already in place. */
+        return;
+    }
+
+    /* Otherwise, the curvature is CRV_ENC_MAXIMA. Keep the maximum
+     * and its neighbors and sort the rest by likelihood. */
+    assert(n >= 3);
+
     size_t max_idx = point_max_index(p, n);
 
-    if(max_idx != 1) {
-        /* Always keep the points before and after max_idx */
+    if (max_idx > 1) {
         const size_t n_before = max_idx - 1;
         const size_t s = n_before * sizeof(point_t);
         point_t *buf = malloc(s);
@@ -242,7 +255,11 @@ subset_points(point_t p[], const size_t n, const size_t k)
         memcpy(p + 3, buf, s);
         free(buf);
     }
-    sort_by_like(p + 3, n - 3);
+
+    if (k > 3) {
+        sort_by_like(p + 3, n - 3);
+    }
+
     sort_by_t(p, k);
 }
 
@@ -293,19 +310,19 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         return NAN;
     }
 
-    curve_type_t m = classify_curve(points, n);
+    curve_type_t curvature = classify_curve(points, n);
 
-    if (m == CRV_MONO_DEC) {
-        const double ml_t = points[0].t;
-        free(points);
-        *success = true;
-        return ml_t;
-    } else if (m != CRV_ENC_MAXIMA) {
-        fprintf(stderr, "ERROR: selected points don't enclose a maximum\n");
+    if (!(curvature == CRV_ENC_MAXIMA || curvature == CRV_MONO_DEC)) {
+        fprintf(stderr, "ERROR: "
+                "points don't enclose a maximum and aren't decreasing\n");
+
         free(points);
         *success = false;
         return NAN;
     }
+
+    /* From here on, curvature is CRV_ENC_MAXIMA or CRV_MONO_DEC, and
+     * thus ml_t is zero or positive (but not infinite). */
 
     assert(n >= n_pts);
     if (n > n_pts) {
@@ -327,6 +344,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     const point_t* max_pt = NULL;
     double* l = malloc(sizeof(double) * n_pts);
     double ml_t = 0.0;
+    double prev_t = 0.0;
 
     for(iter = 0; iter < MAX_ITERS; iter++) {
         max_pt = max_point(points, n_pts);
@@ -339,31 +357,33 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         ml_t = lcfit_bsm_ml_t(model);
 
         if(isnan(ml_t)) {
-            fprintf(stderr,
-                    "ERROR: lcfit_bsm_ml_t returned NaN"
+            fprintf(stderr, "ERROR: "
+                    "lcfit_bsm_ml_t returned NaN"
                     ", model = { %.3f, %.3f, %.6f, %.6f }\n",
                     model->c, model->m, model->r, model->b);
             *success = false;
             break;
         }
 
-        /* convergence check */
-        if(fabs(ml_t - max_pt->t) <= tolerance) {
-            *success = true;
-            break;
-        }
+        if (curvature == CRV_ENC_MAXIMA) {
+            /* convergence check */
+            if (fabs(ml_t - max_pt->t) <= tolerance) {
+                *success = true;
+                break;
+            }
 
 #ifdef VERBOSE
-        /* Warn if ml_t is outside the bracketed window. */
-        size_t max_idx = max_pt - points;
-        if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
-            fprintf(stderr, "WARNING: "
-                    "BSM ml_t (%g) is outside bracketed window [%g, %g]"
-                    ", model = { %.3f, %.3f, %.6f, %.6f }\n",
-                    ml_t, points[max_idx - 1].t, points[max_idx + 1].t,
-                    model->c, model->m, model->r, model->b);
-        }
+            /* Warn if ml_t is outside the bracketed window. */
+            size_t max_idx = max_pt - points;
+            if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
+                fprintf(stderr, "WARNING: "
+                        "BSM ml_t (%g) is outside bracketed window [%g, %g]"
+                        ", model = { %.3f, %.3f, %.6f, %.6f }\n",
+                        ml_t, points[max_idx - 1].t, points[max_idx + 1].t,
+                        model->c, model->m, model->r, model->b);
+            }
 #endif /* VERBOSE */
+        }
 
         double next_t = ml_t;
 
@@ -384,6 +404,15 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
                      (points[n_pts - 1].t - points[n_pts - 2].t) / 2.0;
         }
 
+        if (curvature == CRV_MONO_DEC) {
+            if (fabs(prev_t - next_t) <= tolerance) {
+                *success = true;
+                break;
+            } else {
+                prev_t = next_t;
+            }
+        }
+
         points[n_pts].t = next_t;
         points[n_pts].ll = log_like->fn(next_t, log_like->args);
         ml_likelihood_calls++;
@@ -391,16 +420,20 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         /* Retain top n_pts by log-likelihood */
         sort_by_t(points, n_pts + 1);
 
-        if(classify_curve(points, n_pts + 1) != CRV_ENC_MAXIMA) {
-            fprintf(stderr, "ERROR: after iteration points no longer enclose a maximum\n");
+        curvature = classify_curve(points, n_pts + 1);
+
+        if (!(curvature == CRV_ENC_MAXIMA || curvature == CRV_MONO_DEC)) {
+            fprintf(stderr, "ERROR: "
+                    "after iteration points don't enclose a maximum "
+                    "and aren't decreasing\n");
             *success = false;
-            ml_t = NAN;
             break;
         }
+
         subset_points(points, n_pts + 1, n_pts);
     }
 
-    if(iter == MAX_ITERS) {
+    if (iter == MAX_ITERS) {
         fprintf(stderr, "WARNING: maximum number of iterations reached\n");
         *success = false;
     }
