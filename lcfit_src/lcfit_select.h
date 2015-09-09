@@ -127,7 +127,7 @@ sort_by_like(point_t points[], const size_t n);
  * \param [in,out] model      Model parameters, updated in-place.
  * \param [out]    success    A \c bool indicating success or failure.
  * \param [in]       min_t    Lower bound on branch length.
- * \param [out]      max_t    Upper bound on branch length.
+ * \param [in]       max_t    Upper bound on branch length.
  *
  * \return The estimated ML branch length, or \c NAN if an error occurs.
   */
