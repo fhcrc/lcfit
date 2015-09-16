@@ -1,4 +1,5 @@
 library(ggplot2)
+library(Rmpfr)
 
 # Compute log(sum(exp(x))).
 # http://r.789695.n4.nabble.com/logsumexp-function-in-R-td3310119.html
@@ -164,16 +165,25 @@ lcfit_sample_exp_prior_compare <- function(m, lambda, s, breaks = 100) {
   t <- hobj$mids
 
   # Compute expected likelihoods and (unnormalized) densities.
-  x <- exp(-m$r*(m$b + t))
-  ll <- m$c*log(1 + x) + m$m*log(1 - x) - lambda*t
-  ld <- ll + log(m$r) - lambda*m$b
+  # x <- exp(-m$r*(m$b + t))
+  # ll <- m$c*log(1 + x) + m$m*log(1 - x) - lambda*t
+  # ld <- ll + log(m$r) - lambda*m$b
+  model_log_density <- function(t) {
+    x <- exp(-m$r*(m$b + t))
+    m$c*log(1 + x) + m$m*log(1 - x) - lambda*t + log(m$r) - lambda*m$b
+  }
+  ld <- model_log_density(t)
 
-  # Normalize densities by approximating the function and dividing by its
-  # integral.
-  ldfun <- approxfun(t, ld)
-  dfun <- function(t) { exp(ldfun(t)) }
-  cons <- integrate(dfun, min(t), max(t))$value
-  d <- exp(ld - log(cons))
+  # Normalize densities by high-precision numerical integration. A relative
+  # error of less than 1e-16 is correct up to the number of (base 10) decimal
+  # places a double-precision float can hold, which is all we need for
+  # normalizing the log densities above.
+
+  model_density <- function(t) { exp(model_log_density(t)) }
+  cons <- integrateR(model_density, mpfr(min(t), 512), mpfr(max(t), 512),
+                     rel.tol = 1e-16, abs.tol = .Machine$double.xmax,
+                     verbose = TRUE)$value
+  d <- as.numeric(exp(ld - log(cons)))
 
   data <- data.frame(t = t, expected = d, observed = hobj$density)
 }
