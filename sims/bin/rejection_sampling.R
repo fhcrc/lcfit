@@ -1,4 +1,5 @@
 library(ggplot2)
+library(Runuran)
 
 script_dir <- dirname(sys.frame(1)$ofile)
 source(file.path(script_dir, "lcfit.R"))
@@ -49,6 +50,16 @@ rejection_sampler <- function(m, lambda, N) {
   close(pb)
   print(sprintf("acceptance ratio: %g", i / trials))
   return(s)
+}
+
+adaptive_sampler <- function(m, lambda, N) {
+  ml_t <- lcfit_bsm_ml_t(m)
+  ml_ll <- lcfit_bsm_log_like(ml_t, m)
+
+  f <- function(t) { lcfit_bsm_log_like(t, m) - ml_ll + dexp(t, rate = lambda, log = TRUE) }
+
+  f.unr <- ars.new(f, lb = 0, ub = Inf)
+  ur(f.unr, n = N)
 }
 
 test_sampler <- function(sampler, m, lambda, N, label = "unknown") {
