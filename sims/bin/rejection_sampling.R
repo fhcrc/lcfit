@@ -1,5 +1,8 @@
 library(ggplot2)
-source("bin/lcfit.R")
+
+script_dir <- dirname(sys.frame(1)$ofile)
+source(file.path(script_dir, "lcfit.R"))
+source(file.path(script_dir, "log_sampling.R"))
 
 rejection_sampler <- function(m, lambda, N) {
   ml_t <- lcfit_bsm_ml_t(m)
