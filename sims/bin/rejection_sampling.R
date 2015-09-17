@@ -68,7 +68,7 @@ test_sampler <- function(sampler, m, lambda, N, label = "unknown") {
   data <- lcfit_sample_exp_prior_compare(m, lambda, samples)
   p <- ggplot(data, aes(x = t)) + geom_line(aes(y = expected)) +
     geom_bar(aes(y = observed), stat = "identity", alpha = 0.4) +
-    ylab("probability") +
+    ylab("probability density") +
     xlab("branch length") +
     ggtitle(bquote(atop(.(label), list(c==.(m$c), m==.(m$m), r==.(m$r), b==.(m$b), lambda==.(lambda)))))
 
