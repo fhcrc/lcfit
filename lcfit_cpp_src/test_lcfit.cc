@@ -14,32 +14,40 @@ const double MAX_BL = 1e4;
 
 TEST_CASE("model values are computed correctly", "[bsm_values]") {
     SECTION("in regime 1") {
-        bsm_t m = {10.0, 1.0, 1.0, 0.0};
+        bsm_t m = REGIME_1;
+        REQUIRE(lcfit_bsm_regime(&m) == LCFIT_REGIME_1);
         REQUIRE(lcfit_bsm_ml_t(&m) == Approx(0.2006707));
+        REQUIRE(lcfit_bsm_infl_t(&m) == Approx(0.6549003));
         REQUIRE(lcfit_bsm_log_like(0.0, &m) == -INFINITY);
         REQUIRE(lcfit_bsm_log_like(0.2, &m) == Approx(-3.351002));
         REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));
     }
 
     SECTION("in regime 2") {
-        bsm_t m = {10.0, 1.0, 1.0, 0.1};
+        bsm_t m = REGIME_2;
+        REQUIRE(lcfit_bsm_regime(&m) == LCFIT_REGIME_2);
         REQUIRE(lcfit_bsm_ml_t(&m) == Approx(0.1006707));
+        REQUIRE(lcfit_bsm_infl_t(&m) == Approx(0.5549003));
         REQUIRE(lcfit_bsm_log_like(0.0, &m) == Approx(-3.532821));
         REQUIRE(lcfit_bsm_log_like(0.1, &m) == Approx(-3.351002));
         REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));
     }
 
     SECTION("in regime 3") {
-        bsm_t m = {10.0, 1.0, 1.0, 1.0};
+        bsm_t m = REGIME_3;
+        REQUIRE(lcfit_bsm_regime(&m) == LCFIT_REGIME_3);
         REQUIRE(lcfit_bsm_ml_t(&m) == 0.0);
+        REQUIRE(isnan(lcfit_bsm_infl_t(&m)));
         REQUIRE(lcfit_bsm_log_like(0.0, &m) == Approx(-4.950677));
         REQUIRE(lcfit_bsm_log_like(0.1, &m) == Approx(-5.156038));
         REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));
     }
 
     SECTION("in regime 4") {
-        bsm_t m = {1.0, 10.0, 1.0, 0.1};
+        bsm_t m = REGIME_4;
+        REQUIRE(lcfit_bsm_regime(&m) == LCFIT_REGIME_4);
         REQUIRE(lcfit_bsm_ml_t(&m) == INFINITY);
+        REQUIRE(isnan(lcfit_bsm_infl_t(&m)));
         REQUIRE(lcfit_bsm_log_like(0.0, &m) == Approx(-30.50191));
         REQUIRE(lcfit_bsm_log_like(0.1, &m) == Approx(-24.1042));
         REQUIRE(lcfit_bsm_log_like(INFINITY, &m) == Approx(-7.624619));

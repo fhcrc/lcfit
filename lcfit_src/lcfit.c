@@ -81,6 +81,34 @@ double lcfit_bsm_ml_t(const bsm_t* m)
     return t < 0.0 ? 0.0 : t;
 }
 
+double lcfit_bsm_infl_t(const bsm_t* m)
+{
+    lcfit_regime regime = lcfit_bsm_regime(m);
+
+    if (!(regime == LCFIT_REGIME_1 || regime == LCFIT_REGIME_2)) {
+        return NAN;
+    }
+
+    double t = -(m->b) + (1.0 / m->r) *
+               log(pow(sqrt(m->c) + sqrt(m->m), 2.0) / (m->c - m->m));
+
+    return t;
+}
+
+lcfit_regime lcfit_bsm_regime(const bsm_t* m)
+{
+    if (m->c == m->m) { return LCFIT_REGIME_UNKNOWN; }
+    if (m->c < m->m) { return LCFIT_REGIME_4; }
+
+    double lhs = exp(m->b * m->r);
+    double rhs = pow(sqrt(m->c) + sqrt(m->m), 2.0) / (m->c - m->m);
+
+    if (lhs > rhs) { return LCFIT_REGIME_3; }
+    if (m->b > 0.0) { return LCFIT_REGIME_2; }
+
+    return LCFIT_REGIME_1;
+}
+
 /*
  * The scaling parameter for c and m to obtain log-likelihood value `l` at branch length `t`,
  * keeping `r` and `b` fixed.

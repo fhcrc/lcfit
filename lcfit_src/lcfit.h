@@ -47,6 +47,20 @@ typedef enum {
     LCFIT_ETOLG = 31
 } lcfit_status;
 
+/** Codes returned by #lcfit_bsm_regime indicating the model's parameter regime. */
+typedef enum {
+    /** Regime unknown. */
+    LCFIT_REGIME_UNKNOWN,
+    /** Regime 1. */
+    LCFIT_REGIME_1,
+    /** Regime 2. */
+    LCFIT_REGIME_2,
+    /** Regime 3. */
+    LCFIT_REGIME_3,
+    /** Regime 4. */
+    LCFIT_REGIME_4
+} lcfit_regime;
+
 /** Compute the BSM log-likelihood at a given branch length.
  *
  *  In general,
@@ -100,6 +114,31 @@ double lcfit_bsm_log_like(double t, const bsm_t* m);
  * \return The maximum-likelihood branch length under \c m.
  */
 double lcfit_bsm_ml_t(const bsm_t* m);
+
+/** Compute the positive inflection point for a model in regime 1 or 2.
+ *
+ * The second derivative of the surrogate function is zero when
+ *
+ * \f[
+ *   t = -b + \frac{1}{r} \log \left( \frac{(\sqrt{c} \pm \sqrt{m})^2}{c - m} \right)
+ * \f]
+ *
+ * This equation has a positive real solution only when the model is
+ * in regime 1 or 2. When it exists, the point is an inflection point.
+ *
+ * \param[in] m  Model parameters.
+ *
+ * \return The positive inflection point under \c m, or \c NAN if none.
+ */
+double lcfit_bsm_infl_t(const bsm_t* m);
+
+/** Determine the parameter regime for a model.
+ *
+ * \param[in] m  Model parameters.
+ *
+ * \return An #lcfit_regime code indicating the model regime.
+ */
+lcfit_regime lcfit_bsm_regime(const bsm_t* m);
 
 /** Compute a scale factor for a given model to intersect with \f$(t, l)\f$.
  *
