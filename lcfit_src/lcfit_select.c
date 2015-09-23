@@ -59,6 +59,14 @@ point_ll_minmax(const point_t points[], const size_t n,
     }
 }
 
+static void print_points(FILE* fp, const point_t* points, const size_t n)
+{
+    char* sep = "";
+    for (size_t i = 0; i < n; ++i) {
+        fprintf(fp, "%s%g", sep, points[i].t);
+        sep = ", ";
+    }
+}
 
 curve_type_t
 classify_curve(const point_t points[], const size_t n)
@@ -335,6 +343,10 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
 #ifdef VERBOSE
     fprintf(stderr, "starting iterative fit\n");
+
+    fprintf(stderr, "starting points: ");
+    print_points(stderr, points, n_pts);
+    fprintf(stderr, "\n");
 #endif /* VERBOSE */
 
     /* Allocate an extra point for scratch */
@@ -431,6 +443,12 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         }
 
         subset_points(points, n_pts + 1, n_pts);
+
+#ifdef VERBOSE
+        fprintf(stderr, "current points: ");
+        print_points(stderr, points, n_pts);
+        fprintf(stderr, "\n");
+#endif /* VERBOSE */
     }
 
     if (iter == MAX_ITERS) {
