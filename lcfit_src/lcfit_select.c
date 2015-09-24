@@ -13,7 +13,7 @@
 #include <stdio.h>
 //#endif
 
-const static size_t MAX_ITERS = 30;
+const static size_t MAX_ITERS = 100;
 
 #ifdef LCFIT_DEBUG
 static int is_initialized = false;
@@ -307,6 +307,11 @@ blit_points_to_arrays(const point_t points[], const size_t n,
     }
 }
 
+double rel_err(double expected, double observed)
+{
+    return fabs((expected - observed) / expected);
+}
+
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model,
@@ -387,31 +392,53 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
 
-        if (curvature == CRV_ENC_MAXIMA) {
-            if (fabs(max_pt->t - ml_t) <= tolerance) {
+        if (curvature == CRV_ENC_MAXIMA && ml_t > min_t) {
+            if (rel_err(max_pt->t, ml_t) <= tolerance) {
                 *success = true;
                 break;
             }
+
+            assert(n_pts == 5);
+
+            double infl_t = lcfit_bsm_infl_t(model);
+
+            points[0].t = min_t + (ml_t - min_t) / 4.0;
+            points[1].t = min_t + (ml_t - min_t) / 2.0;
+            points[2].t = ml_t;
+            points[3].t = infl_t;
+            points[4].t = ml_t + (infl_t - ml_t) * 4.0;
+
+            for (size_t i = 0; i < n_pts; ++i) {
+                points[i].ll = log_like->fn(points[i].t, log_like->args);
+                ml_likelihood_calls++;
+            }
+
+            prev_t = ml_t;
+
+            sort_by_t(points, n_pts);
         }
 
-        double proposed_t = lcfit_bsm_ml_t(model);
-        double next_t = bound_point(proposed_t, points, n_pts, min_t, max_t);
+        // if (curvature == CRV_MONO_DEC) {
+        else {
+            double proposed_t = ml_t;
+            double next_t = bound_point(proposed_t, points, n_pts, min_t, max_t);
 
-        if (curvature == CRV_MONO_DEC) {
-            if (fabs(prev_t - next_t) <= tolerance) {
+            if (rel_err(prev_t, next_t) <= tolerance) {
                 *success = true;
                 break;
             }
+
+            points[n_pts].t = next_t;
+            points[n_pts].ll = log_like->fn(next_t, log_like->args);
+            ml_likelihood_calls++;
+
+            prev_t = next_t;
+
+            sort_by_t(points, n_pts + 1);
+            subset_points(points, n_pts + 1, n_pts);
         }
 
-        points[n_pts].t = next_t;
-        points[n_pts].ll = log_like->fn(next_t, log_like->args);
-        ml_likelihood_calls++;
-
-        prev_t = next_t;
-
-        sort_by_t(points, n_pts + 1);
-        curvature = classify_curve(points, n_pts + 1);
+        curvature = classify_curve(points, n_pts);
 
         if (!(curvature == CRV_ENC_MAXIMA || curvature == CRV_MONO_DEC)) {
             fprintf(stderr, "ERROR: "
@@ -420,8 +447,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             *success = false;
             break;
         }
-
-        subset_points(points, n_pts + 1, n_pts);
 
 #ifdef VERBOSE
         fprintf(stderr, "current points: ");
