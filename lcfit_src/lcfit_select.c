@@ -383,18 +383,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
                 *success = true;
                 break;
             }
-
-#ifdef VERBOSE
-            /* Warn if ml_t is outside the bracketed window. */
-            size_t max_idx = max_pt - points;
-            if(ml_t < points[max_idx - 1].t || ml_t > points[max_idx + 1].t) {
-                fprintf(stderr, "WARNING: "
-                        "BSM ml_t (%g) is outside bracketed window [%g, %g]"
-                        ", model = { %.3f, %.3f, %.6f, %.6f }\n",
-                        ml_t, points[max_idx - 1].t, points[max_idx + 1].t,
-                        model->c, model->m, model->r, model->b);
-            }
-#endif /* VERBOSE */
         }
 
         double next_t = ml_t;
