@@ -101,6 +101,31 @@ classify_curve(const point_t points[], const size_t n)
     return CRV_UNKNOWN;
 }
 
+double bound_point(const double proposed_t, const point_t* points,
+                   const size_t n_pts, const double min_t, const double max_t)
+{
+    double next_t = proposed_t;
+
+    // Ensure the next branch length to evaluate is within bounds.
+    if (next_t < min_t) {
+        next_t = min_t;
+    } else if (next_t > max_t) {
+        next_t = max_t;
+    }
+
+    // If the next branch length is equal to the minimum or
+    // maximum of the already-evaluated branch lengths, split the
+    // difference between it and its neighbor instead.
+    if (next_t == points[0].t) {
+        next_t = points[0].t + (points[1].t - points[0].t) / 2.0;
+    } else if (next_t == points[n_pts - 1].t) {
+        next_t = points[n_pts - 2].t +
+                 (points[n_pts - 1].t - points[n_pts - 2].t) / 2.0;
+    }
+
+    return next_t;
+}
+
 point_t*
 select_points(log_like_function_t *log_like, const point_t starting_pts[],
               size_t *num_pts, const size_t max_pts, const double min_t,
@@ -126,30 +151,15 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
             return NULL;
         }
 
-        double next_t = 0.0;
+        double proposed_t = 0.0;
 
         if (curvature == CRV_MONO_INC) {
-            next_t = points[n - 1].t * 2.0;
+            proposed_t = points[n - 1].t * 2.0;
         } else { /* curvature == CRV_MONO_DEC */
-            next_t = points[0].t / 10.0;
+            proposed_t = points[0].t / 10.0;
         }
 
-        /* Ensure the next branch length to evaluate is within bounds. */
-        if (next_t < min_t) {
-            next_t = min_t;
-        } else if (next_t > max_t) {
-            next_t = max_t;
-        }
-
-        /* If the next branch length is equal to the minimum or
-         * maximum of the already-evaluated branch lengths, split the
-         * difference between it and its neighbor instead. */
-        if (next_t == points[0].t) {
-            next_t = points[0].t + (points[1].t - points[0].t) / 2.0;
-        } else if (next_t == points[n - 1].t) {
-            next_t = points[n - 2].t +
-                     (points[n - 1].t - points[n - 2].t) / 2.0;
-        }
+        double next_t = bound_point(proposed_t, points, n, min_t, max_t);
 
         points[n].t = next_t;
         points[n].ll = log_like->fn(next_t, log_like->args);
@@ -295,31 +305,6 @@ blit_points_to_arrays(const point_t points[], const size_t n,
         *t++ = points->t;
         *l++ = points->ll;
     }
-}
-
-double bound_point(const double proposed_t, const point_t* points,
-                   const size_t n_pts, const double min_t, const double max_t)
-{
-    double next_t = proposed_t;
-
-    // Ensure the next branch length to evaluate is within bounds.
-    if (next_t < min_t) {
-        next_t = min_t;
-    } else if (next_t > max_t) {
-        next_t = max_t;
-    }
-
-    // If the next branch length is equal to the minimum or
-    // maximum of the already-evaluated branch lengths, split the
-    // difference between it and its neighbor instead.
-    if (next_t == points[0].t) {
-        next_t = points[0].t + (points[1].t - points[0].t) / 2.0;
-    } else if (next_t == points[n_pts - 1].t) {
-        next_t = points[n_pts - 2].t +
-                 (points[n_pts - 1].t - points[n_pts - 2].t) / 2.0;
-    }
-
-    return next_t;
 }
 
 double
