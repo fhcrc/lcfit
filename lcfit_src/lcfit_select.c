@@ -297,6 +297,32 @@ blit_points_to_arrays(const point_t points[], const size_t n,
     }
 }
 
+double select_next_point(const point_t* points, const size_t n_pts,
+                         const bsm_t* model, const double min_t,
+                         const double max_t)
+{
+    double next_t = lcfit_bsm_ml_t(model);
+
+    // Ensure the next branch length to evaluate is within bounds.
+    if (next_t < min_t) {
+        next_t = min_t;
+    } else if (next_t > max_t) {
+        next_t = max_t;
+    }
+
+    // If the next branch length is equal to the minimum or
+    // maximum of the already-evaluated branch lengths, split the
+    // difference between it and its neighbor instead.
+    if (next_t == points[0].t) {
+        next_t = points[0].t + (points[1].t - points[0].t) / 2.0;
+    } else if (next_t == points[n_pts - 1].t) {
+        next_t = points[n_pts - 2].t +
+                 (points[n_pts - 1].t - points[n_pts - 2].t) / 2.0;
+    }
+
+    return next_t;
+}
+
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model,
@@ -385,24 +411,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             }
         }
 
-        double next_t = ml_t;
-
-        // Ensure the next branch length to evaluate is within bounds.
-        if (next_t < min_t) {
-            next_t = min_t;
-        } else if (next_t > max_t) {
-            next_t = max_t;
-        }
-
-        // If the next branch length is equal to the minimum or
-        // maximum of the already-evaluated branch lengths, split the
-        // difference between it and its neighbor instead.
-        if (next_t == points[0].t) {
-            next_t = points[0].t + (points[1].t - points[0].t) / 2.0;
-        } else if (next_t == points[n_pts - 1].t) {
-            next_t = points[n_pts - 2].t +
-                     (points[n_pts - 1].t - points[n_pts - 2].t) / 2.0;
-        }
+        double next_t = select_next_point(points, n_pts, model, min_t, max_t);
 
         if (curvature == CRV_MONO_DEC) {
             if (fabs(prev_t - next_t) <= tolerance) {
