@@ -297,11 +297,10 @@ blit_points_to_arrays(const point_t points[], const size_t n,
     }
 }
 
-double select_next_point(const point_t* points, const size_t n_pts,
-                         const bsm_t* model, const double min_t,
-                         const double max_t)
+double bound_point(const double proposed_t, const point_t* points,
+                   const size_t n_pts, const double min_t, const double max_t)
 {
-    double next_t = lcfit_bsm_ml_t(model);
+    double next_t = proposed_t;
 
     // Ensure the next branch length to evaluate is within bounds.
     if (next_t < min_t) {
@@ -410,7 +409,8 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             }
         }
 
-        double next_t = select_next_point(points, n_pts, model, min_t, max_t);
+        double proposed_t = lcfit_bsm_ml_t(model);
+        double next_t = bound_point(proposed_t, points, n_pts, min_t, max_t);
 
         if (curvature == CRV_MONO_DEC) {
             if (fabs(prev_t - next_t) <= tolerance) {
