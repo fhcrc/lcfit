@@ -384,7 +384,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     double ml_t = 0.0;
     double prev_t = 0.0;
 
-    for(iter = 0; iter < MAX_ITERS; iter++) {
+    for (iter = 0; iter < MAX_ITERS; iter++) {
         max_pt = max_point(points, n_pts);
 
         /* Re-fit */
@@ -394,7 +394,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
         ml_t = lcfit_bsm_ml_t(model);
 
-        if(isnan(ml_t)) {
+        if (isnan(ml_t)) {
             fprintf(stderr, "ERROR: "
                     "lcfit_bsm_ml_t returned NaN"
                     ", model = { %.3f, %.3f, %.6f, %.6f }\n",
@@ -404,8 +404,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         }
 
         if (curvature == CRV_ENC_MAXIMA) {
-            /* convergence check */
-            if (fabs(ml_t - max_pt->t) <= tolerance) {
+            if (fabs(max_pt->t - ml_t) <= tolerance) {
                 *success = true;
                 break;
             }
@@ -417,8 +416,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             if (fabs(prev_t - next_t) <= tolerance) {
                 *success = true;
                 break;
-            } else {
-                prev_t = next_t;
             }
         }
 
@@ -426,9 +423,9 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         points[n_pts].ll = log_like->fn(next_t, log_like->args);
         ml_likelihood_calls++;
 
-        /* Retain top n_pts by log-likelihood */
-        sort_by_t(points, n_pts + 1);
+        prev_t = next_t;
 
+        sort_by_t(points, n_pts + 1);
         curvature = classify_curve(points, n_pts + 1);
 
         if (!(curvature == CRV_ENC_MAXIMA || curvature == CRV_MONO_DEC)) {
