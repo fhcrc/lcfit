@@ -202,6 +202,9 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l,
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m,
                   int max_iter);
 
+int lcfit_fit_bsm_weighted_nlopt(const size_t n, const double* t, const double* l,
+                                 const double *w, bsm_t *m, double ml_t, int max_iter);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

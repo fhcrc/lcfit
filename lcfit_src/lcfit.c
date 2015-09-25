@@ -309,6 +309,25 @@ double bsm_fit_objective(unsigned p,
     return sum_sq_err;
 }
 
+double bsm_ml_t_constraint(unsigned n, const double* x, double* grad, void* data)
+{
+    const double ml_t = *((double*) data);
+
+    const double c = x[0];
+    const double m = x[1];
+    const double r = x[2];
+    const double b = x[3];
+
+    if (grad) {
+        grad[0] = -2.0 * m / (r * (c * c - m * m));
+        grad[1] = 2.0 * c / (r * (c * c - m * m));
+        grad[2] = -log((c + m) / (c - m)) / (r * r);
+        grad[3] = -1.0;
+    }
+
+    return -b + (1.0 / r) * log((c + m) / (c - m)) - ml_t;
+}
+
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, int max_iter)
 {
     double *w = calloc(n, sizeof(double));
@@ -323,7 +342,7 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, in
 
 // Declare our implementations before the delegator function definition.
 int lcfit_fit_bsm_weighted_gsl(const size_t, const double*, const double*, const double*, bsm_t*, int);
-int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, const double*, bsm_t*, int);
+int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, const double*, bsm_t*, double, int);
 
 int check_model(const bsm_t* m)
 {
@@ -384,11 +403,11 @@ int lcfit_fit_bsm_weight(const size_t n,
     if (check_model(m) != 0) {
         /* GSL returned a bad model, so start over. */
         *m = initial_model;
-        status = lcfit_fit_bsm_weighted_nlopt(n, t, l, w, m, max_iter);
+        status = lcfit_fit_bsm_weighted_nlopt(n, t, l, w, m, -1.0, max_iter);
     } else if (status != LCFIT_SUCCESS) {
         /* GSL returned a valid model but did not indicate success, so
          * try and refine the model with NLopt. */
-        status = lcfit_fit_bsm_weighted_nlopt(n, t, l, w, m, max_iter);
+        status = lcfit_fit_bsm_weighted_nlopt(n, t, l, w, m, -1.0, max_iter);
     }
 
     return status;
@@ -532,6 +551,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
                                  const double* l,
                                  const double *w,
                                  bsm_t *m,
+                                 double ml_t,
                                  int max_iter)
 {
     struct data_to_fit fit_data = { n, t, l, w, 0 };
@@ -544,6 +564,10 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
 
     nlopt_set_xtol_rel(opt, 1e-4);
     nlopt_set_maxeval(opt, max_iter);
+
+    if (ml_t >= 0.0) {
+        nlopt_add_equality_constraint(opt, bsm_ml_t_constraint, &ml_t, 1e-8);
+    }
 
     double x[4] = { m->c, m->m, m->r, m->b };
     double minf = 0.0;

@@ -307,6 +307,39 @@ blit_points_to_arrays(const point_t points[], const size_t n,
     }
 }
 
+int optimize_model(log_like_function_t* log_like, bsm_t* model,
+                   const double ml_t, const double min_t, const double max_t)
+{
+    const size_t n = 5;
+
+    double infl_t = lcfit_bsm_infl_t(model);
+    double t[n];
+
+    t[0] = min_t + (ml_t - min_t) / 4.0;
+    t[1] = min_t + (ml_t - min_t) / 2.0;
+    t[2] = ml_t;
+    t[3] = infl_t;
+    t[4] = ml_t + (infl_t - ml_t) * 4.0;
+
+    double lnl[n];
+    double w[n];
+
+    for (size_t i = 0; i < n; ++i) {
+        lnl[i] = log_like->fn(t[i], log_like->args);
+        w[i] = 1.0;
+    }
+
+    int status = lcfit_fit_bsm_weighted_nlopt(n, t, lnl, w, model, ml_t, 250);
+    lcfit_bsm_rescale(t[2], lnl[2], model);
+
+    return status;
+}
+
+double rel_err(double expected, double observed)
+{
+    return fabs((expected - observed) / expected);
+}
+
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model,
@@ -388,7 +421,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         }
 
         if (curvature == CRV_ENC_MAXIMA) {
-            if (fabs(max_pt->t - ml_t) <= tolerance) {
+            if (rel_err(max_pt->t, ml_t) <= tolerance) {
                 *success = true;
                 break;
             }
@@ -398,7 +431,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         double next_t = bound_point(proposed_t, points, n_pts, min_t, max_t);
 
         if (curvature == CRV_MONO_DEC) {
-            if (fabs(prev_t - next_t) <= tolerance) {
+            if (rel_err(prev_t, next_t) <= tolerance) {
                 *success = true;
                 break;
             }

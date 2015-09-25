@@ -136,6 +136,9 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model,
               bool* success, const double min_t, const double max_t);
 
+int optimize_model(log_like_function_t* log_like, bsm_t* model, const double ml_t,
+                   const double min_t, const double max_t);
+
 /**
  * Choose the top \c k points by log-likelihood while maintaining monotonicity.
  *
