@@ -302,9 +302,9 @@ double bsm_fit_objective(unsigned p,
         }
     }
 
-#ifdef REALLY_VERBOSE
+#ifdef VERBOSE
     print_state_nlopt(fit_data->iterations, sum_sq_err, x, grad);
-#endif /* REALLY_VERBOSE */
+#endif /* VERBOSE */
     ++fit_data->iterations;
     return sum_sq_err;
 }
@@ -423,7 +423,7 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
     assert(s != NULL && "Solver allocation failed!");
     gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
-#ifdef REALLY_VERBOSE
+#ifdef VERBOSE
     /* We use the nlopt objective function here to avoid having to
      * manually sum the residuals computed by the GSL objective
      * function lcfit_pair_f. As a bonus, since REALLY_VERBOSE is
@@ -433,15 +433,15 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
      * proceeding. */
     bsm_fit_objective(4, x, NULL, &d);
     d.iterations = 0;
-#endif /* REALLY_VERBOSE */
+#endif /* VERBOSE */
 
     do {
         d.iterations++;
         status = gsl_multifit_fdfsolver_iterate(s);
 
-#ifdef REALLY_VERBOSE
+#ifdef VERBOSE
         print_state_gsl(d.iterations, s);
-#endif /* REALLY_VERBOSE */
+#endif /* VERBOSE */
 
         if (status) {
             break;
@@ -549,13 +549,13 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
     double x[4] = { m->c, m->m, m->r, m->b };
     double minf = 0.0;
 
-#ifdef REALLY_VERBOSE
+#ifdef VERBOSE
     /* Since REALLY_VERBOSE is defined, bsm_fit_objective will print
      * the state for us, too. Its only side effect is incrementing the
      * data_to_fit struct's iteration counter, which in this case is
      * proper. */
     bsm_fit_objective(4, x, NULL, &fit_data);
-#endif /* REALLY_VERBOSE */
+#endif /* VERBOSE */
 
     int status = nlopt_optimize(opt, x, &minf);
 
