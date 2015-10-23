@@ -424,15 +424,7 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
     gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
 #ifdef VERBOSE
-    /* We use the nlopt objective function here to avoid having to
-     * manually sum the residuals computed by the GSL objective
-     * function lcfit_pair_f. As a bonus, since REALLY_VERBOSE is
-     * defined, bsm_fit_objective will print the state for us,
-     * too. Its only side effect is incrementing the data_to_fit
-     * struct's iteration counter, so we reset it to zero before
-     * proceeding. */
-    bsm_fit_objective(4, x, NULL, &d);
-    d.iterations = 0;
+    print_state_gsl(0, s);
 #endif /* VERBOSE */
 
     do {
