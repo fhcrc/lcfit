@@ -158,7 +158,7 @@ int lcfit_weights(const void* data, gsl_vector* weight)
 
 void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
 {
-    fprintf(stderr, "G[%4zu] sum_sq_err = %.3f", iter, gsl_blas_dnrm2(s->f));
+    fprintf(stderr, "G[%4zu] rsse = %.3f", iter, gsl_blas_dnrm2(s->f));
     fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
             gsl_vector_get(s->x, 0),
             gsl_vector_get(s->x, 1),
@@ -239,7 +239,7 @@ void print_state_nlopt(size_t iter,
                        const double* x,
                        const double* grad)
 {
-    fprintf(stderr, "N[%4zu] sum_sq_err = %.3f", iter, sum_sq_err);
+    fprintf(stderr, "N[%4zu] rsse = %.3f", iter, sqrt(sum_sq_err));
     fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
             x[0], x[1], x[2], x[3]);
     if (grad) {
