@@ -109,6 +109,16 @@ lcfit_regime lcfit_bsm_regime(const bsm_t* m)
     return LCFIT_REGIME_1;
 }
 
+void lcfit_bsm_gradient(const double t, const bsm_t* m, double* grad)
+{
+    const double u = exp(-m->r * (t + m->b));
+
+    grad[0] = log((1 + u) / 2); /* df/dc */
+    grad[1] = log((1 - u) / 2); /* df/dm */
+    grad[2] = (t + m->b) * (-m->c * u / (1 + u) + m->m * u / (1 - u)); /* df/dr */
+    grad[3] = m->r * (-m->c * u / (1 + u) + m->m * u / (1 - u)); /* df/db */
+}
+
 /*
  * The scaling parameter for c and m to obtain log-likelihood value `l` at branch length `t`,
  * keeping `r` and `b` fixed.
@@ -204,10 +214,10 @@ int lcfit_pair_df(const gsl_vector* x, void* data, gsl_matrix* J)
     double r = gsl_vector_get(x, 2);
     double b = gsl_vector_get(x, 3);
 
-    size_t i;
-    double expterm;
+    bsm_t model = {c, m, r, b};
+    double grad_i[4];
 
-    for(i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         /* nx4 Jacobian matrix J(i,j) = dfi / dxj, */
         /* where fi = c*log((1+exp(-r*t[i]))/2)+m*log((1-exp(-r*t[i]))/2) - l[i] */
         /* so df/dc = log((1+exp(-r*(t+b)))/2) */
@@ -216,11 +226,12 @@ int lcfit_pair_df(const gsl_vector* x, void* data, gsl_matrix* J)
         /* so df/db = c*(-r)*exp(-r*(t+b))/(1+exp(-r*(t+b)))+m*r*exp(-r*(t+b))/(1-exp(-r*(t+b))) */
         /* and the xj are the parameters (c, m, r, b) */
 
-        expterm = exp(-r * (t[i] + b));
-        gsl_matrix_set(J, i, 0, w[i] * log((1 + expterm) / 2)); /* df/dc */
-        gsl_matrix_set(J, i, 1, w[i] * log((1 - expterm) / 2)); /* df/dm */
-        gsl_matrix_set(J, i, 2, w[i] * ((t[i] + b) * (-c * expterm / (1 + expterm) + m * expterm / (1 - expterm)))); /* df/dr */
-        gsl_matrix_set(J, i, 3, w[i] * (r * (-c * expterm / (1 + expterm) + m * expterm / (1 - expterm)))); /* df/db */
+        lcfit_bsm_gradient(t[i], &model, grad_i);
+
+        gsl_matrix_set(J, i, 0, w[i] * grad_i[0]); /* df/dc */
+        gsl_matrix_set(J, i, 1, w[i] * grad_i[1]); /* df/dm */
+        gsl_matrix_set(J, i, 2, w[i] * grad_i[2]); /* df/dr */
+        gsl_matrix_set(J, i, 3, w[i] * grad_i[3]); /* df/db */
     }
 
     return GSL_SUCCESS;
@@ -284,21 +295,21 @@ double bsm_fit_objective(unsigned p,
         grad[3] = 0.0;
     }
 
-    for (size_t i = 0; i < n; ++i) {
-        const double u = exp(-r * (t[i] + b));
-        const double l_hat = c * log((1 + u) / 2) + m * log((1 - u) / 2);
+    bsm_t model = {c, m, r, b};
+    double grad_i[4];
 
-        const double err = l[i] - l_hat;
+    for (size_t i = 0; i < n; ++i) {
+        const double err = l[i] - lcfit_bsm_log_like(t[i], &model);
 
         sum_sq_err += w[i] * pow(err, 2.0);
 
         if (grad) {
-            grad[0] -= 2 * w[i] * err * log((1 + u) / 2);
-            grad[1] -= 2 * w[i] * err * log((1 - u) / 2);
-            grad[2] -= 2 * w[i] * err * (t[i] + b) *
-                (-c * u / (1 + u) + m * u / (1 - u));
-            grad[3] -= 2 * w[i] * err * r *
-                (-c * u / (1 + u) + m * u / (1 - u));
+            lcfit_bsm_gradient(t[i], &model, grad_i);
+
+            grad[0] -= 2 * w[i] * err * grad_i[0];
+            grad[1] -= 2 * w[i] * err * grad_i[1];
+            grad[2] -= 2 * w[i] * err * grad_i[2];
+            grad[3] -= 2 * w[i] * err * grad_i[3];
         }
     }
 

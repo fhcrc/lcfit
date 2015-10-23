@@ -132,6 +132,35 @@ double lcfit_bsm_ml_t(const bsm_t* m);
  */
 double lcfit_bsm_infl_t(const bsm_t* m);
 
+/** Compute the model parameter gradient at a given branch length.
+ *
+ * Let \f$u = e^{-r (t + b)}\f$. This function computes the model
+ * parameter gradient as the four partial derivatives
+ *
+ * \f[
+ *   \frac{\partial f}{\partial c} = \log \left( \frac{1 + u}{2} \right)
+ * \f]
+ *
+ * \f[
+ *   \frac{\partial f}{\partial m} = \log \left( \frac{1 - u}{2} \right)
+ * \f]
+ *
+ * \f[
+ *   \frac{\partial f}{\partial r} = (t + b) \left( -c \frac{u}{1 + u} + m \frac{u}{1 - u} \right)
+ * \f]
+ *
+ * \f[
+ *   \frac{\partial f}{\partial b} = r \left( -c \frac{u}{1 + u} + m \frac{u}{1 - u} \right)
+ * \f]
+ *
+ *  \param[in]     t     Branch length.
+ *  \param[in]     m     Model parameters.
+ *  \param[in,out] grad  A pointer to a preallocated four-element array of type
+ *                       \c double for storing the model parameter gradient at
+ *                       \c t.
+ */
+void lcfit_bsm_gradient(const double t, const bsm_t* m, double* grad);
+
 /** Determine the parameter regime for a model.
  *
  * \param[in] m  Model parameters.
