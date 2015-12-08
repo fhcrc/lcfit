@@ -313,8 +313,8 @@ double rel_err(double expected, double actual)
 }
 
 double
-estimate_ml_t(log_like_function_t *log_like, double t[],
-              const size_t n_pts, const double tolerance, bsm_t* model,
+estimate_ml_t(log_like_function_t *log_like, const double* t,
+              size_t n_pts, const double tolerance, bsm_t* model,
               bool* success, const double min_t, const double max_t)
 {
     *success = false;
@@ -322,8 +322,8 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     point_t *starting_pts = malloc(sizeof(point_t) * n_pts);
     evaluate_ll(log_like, t, n_pts, starting_pts);
 
-    size_t n = n_pts;
-    point_t* points = select_points(log_like, starting_pts, &n,
+    const size_t orig_n_pts = n_pts;
+    point_t* points = select_points(log_like, starting_pts, &n_pts,
                                     DEFAULT_MAX_POINTS, min_t, max_t);
     free(starting_pts);
 
@@ -333,7 +333,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         return NAN;
     }
 
-    curve_type_t curvature = classify_curve(points, n);
+    curve_type_t curvature = classify_curve(points, n_pts);
 
     if (!(curvature == CRV_ENC_MAXIMA || curvature == CRV_MONO_DEC)) {
         fprintf(stderr, "ERROR: "
@@ -347,10 +347,11 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     /* From here on, curvature is CRV_ENC_MAXIMA or CRV_MONO_DEC, and
      * thus ml_t is zero or positive (but not infinite). */
 
-    assert(n >= n_pts);
-    if (n > n_pts) {
-        /* Subset to top n_pts */
-        subset_points(points, n, n_pts);
+    assert(n_pts >= orig_n_pts);
+    if (n_pts > orig_n_pts) {
+        /* Subset to top orig_n_pts */
+        subset_points(points, n_pts, orig_n_pts);
+        n_pts = orig_n_pts;
     }
 
     assert(points[0].t >= min_t);
@@ -369,7 +370,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
     size_t iter = 0;
     const point_t* max_pt = NULL;
-    double* l = malloc(sizeof(double) * n_pts);
     double ml_t = 0.0;
     double prev_t = 0.0;
 
@@ -378,8 +378,15 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
         /* Re-fit */
         lcfit_bsm_rescale(max_pt->t, max_pt->ll, model);
-        blit_points_to_arrays(points, n_pts, t, l);
-        lcfit_fit_bsm(n_pts, t, l, model, 250);
+
+        double* tbuf = malloc(sizeof(double) * n_pts);
+        double* lbuf = malloc(sizeof(double) * n_pts);
+
+        blit_points_to_arrays(points, n_pts, tbuf, lbuf);
+        lcfit_fit_bsm(n_pts, tbuf, lbuf, model, 250);
+
+        free(tbuf);
+        free(lbuf);
 
         ml_t = lcfit_bsm_ml_t(model);
 
@@ -427,7 +434,8 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             break;
         }
 
-        subset_points(points, n_pts + 1, n_pts);
+        ++n_pts;
+        points = realloc(points, sizeof(point_t) * (n_pts + 1));
 
 #ifdef VERBOSE
         fprintf(stderr, "current points: ");
@@ -440,7 +448,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         fprintf(stderr, "WARNING: maximum number of iterations reached\n");
     }
 
-    free(l);
     free(points);
 
 #ifdef VERBOSE

@@ -132,8 +132,8 @@ sort_by_like(point_t points[], const size_t n);
  * \return The estimated ML branch length, or \c NAN if an error occurs.
   */
 double
-estimate_ml_t(log_like_function_t *log_like, double t[],
-              const size_t n_pts, const double tolerance, bsm_t* model,
+estimate_ml_t(log_like_function_t *log_like, const double* t,
+              size_t n_pts, const double tolerance, bsm_t* model,
               bool* success, const double min_t, const double max_t);
 
 /**
