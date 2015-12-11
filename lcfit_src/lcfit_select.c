@@ -393,6 +393,8 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         }
 
         if (curvature == CRV_ENC_MAXIMA) {
+            /* Stop if the modeled maximum likelihood branch length is
+             * within tolerance of the empirical maximum. */
             if (rel_err(max_pt->t, ml_t) <= tolerance) {
                 *success = true;
                 break;
@@ -401,11 +403,11 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
         double next_t = bound_point(ml_t, points, n_pts, min_t, max_t);
 
-        if (curvature == CRV_MONO_DEC) {
-            if (rel_err(prev_t, next_t) <= tolerance) {
-                *success = true;
-                break;
-            }
+        /* Stop if the next sample point is within tolerance of the
+         * previous sample point. */
+        if (rel_err(prev_t, next_t) <= tolerance) {
+            *success = true;
+            break;
         }
 
         points[n_pts].t = next_t;
