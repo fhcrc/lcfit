@@ -383,10 +383,21 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
         double* lbuf = malloc(sizeof(double) * n_pts);
 
         blit_points_to_arrays(points, n_pts, tbuf, lbuf);
-        lcfit_fit_bsm(n_pts, tbuf, lbuf, model, 250);
+
+        double* wbuf = malloc(sizeof(double) * n_pts);
+
+        fprintf(stderr, "weights: ");
+        for (size_t i = 0; i < n_pts; ++i) {
+            wbuf[i] = pow(exp(lbuf[i] - max_pt->ll), 1.0 / 3.0);
+            fprintf(stderr, "%g ", wbuf[i]);
+        }
+        fprintf(stderr, "\n");
+
+        lcfit_fit_bsm_weight(n_pts, tbuf, lbuf, wbuf, model, 250);
 
         free(tbuf);
         free(lbuf);
+        free(wbuf);
 
         ml_t = lcfit_bsm_ml_t(model);
 
