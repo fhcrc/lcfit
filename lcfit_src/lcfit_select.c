@@ -394,8 +394,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
             }
         }
 
-        double proposed_t = lcfit_bsm_ml_t(model);
-        double next_t = bound_point(proposed_t, points, n_pts, min_t, max_t);
+        double next_t = bound_point(ml_t, points, n_pts, min_t, max_t);
 
         if (curvature == CRV_MONO_DEC) {
             if (fabs(prev_t - next_t) <= tolerance) {
