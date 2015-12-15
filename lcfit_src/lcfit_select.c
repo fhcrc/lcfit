@@ -307,6 +307,11 @@ blit_points_to_arrays(const point_t points[], const size_t n,
     }
 }
 
+double rel_err(double expected, double actual)
+{
+    return fabs((expected - actual) / expected);
+}
+
 double
 estimate_ml_t(log_like_function_t *log_like, double t[],
               const size_t n_pts, const double tolerance, bsm_t* model,
@@ -388,7 +393,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         }
 
         if (curvature == CRV_ENC_MAXIMA) {
-            if (fabs(max_pt->t - ml_t) <= tolerance) {
+            if (rel_err(max_pt->t, ml_t) <= tolerance) {
                 *success = true;
                 break;
             }
@@ -397,7 +402,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
         double next_t = bound_point(ml_t, points, n_pts, min_t, max_t);
 
         if (curvature == CRV_MONO_DEC) {
-            if (fabs(prev_t - next_t) <= tolerance) {
+            if (rel_err(prev_t, next_t) <= tolerance) {
                 *success = true;
                 break;
             }
