@@ -181,7 +181,7 @@ lcfit_sample_exp_prior_compare <- function(m, lambda, s, breaks = 100) {
 
   model_density <- function(t) { exp(model_log_density(t)) }
   cons <- integrateR(model_density, mpfr(min(t), 512), mpfr(max(t), 512),
-                     rel.tol = 1e-16, abs.tol = .Machine$double.xmax,
+                     rel.tol = 1e-16, abs.tol = Inf,
                      verbose = TRUE)$value
   d <- as.numeric(exp(ld - log(cons)))
 
