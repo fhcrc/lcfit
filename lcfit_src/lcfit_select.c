@@ -445,7 +445,7 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
     free(points);
 
 #ifdef VERBOSE
-    fprintf(stderr, "ending iterative fit after %zu iteration(s)\n", iter+1);
+    fprintf(stderr, "ending iterative fit after %zu iteration(s)\n", iter);
 #endif /* VERBOSE */
 
     if (ml_t < min_t) {
