@@ -23,6 +23,9 @@ const static double LAMBDA = 50;
 /** Minimum bound on mutation rate. */
 const static double BSM_R_MIN = 1e-9;
 
+/** Maximum bound on mutation rate. */
+const static double BSM_R_MAX = 100.0;
+
 /** Minimum bound on branch length offset. */
 const static double BSM_B_MIN = 1e-12;
 
@@ -352,6 +355,10 @@ int check_model(const bsm_t* m)
         return 1;
     }
 
+    if (m->r > BSM_R_MAX) {
+        return 2;
+    }
+
     return 0;
 }
 
@@ -550,10 +557,12 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
     struct data_to_fit fit_data = { n, t, l, w, 0 };
 
     const double lower_bounds[4] = { 1, 1, BSM_R_MIN, BSM_B_MIN };
+    const double upper_bounds[4] = { INFINITY, INFINITY, BSM_R_MAX, INFINITY };
 
     nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 4);
     nlopt_set_min_objective(opt, bsm_fit_objective, &fit_data);
     nlopt_set_lower_bounds(opt, lower_bounds);
+    nlopt_set_upper_bounds(opt, upper_bounds);
 
     nlopt_set_xtol_rel(opt, 1e-4);
     nlopt_set_maxeval(opt, max_iter);
