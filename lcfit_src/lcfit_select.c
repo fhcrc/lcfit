@@ -438,7 +438,6 @@ estimate_ml_t(log_like_function_t *log_like, double t[],
 
     if (iter == MAX_ITERS) {
         fprintf(stderr, "WARNING: maximum number of iterations reached\n");
-        *success = false;
     }
 
     free(l);
