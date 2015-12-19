@@ -459,7 +459,7 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
         if (status) {
             break;
         }
-        status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
+        status = gsl_multifit_test_delta(s->dx, s->x, 0.0, 1e-4);
     } while (status == GSL_CONTINUE && d.iterations < max_iter);
 
 #define FIT(i) gsl_vector_get(s->x, i)
@@ -555,8 +555,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
     nlopt_set_min_objective(opt, bsm_fit_objective, &fit_data);
     nlopt_set_lower_bounds(opt, lower_bounds);
 
-    nlopt_set_stopval(opt, 1e-3);
-    nlopt_set_ftol_rel(opt, 1e-6);
+    nlopt_set_xtol_rel(opt, 1e-4);
     nlopt_set_maxeval(opt, max_iter);
 
     double x[4] = { m->c, m->m, m->r, m->b };
