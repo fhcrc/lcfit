@@ -66,7 +66,7 @@ test_sampler <- function(sampler, m, lambda, N, label = "unknown") {
   message(paste("testing", label), ", model = (", m$c, ", ", m$m, ", ", m$r, ", ", m$b, ")")
   print(system.time(samples <- sampler(m, lambda, N)))
   data <- lcfit_sample_exp_prior_compare(m, lambda, samples)
-  p <- ggplot(data, aes(x = t)) + geom_line(aes(y = expected)) +
+  p <- ggplot(data, aes(x = t)) + geom_line(aes(y = expected), color = "purple") +
     geom_bar(aes(y = observed), stat = "identity", alpha = 0.4) +
     ylab("probability density") +
     xlab("branch length") +
