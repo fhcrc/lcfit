@@ -12,10 +12,12 @@ include_directories(SYSTEM ${GSL_INCLUDE_DIRS})
 
 set(LCFIT_LIB_C_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_select.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_select.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2.h)
 set(LCFIT_LIB_C_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_select.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_select.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2.c)
 add_library(lcfit-static STATIC ${LCFIT_LIB_C_FILES})
 add_library(lcfit SHARED ${LCFIT_LIB_C_FILES})
 target_link_libraries(lcfit-static
