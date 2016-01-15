@@ -56,6 +56,7 @@ target_link_libraries(lcfit-bakeoff ${LCFIT_APP_LIBS})
 add_executable(lcfit-test EXCLUDE_FROM_ALL
   ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit_cpp.cc
+  ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit2.cc
   ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cc)
 target_link_libraries(lcfit-test
   lcfit_cpp-static)
