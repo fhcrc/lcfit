@@ -10,6 +10,21 @@
 
 const double MAX_ITERATIONS = 1000;
 
+double lcfit2_infl_t(const lcfit2_bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+    const double t_0 = model->t0;
+    const double f_2 = model->d2;
+
+    const double z = (-f_2 * c * m) / (c + m);
+    const double r = 2 * sqrt(z) / (c - m);
+    const double b = -t_0 + (1.0 / r) * log((c + m) / (c - m));
+
+    const double infl_t = -b + (1.0 / r) * log((c + m + 2 * sqrt(c * m)) / (c - m));
+
+    return infl_t;
+}
 
 void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
 {

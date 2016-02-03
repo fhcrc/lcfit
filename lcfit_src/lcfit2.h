@@ -38,6 +38,8 @@ typedef struct {
     const double d2;
 } lcfit2_fit_data;
 
+double lcfit2_infl_t(const lcfit2_bsm_t* model);
+
 void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad);
 
 double lcfit2_lnl(const double t, const lcfit2_bsm_t* model);
