@@ -204,9 +204,9 @@ int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
 
     gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector);
 
-#ifdef VERBOSE
+#ifdef LCFIT2_VERBOSE
     lcfit2_print_state_gsl(0, s);
-#endif /* VERBOSE */
+#endif /* LCFIT2_VERBOSE */
 
     int status = GSL_CONTINUE;
     size_t iter = 0;
@@ -215,9 +215,9 @@ int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
         status = gsl_multifit_fdfsolver_iterate(s);
         ++iter;
 
-#ifdef VERBOSE
+#ifdef LCFIT2_VERBOSE
         lcfit2_print_state_gsl(iter, s);
-#endif /* VERBOSE */
+#endif /* LCFIT2_VERBOSE */
 
         if (status) {
             break;
@@ -226,10 +226,10 @@ int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
         status = gsl_multifit_test_delta(s->dx, s->x, 0.0, 1e-4);
     }
 
-#ifdef VERBOSE
+#ifdef LCFIT2_VERBOSE
     fprintf(stderr, "[G] status = %s (%d)   iterations %zu\n",
             gsl_strerror(status), status, iter);
-#endif /* VERBOSE */
+#endif /* LCFIT2_VERBOSE */
 
     model->c = gsl_vector_get(s->x, 0);
     model->m = gsl_vector_get(s->x, 1);
