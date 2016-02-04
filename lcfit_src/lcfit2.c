@@ -223,7 +223,12 @@ int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
             break;
         }
 
-        status = gsl_multifit_test_delta(s->dx, s->x, 0.0, 1e-4);
+        gsl_vector* grad = gsl_vector_alloc(2);
+        gsl_multifit_gradient(s->J, s->f, grad);
+
+        status = gsl_multifit_test_gradient(grad, sqrt(DBL_EPSILON));
+
+        gsl_vector_free(grad);
     }
 
 #ifdef LCFIT2_VERBOSE
