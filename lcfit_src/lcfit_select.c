@@ -387,12 +387,17 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
         double* wbuf = malloc(sizeof(double) * n_pts);
         double alpha = (double) iter / (MAX_ITERS - 1);
 
-        fprintf(stderr, "weights: ");
         for (size_t i = 0; i < n_pts; ++i) {
             wbuf[i] = exp(alpha * (lbuf[i] - max_pt->ll));
+        }
+
+#ifdef VERBOSE
+        fprintf(stderr, "weights: ");
+        for (size_t i = 0; i < n_pts; ++i) {
             fprintf(stderr, "%g ", wbuf[i]);
         }
         fprintf(stderr, "\n");
+#endif /* VERBOSE */
 
         lcfit_fit_bsm_weight(n_pts, tbuf, lbuf, wbuf, model, 250);
 
