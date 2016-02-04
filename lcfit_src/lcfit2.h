@@ -53,6 +53,9 @@ int lcfit2_fit(const size_t n, const double* t, const double* lnl,
 int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
                         const double* w, lcfit2_bsm_t* model);
 
+int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                         lcfit2_bsm_t* model, double tolerance);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
