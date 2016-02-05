@@ -85,6 +85,14 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
     return lnl;
 }
 
+void lcfit2_evaluate_fn(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                        const size_t n, const double* t, double* lnl)
+{
+    for (size_t i = 0; i < n; ++i) {
+        lnl[i] = lnl_fn(t[i], lnl_fn_args);
+    }
+}
+
 void lcfit2_rescale(const double t, const double lnl,
                     lcfit2_bsm_t* model)
 {
@@ -93,6 +101,7 @@ void lcfit2_rescale(const double t, const double lnl,
     model->m *= scale;
 }
 
+// TODO: make point selection more robust to ensure bounds are respected
 void lcfit2_select_points(const lcfit2_bsm_t* model,
                           const double min_t, const double max_t,
                           const size_t n, double* t)
