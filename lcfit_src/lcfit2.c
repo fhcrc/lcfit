@@ -82,17 +82,6 @@ void lcfit2_rescale(const double t, const double lnl,
     model->m *= scale;
 }
 
-void lcfit2_iterative_fit(double (*lnl_fn)(double, void*),
-                          void* lnl_args,
-                          lcfit2_bsm_t* model,
-                          const double min_t,
-                          const double max_t,
-                          const double tolerance,
-                          bool* success)
-{
-
-}
-
 int lcfit2_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
 {
     lcfit2_fit_data* d = ((lcfit2_fit_data*) data);
