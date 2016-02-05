@@ -10,6 +10,17 @@
 
 const double MAX_ITERATIONS = 1000;
 
+void lcfit2_print_array(const char* name, const size_t n, const double* x)
+{
+    char* sep = "";
+    fprintf(stderr, "%s = { ", name);
+    for (size_t i = 0; i < n; ++i) {
+        fprintf(stderr, "%s%g", sep, x[i]);
+        sep = ", ";
+    }
+    fprintf(stderr, " }\n");
+}
+
 double lcfit2_infl_t(const lcfit2_bsm_t* model)
 {
     const double c = model->c;
@@ -80,6 +91,51 @@ void lcfit2_rescale(const double t, const double lnl,
     const double scale = lnl / lcfit2_lnl(t, model);
     model->c *= scale;
     model->m *= scale;
+}
+
+void lcfit2_select_points(const lcfit2_bsm_t* model,
+                          const double min_t, const double max_t,
+                          const size_t n, double* t)
+{
+    assert(n >= 2);
+
+    const double t0 = model->t0;
+
+    const double infl_t = lcfit2_infl_t(model);
+    const double delta = 0.5 * (infl_t - t0);
+
+    t[0] = fmax(t0 - delta, min_t + 0.5 * (t0 - min_t));
+    t[1] = t0;
+
+    for (size_t i = 2; i < n; ++i) {
+        t[i] = t0 + (i - 1) * delta;
+    }
+
+#ifdef LCFIT2_VERBOSE
+    lcfit2_print_array("t", n, t);
+#endif /* LCFIT2_VERBOSE */
+}
+
+double lcfit2_compute_weights(const size_t n, const double* lnl,
+                              const double alpha, double* w)
+{
+    double max_lnl = -HUGE_VAL;
+
+    for (size_t i = 0; i < n; ++i) {
+        if (lnl[i] > max_lnl) {
+            max_lnl = lnl[i];
+        }
+    }
+
+    for (size_t i = 0; i < n; ++i) {
+        w[i] = pow(exp(lnl[i] - max_lnl), alpha);
+    }
+
+#ifdef LCFIT2_VERBOSE
+    lcfit2_print_array("w", n, w);
+#endif /* LCFIT2_VERBOSE */
+
+    return max_lnl;
 }
 
 int lcfit2_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
@@ -268,13 +324,7 @@ int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         }
 
 #ifdef LCFIT2_VERBOSE
-        fprintf(stderr, "weights = { ");
-        char* sep = "";
-        for (size_t i = 0; i < n; ++i) {
-            fprintf(stderr, "%s%g", sep, w[i]);
-            sep = ", ";
-        }
-        fprintf(stderr, " }\n");
+        lcfit2_print_array("w", n, w);
 #endif /* LCFIT2_VERBOSE */
 
         lcfit2_rescale(t0, lnl[0], model);

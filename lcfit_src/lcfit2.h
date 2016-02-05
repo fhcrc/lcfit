@@ -47,6 +47,13 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model);
 void lcfit2_rescale(const double t, const double lnl,
                     lcfit2_bsm_t* model);
 
+void lcfit2_select_points(const lcfit2_bsm_t* model,
+                          const double min_t, const double max_t,
+                          const size_t n, double* t);
+
+double lcfit2_compute_weights(const size_t n, const double* lnl,
+                              const double alpha, double* w);
+
 int lcfit2_fit(const size_t n, const double* t, const double* lnl,
                lcfit2_bsm_t* model);
 
