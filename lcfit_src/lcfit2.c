@@ -299,65 +299,32 @@ int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
 }
 
 int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                         lcfit2_bsm_t* model, double tolerance)
+                         lcfit2_bsm_t* model, const double min_t, const double max_t,
+                         const size_t n_points, const double alpha, const size_t n_passes)
 {
-    const size_t n = 3;
-
-    double* t = malloc(n * sizeof(double));
-    double* lnl = malloc(n * sizeof(double));
-    double* w = malloc(n * sizeof(double));
-
     const double t0 = model->t0;
 
-    double prev_c = model->c;
-    double prev_m = model->m;
-    double delta_c;
-    double delta_m;
+    double* t = malloc(n_points * sizeof(double));
+    double* lnl = malloc(n_points * sizeof(double));
+    double* w = malloc(n_points * sizeof(double));
 
-    const size_t MAX_ITER = 100;
-    size_t iter = 0;
+    double max_lnl;
+    int status;
 
-    do {
-        const double infl_t = lcfit2_infl_t(model);
-        const double delta_t = infl_t - t0;
+    for (size_t i = 0; i < n_passes; ++i) {
+        lcfit2_select_points(model, min_t, max_t, n_points, t);
+        lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
+        max_lnl = lcfit2_compute_weights(n_points, lnl, alpha, w);
 
-        t[0] = t0;
-        t[1] = t0 + delta_t / 2.0;
-        t[2] = infl_t;
+        lcfit2_rescale(t0, max_lnl, model);
+        status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
 
-        for (size_t i = 0; i < n; ++i) {
-            lnl[i] = lnl_fn(t[i], lnl_fn_args);
-
-            //w[i] = exp(lnl[i] - lnl[0]);
-            w[i] = 1.0;
-        }
-
-#ifdef LCFIT2_VERBOSE
-        lcfit2_print_array("w", n, w);
-#endif /* LCFIT2_VERBOSE */
-
-        lcfit2_rescale(t0, lnl[0], model);
-        lcfit2_fit_weighted(n, t, lnl, w, model);
-
-        delta_c = model->c - prev_c;
-        delta_m = model->m - prev_m;
-
-        prev_c = model->c;
-        prev_m = model->m;
-
-        ++iter;
-    } while (fabs(delta_c / model->c) >= tolerance &&
-             fabs(delta_m / model->m) >= tolerance &&
-             iter < MAX_ITER);
-
-    if (iter == MAX_ITER) {
-        fprintf(stderr, "WARNING: maximum number of iterations reached in lcfit2 iterative fit\n");
+        // TODO: handle status codes
     }
 
     free(t);
     free(lnl);
     free(w);
 
-    return true;
+    return status;
 }
-
