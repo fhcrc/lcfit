@@ -46,24 +46,24 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
 
     const double z = (-f_2 * c * m) / (c + m);
     const double r = 2 * sqrt(z) / (c - m);
-    const double theta = exp(r * (t - t_0));
-    const double v = (c - m) / theta;
+    const double theta_tilde = exp(r * (t - t_0));
+    const double v = (c - m) / theta_tilde;
 
     assert(isfinite(z));
     assert(isfinite(r));
-    assert(isfinite(theta));
+    assert(isfinite(theta_tilde));
     assert(isfinite(v));
 
     assert(c - m != 0.0);
     assert(c + m != 0.0);
     assert(c != 0.0);
     assert(z != 0.0);
-    assert(theta != 0.0);
+    assert(theta_tilde != 0.0);
     assert(c + m + v != 0.0);
     assert(c + m - v != 0.0);
 
-    grad[0] = ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta + 1)*c/(c + m + v) - ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta - 1)*m/(c + m - v) - log(2*c + 2*m) + log(c + m + v) - 1;
-    grad[1] = -((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta - 1)*c/(c + m + v) + ((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta + 1)*m/(c + m - v) - log(2*c + 2*m) + log(c + m - v) - 1;
+    grad[0] = ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*c/(c + m + v) - ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*m/(c + m - v) - log(2*c + 2*m) + log(c + m + v) - 1;
+    grad[1] = -((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*c/(c + m + v) + ((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*m/(c + m - v) - log(2*c + 2*m) + log(c + m - v) - 1;
 
     //fprintf(stderr, "grad = { %g, %g }\n", grad[0], grad[1]);
 }
@@ -77,8 +77,8 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
 
     const double z = (-f_2 * c * m) / (c + m);
     const double r = 2 * sqrt(z) / (c - m);
-    const double theta = exp(r * (t - t_0));
-    const double v = (c - m) / theta;
+    const double theta_tilde = exp(r * (t - t_0));
+    const double v = (c - m) / theta_tilde;
 
     const double lnl = c * log(c + m + v) + m * log(c + m - v) - (c + m) * log(2 * (c + m));
 
