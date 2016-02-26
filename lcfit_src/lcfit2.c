@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlin.h>
@@ -139,10 +141,6 @@ double lcfit2_compute_weights(const size_t n, const double* lnl,
     for (size_t i = 0; i < n; ++i) {
         w[i] = pow(exp(lnl[i] - max_lnl), alpha);
     }
-
-#ifdef LCFIT2_VERBOSE
-    lcfit2_print_array("w", n, w);
-#endif /* LCFIT2_VERBOSE */
 
     return max_lnl;
 }
@@ -320,6 +318,207 @@ int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
 
         // TODO: handle status codes
+    }
+
+    free(t);
+    free(lnl);
+    free(w);
+
+    return status;
+}
+
+static int compare_doubles (const void *a, const void *b)
+{
+    const double *da = (const double *) a;
+    const double *db = (const double *) b;
+
+    return (*da > *db) - (*da < *db);
+}
+
+double lcfit2_delta(const lcfit2_bsm_t* model) {
+    const double delta = lcfit2_infl_t(model) - model->t0;
+
+    return delta;
+}
+
+// t must point to an array of size at least 3
+void lcfit2_three_points(const lcfit2_bsm_t* model, const double delta,
+                         const double min_t, const double max_t, double* t)
+{
+    const double t0 = model->t0;
+
+    t[0] = t0 - delta;
+    if (t[0] < min_t) {
+        t[0] = min_t + (t0 - min_t) / 2.0;
+    }
+
+    t[1] = t0;
+
+    t[2] = t0 + delta;
+    if (t[2] > max_t) {
+        t[2] = t0 + (max_t - t0) / 2.0;
+    }
+}
+
+// t must point to a sorted array of size at least 2
+// omega is the weight threshold
+double lcfit2_select_point_left(const double delta, const double min_t, const double omega,
+                                const double* t, const double* w)
+{
+    double new_t;
+
+    // test using weight of leftmost point t[0]
+    if (w[0] < omega) {
+        // if weight < threshold, choose point halfway between t[0] and t[1]
+        new_t = t[0] + (t[1] - t[0]) / 2.0;
+    } else {
+        // if weight >= threshold, choose point t[0] - delta or halfway
+        // between t[0] and min_t if t[0] - delta is less than min_t
+        new_t = t[0] - delta;
+        if (new_t < min_t) {
+            new_t = min_t + (t[0] - min_t) / 2.0;
+        }
+    }
+
+    return new_t;
+}
+
+// t must point to a sorted array of size at least 2
+// omega is the weight threshold
+double lcfit2_select_point_right(const double delta, const double max_t, const double omega,
+                                 const double* t, const double* w)
+{
+
+    double new_t;
+
+    if (w[1] < omega) {
+        // if weight < threshold, choose point halfway between t[0] and t[1]
+        new_t = t[0] + (t[1] - t[0]) / 2.0;
+    } else {
+        // if weight >= threshold, choose point t[1] + delta or halfway
+        // between t[1] and max_t if t[1] + delta is greater than max_t
+        new_t = t[1] + delta;
+        if (new_t > max_t) {
+            new_t = t[1] + (max_t - t[1]) / 2.0;
+        }
+    }
+
+    return new_t;
+}
+
+double lcfit2_evaluate(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                       lcfit2_bsm_t* model, const double alpha, const size_t n_points,
+                       const double* t, double* lnl, double* w)
+{
+    lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
+    double max_lnl = lcfit2_compute_weights(n_points, lnl, alpha, w);
+
+    lcfit2_rescale(model->t0, max_lnl, model);
+
+    return max_lnl;
+}
+
+int lcfit2_fit_iterative2(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                          lcfit2_bsm_t* model, const double min_t, const double max_t,
+                          const double alpha, const double omega, const size_t n_passes)
+{
+    assert(n_passes >= 1);
+
+    size_t n_points = 3;
+
+    double* t = malloc(n_points * sizeof(double));
+    double* lnl = malloc(n_points * sizeof(double));
+    double* w = malloc(n_points * sizeof(double));
+
+    //
+    // initialize three starting points
+    //
+
+    double delta = lcfit2_delta(model);
+    lcfit2_three_points(model, delta, min_t, max_t, t);
+
+    //
+    // first pass
+    //
+
+    double max_lnl;
+    int status;
+
+    max_lnl = lcfit2_evaluate(lnl_fn, lnl_fn_args, model, alpha, n_points, t, lnl, w);
+
+#ifdef LCFIT2_VERBOSE
+    fprintf(stderr, "initial delta = %g\n", delta);
+    lcfit2_print_array("t", n_points, t);
+    lcfit2_print_array("w", n_points, w);
+#endif
+
+    status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
+
+    //
+    // update delta, recompute the three center points, reevaluate, and refit
+    //
+
+    delta = lcfit2_delta(model);
+    lcfit2_three_points(model, delta, min_t, max_t, t);
+
+    lcfit2_evaluate(lnl_fn, lnl_fn_args, model, alpha, n_points, t, lnl, w);
+
+#ifdef LCFIT2_VERBOSE
+    fprintf(stderr, "revised delta = %g\n", delta);
+    lcfit2_print_array("t", n_points, t);
+    lcfit2_print_array("w", n_points, w);
+#endif
+
+    status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
+
+
+    //
+    // additional passes
+    //
+
+    for (size_t i = 1; i < n_passes; ++i) {
+        //
+        // compute new points using the first two and last two evaluated points
+        //
+
+        double t_left = lcfit2_select_point_left(delta, min_t, omega, t, w);
+        double t_right = lcfit2_select_point_right(delta, max_t, omega, t + n_points - 2, w + n_points - 2);
+
+        t = realloc(t, (n_points + 2) * sizeof(double));
+        memmove(t + 1, t, n_points * sizeof(double));
+        n_points += 2;
+
+        t[0] = t_left;
+        t[n_points - 1] = t_right;
+
+        // here we sort the points again, because t_left and t_right
+        // can be to the right or left of their neighboring points. a
+        // smarter thing to do would be to swap the points above if
+        // the new points are out of order. Note that we don't bother
+        // reordering lnl and w accordingly since they get
+        // recalculated anyway in lcfit2_evaluate.
+
+        qsort(t, n_points, sizeof(double), compare_doubles);
+
+        //
+        // reallocate lnl and w
+        //
+
+        lnl = realloc(lnl, n_points * sizeof(double));
+        w = realloc(w, n_points * sizeof(double));
+
+        //
+        // refit
+        //
+
+        lcfit2_evaluate(lnl_fn, lnl_fn_args, model, alpha, n_points, t, lnl, w);
+
+#ifdef LCFIT2_VERBOSE
+        lcfit2_print_array("t", n_points, t);
+        lcfit2_print_array("w", n_points, w);
+#endif
+
+        status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
     }
 
     free(t);

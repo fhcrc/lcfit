@@ -67,6 +67,10 @@ int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                          lcfit2_bsm_t* model, const double min_t, const double max_t,
                          const size_t n_points, const double alpha, const size_t n_passes);
 
+int lcfit2_fit_iterative2(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                          lcfit2_bsm_t* model, const double min_t, const double max_t,
+                          const double alpha, const double omega, const size_t n_passes);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
