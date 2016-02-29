@@ -23,6 +23,38 @@ void lcfit2_print_array(const char* name, const size_t n, const double* x)
     fprintf(stderr, " }\n");
 }
 
+double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+    const double t_0 = model->t0;
+    const double f_2 = model->d2;
+
+    const double z = (-f_2 * c * m) / (c + m);
+    const double r = 2 * sqrt(z) / (c - m);
+    const double theta = ((c + m) / (c - m)) * exp(r * (t - t_0));
+
+    const double d1f_t = (-c * r) / (theta + 1) + (m * r) / (theta - 1);
+
+    return d1f_t;
+}
+
+double lcfit2_d2f_t(const double t, const lcfit2_bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+    const double t_0 = model->t0;
+    const double f_2 = model->d2;
+
+    const double z = (-f_2 * c * m) / (c + m);
+    const double r = 2 * sqrt(z) / (c - m);
+    const double theta = ((c + m) / (c - m)) * exp(r * (t - t_0));
+
+    const double d2f_t = (c * r * r * theta) / pow(theta + 1, 2.0) - (m * r * r * theta) / pow(theta - 1, 2.0);
+
+    return d2f_t;
+}
+
 double lcfit2_infl_t(const lcfit2_bsm_t* model)
 {
     const double c = model->c;
@@ -35,6 +67,12 @@ double lcfit2_infl_t(const lcfit2_bsm_t* model)
     const double b = -t_0 + (1.0 / r) * log((c + m) / (c - m));
 
     const double infl_t = -b + (1.0 / r) * log((c + m + 2 * sqrt(c * m)) / (c - m));
+
+#ifdef LCFIT2_VERBOSE
+    fprintf(stderr, "d2f(infl_t) = %g\n", lcfit2_d2f_t(infl_t, model));
+#endif
+
+    assert(fabs(lcfit2_d2f_t(infl_t, model)) <= 1e-6);
 
     return infl_t;
 }
@@ -50,6 +88,11 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     const double r = 2 * sqrt(z) / (c - m);
     const double theta_tilde = exp(r * (t - t_0));
     const double v = (c - m) / theta_tilde;
+
+#if 0
+    fprintf(stderr, "c = %g, m = %g, t_0 = %g, f_2 = %g, z = %g, r = %g, theta_tilde = %g, v = %g\n",
+            c, m, t_0, f_2, z, r, theta_tilde, v);
+#endif
 
     assert(isfinite(z));
     assert(isfinite(r));
