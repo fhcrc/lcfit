@@ -107,8 +107,9 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     assert(c + m + v != 0.0);
     assert(c + m - v != 0.0);
 
-    grad[0] = ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*c/(c + m + v) - ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*m/(c + m - v) - log(2*c + 2*m) + log(c + m + v) - 1;
-    grad[1] = -((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*c/(c + m + v) + ((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*m/(c + m - v) - log(2*c + 2*m) + log(c + m - v) - 1;
+    // normalized log-likelihood gradient
+    grad[0] = ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*c/(c + m + v) - ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*m/(c + m - v) - log(2*c) + log(c + m + v) - 1;
+    grad[1] = -((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*c/(c + m + v) + ((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*m/(c + m - v) + log(c + m - v) - log(2*m) - 1;
 
     //fprintf(stderr, "grad = { %g, %g }\n", grad[0], grad[1]);
 }
@@ -204,7 +205,8 @@ int lcfit2_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
                           d->d2};
 
     for (size_t i = 0; i < n; ++i) {
-        const double err = lcfit2_lnl(t[i], &model) - lnl[i];
+        // normalized log-likelihood error
+        const double err = lcfit2_lnl(t[i], &model) - lcfit2_lnl(model.t0, &model) - lnl[i];
         gsl_vector_set(f, i, w[i] * err);
     }
 
@@ -357,7 +359,8 @@ int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
         max_lnl = lcfit2_compute_weights(n_points, lnl, alpha, w);
 
-        lcfit2_rescale(t0, max_lnl, model);
+        // rescaling is disabled for fitting the normalized log-likelihood
+        //lcfit2_rescale(t0, max_lnl, model);
         status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
 
         // TODO: handle status codes
@@ -456,7 +459,8 @@ double lcfit2_evaluate(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
     double max_lnl = lcfit2_compute_weights(n_points, lnl, alpha, w);
 
-    lcfit2_rescale(model->t0, max_lnl, model);
+    // rescaling is disabled for fitting the normalized log-likelihood
+    //lcfit2_rescale(model->t0, max_lnl, model);
 
     return max_lnl;
 }
