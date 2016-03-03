@@ -279,8 +279,8 @@ void lcfit2_print_state_gsl(size_t iter, const gsl_multifit_fdfsolver* s)
     gsl_vector_free(grad);
 }
 
-int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
-                        const double* w, lcfit2_bsm_t* model)
+int lcfit2_fit_weighted_gsl(const size_t n, const double* t, const double* lnl,
+                            const double* w, lcfit2_bsm_t* model)
 {
     double x[2] = {model->c, model->m};
     gsl_vector_const_view x_view = gsl_vector_const_view_array(x, 2);
@@ -339,6 +339,12 @@ int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
     gsl_multifit_fdfsolver_free(s);
 
     return status;
+}
+
+int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
+                        const double* w, lcfit2_bsm_t* model)
+{
+    return lcfit2_fit_weighted_gsl(n, t, lnl, w, model);
 }
 
 int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
