@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "lcfit2_gsl.h"
+#include "lcfit2_nlopt.h"
 
 void lcfit2_print_array(const char* name, const size_t n, const double* x)
 {
