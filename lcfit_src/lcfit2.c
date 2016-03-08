@@ -74,7 +74,7 @@ double lcfit2_infl_t(const lcfit2_bsm_t* model)
     return infl_t;
 }
 
-void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
+void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
 {
     const double c = model->c;
     const double m = model->m;
@@ -87,7 +87,7 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     const double v = (c - m) / theta_tilde;
 
 #if 0
-    fprintf(stderr, "c = %g, m = %g, t_0 = %g, f_2 = %g, z = %g, r = %g, theta_tilde = %g, v = %g\n",
+    fprintf(stderr, "model_assert: c = %g, m = %g, t_0 = %g, f_2 = %g, z = %g, r = %g, theta_tilde = %g, v = %g\n",
             c, m, t_0, f_2, z, r, theta_tilde, v);
 #endif
 
@@ -103,6 +103,21 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     assert(theta_tilde != 0.0);
     assert(c + m + v != 0.0);
     assert(c + m - v != 0.0);
+}
+
+void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
+{
+    const double c = model->c;
+    const double m = model->m;
+    const double t_0 = model->t0;
+    const double f_2 = model->d2;
+
+    const double z = (-f_2 * c * m) / (c + m);
+    const double r = 2 * sqrt(z) / (c - m);
+    const double theta_tilde = exp(r * (t - t_0));
+    const double v = (c - m) / theta_tilde;
+
+    lcfit2_model_assert_at(t, model);
 
     // normalized log-likelihood gradient
     grad[0] = ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*c/(c + m + v) - ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*m/(c + m - v) - log(2*c) + log(c + m + v) - 1;
@@ -126,18 +141,7 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
     const double theta_tilde = exp(r * (t - t_0));
     const double v = (c - m) / theta_tilde;
 
-    assert(isfinite(z));
-    assert(isfinite(r));
-    assert(isfinite(theta_tilde));
-    assert(isfinite(v));
-
-    assert(c - m != 0.0);
-    assert(c + m != 0.0);
-    assert(c != 0.0);
-    assert(z != 0.0);
-    assert(theta_tilde != 0.0);
-    assert(c + m + v != 0.0);
-    assert(c + m - v != 0.0);
+    lcfit2_model_assert_at(t, model);
 
     const double lnl = c * log(c + m + v) + m * log(c + m - v) - (c + m) * log(2 * (c + m));
 
