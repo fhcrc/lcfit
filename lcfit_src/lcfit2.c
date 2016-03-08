@@ -96,13 +96,25 @@ void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
     assert(isfinite(theta_tilde));
     assert(isfinite(v));
 
-    assert(c - m != 0.0);
-    assert(c + m != 0.0);
-    assert(c != 0.0);
-    assert(z != 0.0);
-    assert(theta_tilde != 0.0);
-    assert(c + m + v != 0.0);
-    assert(c + m - v != 0.0);
+    // basic assumptions
+    assert(c > 0.0);
+    assert(m > 0.0);
+    assert(c > m);
+
+    // -f_2 > 0, c > 0, m > 0, therefore z > 0
+    assert(z > 0.0);
+
+    // z > 0, c - m > 0, therefore r > 0
+    assert(r > 0.0);
+
+    // exp(x) > 0
+    assert(theta_tilde > 0.0);
+
+    // c - m > 0, theta_tilde > 0, therefore v > 0
+    assert(v > 0.0);
+
+    // log(c + m - v) must be valid
+    assert(c + m - v > 0.0);
 }
 
 void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
