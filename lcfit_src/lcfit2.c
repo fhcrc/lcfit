@@ -239,7 +239,8 @@ int lcfit2_fit(const size_t n, const double* t, const double* lnl,
 int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
                         const double* w, lcfit2_bsm_t* model)
 {
-    return lcfit2_fit_weighted_gsl(n, t, lnl, w, model);
+    //return lcfit2_fit_weighted_gsl(n, t, lnl, w, model);
+    return lcfit2_fit_weighted_nlopt(n, t, lnl, w, model);
 }
 
 int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
