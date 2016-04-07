@@ -88,8 +88,8 @@ void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
     const double v = (c - m) / theta_tilde;
 
 #if 0
-    fprintf(stderr, "model_assert: c = %g, m = %g, t_0 = %g, f_2 = %g, z = %g, r = %g, theta_tilde = %g, v = %g\n",
-            c, m, t_0, f_2, z, r, theta_tilde, v);
+    fprintf(stderr, "model_assert: t = %g, c = %g, m = %g, t_0 = %g, f_2 = %g, z = %g, r = %g, theta_tilde = %g, v = %g\n",
+            t, c, m, t_0, f_2, z, r, theta_tilde, v);
 #endif
 
     assert(isfinite(z));
