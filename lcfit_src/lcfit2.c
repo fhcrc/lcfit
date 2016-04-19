@@ -373,18 +373,20 @@ int lcfit2_fit_iterative2(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 {
     assert(n_passes >= 1);
 
-    size_t n_points = 3;
+    size_t n_points = 4;
 
     double* t = malloc(n_points * sizeof(double));
     double* lnl = malloc(n_points * sizeof(double));
     double* w = malloc(n_points * sizeof(double));
 
     //
-    // initialize three starting points
+    // initialize four starting points
     //
 
     double delta = lcfit2_delta(model);
     lcfit2_three_points(model, delta, min_t, max_t, t);
+
+    t[3] = max_t;
 
     //
     // first pass
