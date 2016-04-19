@@ -179,30 +179,6 @@ void lcfit2_rescale(const double t, const double lnl,
     model->m *= scale;
 }
 
-// TODO: make point selection more robust to ensure bounds are respected
-void lcfit2_select_points(const lcfit2_bsm_t* model,
-                          const double min_t, const double max_t,
-                          const size_t n, double* t)
-{
-    assert(n >= 2);
-
-    const double t0 = model->t0;
-
-    const double infl_t = lcfit2_infl_t(model);
-    const double delta = 0.5 * (infl_t - t0);
-
-    t[0] = fmax(t0 - delta, min_t + 0.5 * (t0 - min_t));
-    t[1] = t0;
-
-    for (size_t i = 2; i < n; ++i) {
-        t[i] = t0 + (i - 1) * delta;
-    }
-
-#ifdef LCFIT2_VERBOSE
-    lcfit2_print_array("t", n, t);
-#endif /* LCFIT2_VERBOSE */
-}
-
 double lcfit2_compute_weights(const size_t n, const double* lnl,
                               const double alpha, double* w)
 {
@@ -241,38 +217,6 @@ int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
 {
     //return lcfit2_fit_weighted_gsl(n, t, lnl, w, model);
     return lcfit2_fit_weighted_nlopt(n, t, lnl, w, model);
-}
-
-int lcfit2_fit_iterative(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                         lcfit2_bsm_t* model, const double min_t, const double max_t,
-                         const size_t n_points, const double alpha, const size_t n_passes)
-{
-    const double t0 = model->t0;
-
-    double* t = malloc(n_points * sizeof(double));
-    double* lnl = malloc(n_points * sizeof(double));
-    double* w = malloc(n_points * sizeof(double));
-
-    double max_lnl;
-    int status;
-
-    for (size_t i = 0; i < n_passes; ++i) {
-        lcfit2_select_points(model, min_t, max_t, n_points, t);
-        lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
-        max_lnl = lcfit2_compute_weights(n_points, lnl, alpha, w);
-
-        // rescaling is disabled for fitting the normalized log-likelihood
-        //lcfit2_rescale(t0, max_lnl, model);
-        status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
-
-        // TODO: handle status codes
-    }
-
-    free(t);
-    free(lnl);
-    free(w);
-
-    return status;
 }
 
 static int compare_doubles (const void *a, const void *b)
