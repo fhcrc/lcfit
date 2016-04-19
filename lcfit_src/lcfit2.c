@@ -171,14 +171,6 @@ void lcfit2_evaluate_fn(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     }
 }
 
-void lcfit2_rescale(const double t, const double lnl,
-                    lcfit2_bsm_t* model)
-{
-    const double scale = lnl / lcfit2_lnl(t, model);
-    model->c *= scale;
-    model->m *= scale;
-}
-
 double lcfit2_compute_weights(const size_t n, const double* lnl,
                               const double alpha, double* w)
 {
@@ -245,14 +237,11 @@ void lcfit2_three_points(const lcfit2_bsm_t* model, const double delta,
 }
 
 double lcfit2_evaluate(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                       lcfit2_bsm_t* model, const double alpha, const size_t n_points,
+                       const double alpha, const size_t n_points,
                        const double* t, double* lnl, double* w)
 {
     lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
     double max_lnl = lcfit2_compute_weights(n_points, lnl, alpha, w);
-
-    // rescaling is disabled for fitting the normalized log-likelihood
-    //lcfit2_rescale(model->t0, max_lnl, model);
 
     return max_lnl;
 }
@@ -283,7 +272,7 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     double max_lnl;
     int status;
 
-    max_lnl = lcfit2_evaluate(lnl_fn, lnl_fn_args, model, alpha, n_points, t, lnl, w);
+    max_lnl = lcfit2_evaluate(lnl_fn, lnl_fn_args, alpha, n_points, t, lnl, w);
 
 #ifdef LCFIT2_VERBOSE
     fprintf(stderr, "initial delta = %g\n", delta);
@@ -300,7 +289,7 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     delta = lcfit2_delta(model);
     lcfit2_three_points(model, delta, min_t, max_t, t);
 
-    lcfit2_evaluate(lnl_fn, lnl_fn_args, model, alpha, n_points, t, lnl, w);
+    lcfit2_evaluate(lnl_fn, lnl_fn_args, alpha, n_points, t, lnl, w);
 
 #ifdef LCFIT2_VERBOSE
     fprintf(stderr, "revised delta = %g\n", delta);
