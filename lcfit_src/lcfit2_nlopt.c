@@ -1,3 +1,8 @@
+/**
+ * \file lcfit2_nlopt.c
+ * \brief Implementation of lcfit2 optimization using NLopt.
+ */
+
 #include "lcfit2_nlopt.h"
 
 #include <assert.h>
@@ -25,6 +30,15 @@ void lcfit2_print_state_nlopt(double sum_sq_err, const double* x, const double* 
     fprintf(stderr, "\n");
 }
 
+/** NLopt objective function and its gradient.
+ *
+ * \param[in]  p     Number of model parameters.
+ * \param[in]  x     Model parameters to evaluate.
+ * \param[out] grad  Gradient of the objective function at \c x.
+ * \param[in]  data  Observed log-likelihood data to fit.
+ *
+ * \return Sum of squared error from observed log-likelihoods.
+ */
 double lcfit2_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* data)
 {
     lcfit2_fit_data* d = (lcfit2_fit_data*) data;
@@ -46,7 +60,10 @@ double lcfit2_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* dat
     double grad_i[2];
 
     for (size_t i = 0; i < n; ++i) {
-        // normalized log-likelihood error
+        // We expect that the empirical log-likelihoods pointed to by
+        // lnl have already been normalized. The error is therefore
+        // the difference between that log-likelihood and the
+        // normalized lcfit2 log-likelihood, which is f(t) - f(t0).
         const double err = lnl[i] - (lcfit2_lnl(t[i], &model) - lcfit2_lnl(model.t0, &model));
 
         sum_sq_err += w[i] * pow(err, 2.0);
@@ -66,13 +83,20 @@ double lcfit2_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* dat
     return sum_sq_err;
 }
 
-//
-// nlopt expects constraints of the form fc(x) <= 0
-//
-
-// constraint: c > m
-// becomes m - c < 0
-
+/** NLopt constraint function and its gradient for enforcing that \f$c > m\f$.
+ *
+ * NLopt expects constraint functions of the form \f$f_c(x) \leq 0\f$,
+ * so we use \f$f_c(x) = m - c\f$. That \f$c\f$ must be strictly
+ * greater than \f$m\f$ is handled by the SLSQP algorithm itself, as
+ * the lcfit2 log-likelihood function will return \c NaN in that case.
+ *
+ * \param[in]  p     Number of model parameters.
+ * \param[in]  x     Model parameters to evaluate.
+ * \param[out] grad  Gradient of the constraint function at \c x.
+ * \param[in]  data  Observed log-likelihood data (unused).
+ *
+ * \return Value of the constraint function at \c x.
+ */
 double lcfit2_cons_cm_nlopt(unsigned p, const double* x, double* grad, void* data)
 {
     const double c = x[0];
@@ -86,8 +110,24 @@ double lcfit2_cons_cm_nlopt(unsigned p, const double* x, double* grad, void* dat
     return m - c;
 }
 
-// constraint: c + m - v > 0 which implies t0 <= (1/r)*log((c+m)/(c-m))
-// becomes t0 - (1/r)*log((c+m)/(c-m)) <= 0
+/** NLopt constraint function and its gradient for enforcing that \f$c + m - \nu > 0\f$.
+ *
+ * The constraint \f$c + m - \nu > 0\f$ implies that
+ * \f[
+ *   t_0 \leq \frac{1}{r} \log \left( \frac{c + m}{c - m} \right).
+ * \f]
+ * NLopt expects constraint functions of the form \f$f_c(x) \leq 0\f$, so we use
+ * \f[
+ *   f_c(x) = t_0 - \frac{1}{r} \log \left( \frac{c + m}{c - m} \right).
+ * \f]
+ *
+ * \param[in]  p     Number of model parameters.
+ * \param[in]  x     Model parameters to evaluate.
+ * \param[out] grad  Gradient of the constraint function at \c x.
+ * \param[in]  data  Observed log-likelihood data.
+ *
+ * \return Value of the constraint function at \c x.
+ */
 double lcfit2_cons_cmv_nlopt(unsigned p, const double* x, double* grad, void* data)
 {
     lcfit2_fit_data* d = (lcfit2_fit_data*) data;

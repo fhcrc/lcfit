@@ -1,3 +1,8 @@
+/**
+ * \file lcfit2.c
+ * \brief Implementation of lcfit2.
+ */
+
 #include "lcfit2.h"
 
 #include <assert.h>
