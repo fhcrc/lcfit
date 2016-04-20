@@ -44,12 +44,6 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad);
 
 double lcfit2_lnl(const double t, const lcfit2_bsm_t* model);
 
-void lcfit2_evaluate_fn(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                        const size_t n, const double* t, double* lnl);
-
-double lcfit2_compute_weights(const size_t n, const double* lnl,
-                              const double alpha, double* w);
-
 int lcfit2_fit(const size_t n, const double* t, const double* lnl,
                lcfit2_bsm_t* model);
 
