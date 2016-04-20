@@ -225,14 +225,14 @@ void lcfit2_three_points(const lcfit2_bsm_t* model, const double delta,
 
     t[0] = t0 - delta;
     if (t[0] < min_t) {
-        t[0] = min_t + (t0 - min_t) / 2.0;
+        t[0] = (min_t + t0) / 2.0;
     }
 
     t[1] = t0;
 
     t[2] = t0 + delta;
     if (t[2] > max_t) {
-        t[2] = t0 + (max_t - t0) / 2.0;
+        t[2] = (t0 + max_t) / 2.0;
     }
 }
 
