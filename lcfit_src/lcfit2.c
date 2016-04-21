@@ -58,7 +58,7 @@ double lcfit2_var_theta_tilde(const double t, const lcfit2_bsm_t* model)
     return theta_tilde;
 }
 
-double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)
+double lcfit2_var_theta(const double t, const lcfit2_bsm_t* model)
 {
     const double c = model->c;
     const double m = model->m;
@@ -66,6 +66,17 @@ double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)
 
     const double r = lcfit2_var_r(model);
     const double theta = ((c + m) / (c - m)) * exp(r * (t - t_0));
+
+    return theta;
+}
+
+double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+
+    const double r = lcfit2_var_r(model);
+    const double theta = lcfit2_var_theta(t, model);
 
     const double d1f_t = (-c * r) / (theta + 1) + (m * r) / (theta - 1);
 
@@ -76,10 +87,9 @@ double lcfit2_d2f_t(const double t, const lcfit2_bsm_t* model)
 {
     const double c = model->c;
     const double m = model->m;
-    const double t_0 = model->t0;
 
     const double r = lcfit2_var_r(model);
-    const double theta = ((c + m) / (c - m)) * exp(r * (t - t_0));
+    const double theta = lcfit2_var_theta(t, model);
 
     const double d2f_t = (c * r * r * theta) / pow(theta + 1, 2.0) - (m * r * r * theta) / pow(theta - 1, 2.0);
 
