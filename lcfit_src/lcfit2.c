@@ -82,6 +82,17 @@ double lcfit2_var_b(const lcfit2_bsm_t* model)
     return b;
 }
 
+double lcfit2_var_v(const double t, const lcfit2_bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+
+    const double theta_tilde = lcfit2_var_theta_tilde(t, model);
+    const double v = (c - m) / theta_tilde;
+
+    return v;
+}
+
 double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)
 {
     const double c = model->c;
@@ -135,7 +146,7 @@ void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
     const double z = lcfit2_var_z(model);
     const double r = lcfit2_var_r(model);
     const double theta_tilde = lcfit2_var_theta_tilde(t, model);
-    const double v = (c - m) / theta_tilde;
+    const double v = lcfit2_var_v(t, model);
 
 #if 0
     fprintf(stderr, "model_assert: t = %g, c = %g, m = %g, t_0 = %g, f_2 = %g, z = %g, r = %g, theta_tilde = %g, v = %g\n",
@@ -177,7 +188,7 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     const double z = lcfit2_var_z(model);
     const double r = lcfit2_var_r(model);
     const double theta_tilde = lcfit2_var_theta_tilde(t, model);
-    const double v = (c - m) / theta_tilde;
+    const double v = lcfit2_var_v(t, model);
 
     //lcfit2_model_assert_at(t, model);
 
@@ -196,8 +207,7 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
     const double c = model->c;
     const double m = model->m;
 
-    const double theta_tilde = lcfit2_var_theta_tilde(t, model);
-    const double v = (c - m) / theta_tilde;
+    const double v = lcfit2_var_v(t, model);
 
     //lcfit2_model_assert_at(t, model);
 
