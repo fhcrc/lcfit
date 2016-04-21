@@ -37,14 +37,24 @@ double lcfit2_var_z(const lcfit2_bsm_t* model)
     return z;
 }
 
+double lcfit2_var_r(const lcfit2_bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+
+    const double z = lcfit2_var_z(model);
+    const double r = 2 * sqrt(z) / (c - m);
+
+    return r;
+}
+
 double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)
 {
     const double c = model->c;
     const double m = model->m;
     const double t_0 = model->t0;
 
-    const double z = lcfit2_var_z(model);
-    const double r = 2 * sqrt(z) / (c - m);
+    const double r = lcfit2_var_r(model);
     const double theta = ((c + m) / (c - m)) * exp(r * (t - t_0));
 
     const double d1f_t = (-c * r) / (theta + 1) + (m * r) / (theta - 1);
@@ -58,8 +68,7 @@ double lcfit2_d2f_t(const double t, const lcfit2_bsm_t* model)
     const double m = model->m;
     const double t_0 = model->t0;
 
-    const double z = lcfit2_var_z(model);
-    const double r = 2 * sqrt(z) / (c - m);
+    const double r = lcfit2_var_r(model);
     const double theta = ((c + m) / (c - m)) * exp(r * (t - t_0));
 
     const double d2f_t = (c * r * r * theta) / pow(theta + 1, 2.0) - (m * r * r * theta) / pow(theta - 1, 2.0);
@@ -73,8 +82,7 @@ double lcfit2_infl_t(const lcfit2_bsm_t* model)
     const double m = model->m;
     const double t_0 = model->t0;
 
-    const double z = lcfit2_var_z(model);
-    const double r = 2 * sqrt(z) / (c - m);
+    const double r = lcfit2_var_r(model);
     const double b = -t_0 + (1.0 / r) * log((c + m) / (c - m));
 
     const double infl_t = -b + (1.0 / r) * log((c + m + 2 * sqrt(c * m)) / (c - m));
@@ -95,7 +103,7 @@ void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
     const double t_0 = model->t0;
 
     const double z = lcfit2_var_z(model);
-    const double r = 2 * sqrt(z) / (c - m);
+    const double r = lcfit2_var_r(model);
     const double theta_tilde = exp(r * (t - t_0));
     const double v = (c - m) / theta_tilde;
 
@@ -137,7 +145,7 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     const double t_0 = model->t0;
 
     const double z = lcfit2_var_z(model);
-    const double r = 2 * sqrt(z) / (c - m);
+    const double r = lcfit2_var_r(model);
     const double theta_tilde = exp(r * (t - t_0));
     const double v = (c - m) / theta_tilde;
 
@@ -159,8 +167,7 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
     const double m = model->m;
     const double t_0 = model->t0;
 
-    const double z = lcfit2_var_z(model);
-    const double r = 2 * sqrt(z) / (c - m);
+    const double r = lcfit2_var_r(model);
     const double theta_tilde = exp(r * (t - t_0));
     const double v = (c - m) / theta_tilde;
 
