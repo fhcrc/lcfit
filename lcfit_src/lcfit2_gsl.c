@@ -23,8 +23,14 @@ int lcfit2_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
                           d->d2};
 
     for (size_t i = 0; i < n; ++i) {
-        // normalized log-likelihood error
-        const double err = lcfit2_lnl(t[i], &model) - lcfit2_lnl(model.t0, &model) - lnl[i];
+        //
+        // We expect that the observed log-likelihoods have already
+        // been normalized. The error is therefore the sum of squared
+        // differences between those log-likelihoods and the
+        // normalized lcfit2 log-likelihoods f(t[i]) - f(t0).
+        //
+
+        const double err = lcfit2n_lnl(t[i], &model) - lnl[i];
         gsl_vector_set(f, i, w[i] * err);
     }
 

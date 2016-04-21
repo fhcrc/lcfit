@@ -32,6 +32,9 @@ void lcfit2_print_state_nlopt(double sum_sq_err, const double* x, const double* 
 
 /** NLopt objective function and its gradient.
  *
+ * This function expects that the observed log-likelihoods have been
+ * normalized such that the log-likelihood at \f$t_0\f$ is zero.
+ *
  * \param[in]  p     Number of model parameters.
  * \param[in]  x     Model parameters to evaluate.
  * \param[out] grad  Gradient of the objective function at \c x.
@@ -60,11 +63,14 @@ double lcfit2_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* dat
     double grad_i[2];
 
     for (size_t i = 0; i < n; ++i) {
-        // We expect that the empirical log-likelihoods pointed to by
-        // lnl have already been normalized. The error is therefore
-        // the difference between that log-likelihood and the
-        // normalized lcfit2 log-likelihood, which is f(t) - f(t0).
-        const double err = lnl[i] - (lcfit2_lnl(t[i], &model) - lcfit2_lnl(model.t0, &model));
+        //
+        // We expect that the observed log-likelihoods have already
+        // been normalized. The error is therefore the sum of squared
+        // differences between those log-likelihoods and the
+        // normalized lcfit2 log-likelihoods f(t[i]) - f(t0).
+        //
+
+        const double err = lnl[i] - lcfit2n_lnl(t[i], &model);
 
         sum_sq_err += w[i] * pow(err, 2.0);
 
