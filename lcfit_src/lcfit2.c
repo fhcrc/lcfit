@@ -287,16 +287,6 @@ void lcfit2_three_points(const lcfit2_bsm_t* model, const double delta,
     }
 }
 
-double lcfit2_evaluate(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                       const double alpha, const size_t n_points,
-                       const double* t, double* lnl, double* w)
-{
-    lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
-    double max_lnl = lcfit2_compute_weights(n_points, lnl, alpha, w);
-
-    return max_lnl;
-}
-
 int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                     lcfit2_bsm_t* model, const double min_t, const double max_t,
                     const double alpha)
@@ -320,10 +310,10 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     // first pass
     //
 
-    double max_lnl;
     int status;
 
-    max_lnl = lcfit2_evaluate(lnl_fn, lnl_fn_args, alpha, n_points, t, lnl, w);
+    lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
+    lcfit2_compute_weights(n_points, lnl, alpha, w);
 
 #ifdef LCFIT2_VERBOSE
     fprintf(stderr, "initial delta = %g\n", delta);
@@ -340,7 +330,8 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     delta = lcfit2_delta(model);
     lcfit2_three_points(model, delta, min_t, max_t, t);
 
-    lcfit2_evaluate(lnl_fn, lnl_fn_args, alpha, n_points, t, lnl, w);
+    lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
+    lcfit2_compute_weights(n_points, lnl, alpha, w);
 
 #ifdef LCFIT2_VERBOSE
     fprintf(stderr, "revised delta = %g\n", delta);
