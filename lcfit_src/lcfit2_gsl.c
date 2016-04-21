@@ -7,7 +7,7 @@
 
 const size_t MAX_ITERATIONS = 1000;
 
-int lcfit2_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
+int lcfit2n_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
 {
     lcfit2_fit_data* d = ((lcfit2_fit_data*) data);
 
@@ -37,7 +37,7 @@ int lcfit2_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
     return GSL_SUCCESS;
 }
 
-int lcfit2_opt_df(const gsl_vector* x, void* data, gsl_matrix* J)
+int lcfit2n_opt_df(const gsl_vector* x, void* data, gsl_matrix* J)
 {
     lcfit2_fit_data* d = ((lcfit2_fit_data*) data);
 
@@ -63,10 +63,10 @@ int lcfit2_opt_df(const gsl_vector* x, void* data, gsl_matrix* J)
     return GSL_SUCCESS;
 }
 
-int lcfit2_opt_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J)
+int lcfit2n_opt_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* J)
 {
-    lcfit2_opt_f(x, data, f);
-    lcfit2_opt_df(x, data, J);
+    lcfit2n_opt_f(x, data, f);
+    lcfit2n_opt_df(x, data, J);
 
     return GSL_SUCCESS;
 }
@@ -98,9 +98,9 @@ int lcfit2n_fit_weighted_gsl(const size_t n, const double* t, const double* lnl,
 
     gsl_multifit_function_fdf fdf;
 
-    fdf.f = &lcfit2_opt_f;
-    fdf.df = &lcfit2_opt_df;
-    fdf.fdf = &lcfit2_opt_fdf;
+    fdf.f = &lcfit2n_opt_f;
+    fdf.df = &lcfit2n_opt_df;
+    fdf.fdf = &lcfit2n_opt_fdf;
     fdf.n = n;
     fdf.p = 2;
     fdf.params = &data;

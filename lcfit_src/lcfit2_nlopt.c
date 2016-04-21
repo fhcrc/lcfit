@@ -42,7 +42,7 @@ void lcfit2_print_state_nlopt(double sum_sq_err, const double* x, const double* 
  *
  * \return Sum of squared error from observed log-likelihoods.
  */
-double lcfit2_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* data)
+double lcfit2n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* data)
 {
     lcfit2_fit_data* d = (lcfit2_fit_data*) data;
 
@@ -161,7 +161,7 @@ int lcfit2n_fit_weighted_nlopt(const size_t n, const double* t, const double* ln
     const double upper_bounds[2] = { INFINITY, INFINITY };
 
     nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 2);
-    nlopt_set_min_objective(opt, lcfit2_opt_fdf_nlopt, &data);
+    nlopt_set_min_objective(opt, lcfit2n_opt_fdf_nlopt, &data);
     nlopt_set_lower_bounds(opt, lower_bounds);
     nlopt_set_upper_bounds(opt, upper_bounds);
 
