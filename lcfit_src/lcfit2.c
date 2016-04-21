@@ -70,6 +70,18 @@ double lcfit2_var_theta(const double t, const lcfit2_bsm_t* model)
     return theta;
 }
 
+double lcfit2_var_b(const lcfit2_bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+    const double t_0 = model->t0;
+
+    const double r = lcfit2_var_r(model);
+    const double b = -t_0 + (1.0 / r) * log((c + m) / (c - m));
+
+    return b;
+}
+
 double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)
 {
     const double c = model->c;
@@ -100,10 +112,9 @@ double lcfit2_infl_t(const lcfit2_bsm_t* model)
 {
     const double c = model->c;
     const double m = model->m;
-    const double t_0 = model->t0;
 
     const double r = lcfit2_var_r(model);
-    const double b = -t_0 + (1.0 / r) * log((c + m) / (c - m));
+    const double b = lcfit2_var_b(model);
 
     const double infl_t = -b + (1.0 / r) * log((c + m + 2 * sqrt(c * m)) / (c - m));
 
