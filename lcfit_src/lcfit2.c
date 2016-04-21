@@ -297,44 +297,44 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     double* lnl = malloc(n_points * sizeof(double));
     double* w = malloc(n_points * sizeof(double));
 
-    //
-    // initialize four starting points
-    //
-
-    double delta = lcfit2_delta(model);
-    lcfit2_three_points(model, delta, min_t, max_t, t);
-
-    t[3] = max_t;
 
     //
     // first pass
     //
 
-    int status;
+    // initialize sample points
+
+    lcfit2_three_points(model, lcfit2_delta(model), min_t, max_t, t);
+    t[3] = max_t;
+
+    // evaluate, compute weights, and fit
 
     lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
     lcfit2_compute_weights(n_points, lnl, alpha, w);
 
 #ifdef LCFIT2_VERBOSE
-    fprintf(stderr, "initial delta = %g\n", delta);
+    fprintf(stderr, "initial delta = %g\n", lcfit2_delta(model));
     lcfit2_print_array("t", n_points, t);
     lcfit2_print_array("w", n_points, w);
 #endif
 
-    status = lcfit2n_fit_weighted(n_points, t, lnl, w, model);
+    int status = lcfit2n_fit_weighted(n_points, t, lnl, w, model);
 
     //
-    // update delta, recompute the three center points, reevaluate, and refit
+    // second pass
     //
 
-    delta = lcfit2_delta(model);
-    lcfit2_three_points(model, delta, min_t, max_t, t);
+    // recompute sample points with updated delta
+
+    lcfit2_three_points(model, lcfit2_delta(model), min_t, max_t, t);
+
+    // reevaluate and refit
 
     lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
     lcfit2_compute_weights(n_points, lnl, alpha, w);
 
 #ifdef LCFIT2_VERBOSE
-    fprintf(stderr, "revised delta = %g\n", delta);
+    fprintf(stderr, "revised delta = %g\n", lcfit2_delta(model));
     lcfit2_print_array("t", n_points, t);
     lcfit2_print_array("w", n_points, w);
 #endif
