@@ -189,16 +189,9 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     const double theta_tilde = lcfit2_var_theta_tilde(t, model);
     const double v = lcfit2_var_v(t, model);
 
-    //lcfit2_model_assert_at(t, model);
-
     // normalized log-likelihood gradient
     grad[0] = ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*c/(c + m + v) - ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*m/(c + m - v) - log(2*c) + log(c + m + v) - 1;
     grad[1] = -((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*c/(c + m + v) + ((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*m/(c + m - v) + log(c + m - v) - log(2*m) - 1;
-
-    //assert(isfinite(grad[0]));
-    //assert(isfinite(grad[1]));
-
-    //fprintf(stderr, "grad = { %g, %g }\n", grad[0], grad[1]);
 }
 
 double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
@@ -208,11 +201,7 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
 
     const double v = lcfit2_var_v(t, model);
 
-    //lcfit2_model_assert_at(t, model);
-
     const double lnl = c * log(c + m + v) + m * log(c + m - v) - (c + m) * log(2 * (c + m));
-
-    //assert(isfinite(lnl));
 
     return lnl;
 }
@@ -261,7 +250,6 @@ int lcfit2_fit(const size_t n, const double* t, const double* lnl,
 int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
                         const double* w, lcfit2_bsm_t* model)
 {
-    //return lcfit2_fit_weighted_gsl(n, t, lnl, w, model);
     return lcfit2_fit_weighted_nlopt(n, t, lnl, w, model);
 }
 
