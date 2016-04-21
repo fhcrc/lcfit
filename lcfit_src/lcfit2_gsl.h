@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-int lcfit2_fit_weighted_gsl(const size_t n, const double* t, const double* lnl,
-                            const double* w, lcfit2_bsm_t* model);
+int lcfit2n_fit_weighted_gsl(const size_t n, const double* t, const double* lnl,
+                             const double* w, lcfit2_bsm_t* model);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -88,8 +88,8 @@ void lcfit2_print_state_gsl(size_t iter, const gsl_multifit_fdfsolver* s)
     gsl_vector_free(grad);
 }
 
-int lcfit2_fit_weighted_gsl(const size_t n, const double* t, const double* lnl,
-                            const double* w, lcfit2_bsm_t* model)
+int lcfit2n_fit_weighted_gsl(const size_t n, const double* t, const double* lnl,
+                             const double* w, lcfit2_bsm_t* model)
 {
     double x[2] = {model->c, model->m};
     gsl_vector_const_view x_view = gsl_vector_const_view_array(x, 2);

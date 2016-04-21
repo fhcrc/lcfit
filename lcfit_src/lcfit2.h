@@ -56,12 +56,12 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model);
 double lcfit2n_lnl(const double t, const lcfit2_bsm_t* model);
 
 /** Fits a model to normalized log-likelihood data, without weighting. */
-int lcfit2_fit(const size_t n, const double* t, const double* lnl,
-               lcfit2_bsm_t* model);
+int lcfit2n_fit(const size_t n, const double* t, const double* lnl,
+                lcfit2_bsm_t* model);
 
 /** Fits a model to normalized log-likelihood data, with weighting. */
-int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
-                        const double* w, lcfit2_bsm_t* model);
+int lcfit2n_fit_weighted(const size_t n, const double* t, const double* lnl,
+                         const double* w, lcfit2_bsm_t* model);
 
 /** Fits a model to a normalized log-likelihood function. */
 int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,

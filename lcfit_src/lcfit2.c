@@ -241,25 +241,25 @@ double lcfit2_compute_weights(const size_t n, const double* lnl,
     return max_lnl;
 }
 
-int lcfit2_fit(const size_t n, const double* t, const double* lnl,
-               lcfit2_bsm_t* model)
+int lcfit2n_fit(const size_t n, const double* t, const double* lnl,
+                lcfit2_bsm_t* model)
 {
     double* w = malloc(n * sizeof(double));
     for (size_t i = 0; i < n; ++i) {
         w[i] = 1.0;
     }
 
-    int status = lcfit2_fit_weighted(n, t, lnl, w, model);
+    int status = lcfit2n_fit_weighted(n, t, lnl, w, model);
 
     free(w);
 
     return status;
 }
 
-int lcfit2_fit_weighted(const size_t n, const double* t, const double* lnl,
-                        const double* w, lcfit2_bsm_t* model)
+int lcfit2n_fit_weighted(const size_t n, const double* t, const double* lnl,
+                         const double* w, lcfit2_bsm_t* model)
 {
-    return lcfit2_fit_weighted_nlopt(n, t, lnl, w, model);
+    return lcfit2n_fit_weighted_nlopt(n, t, lnl, w, model);
 }
 
 double lcfit2_delta(const lcfit2_bsm_t* model) {
@@ -331,7 +331,7 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     lcfit2_print_array("w", n_points, w);
 #endif
 
-    status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
+    status = lcfit2n_fit_weighted(n_points, t, lnl, w, model);
 
     //
     // update delta, recompute the three center points, reevaluate, and refit
@@ -348,7 +348,7 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     lcfit2_print_array("w", n_points, w);
 #endif
 
-    status = lcfit2_fit_weighted(n_points, t, lnl, w, model);
+    status = lcfit2n_fit_weighted(n_points, t, lnl, w, model);
 
     free(t);
     free(lnl);

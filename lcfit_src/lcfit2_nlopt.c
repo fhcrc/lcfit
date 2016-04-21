@@ -152,9 +152,8 @@ double lcfit2_cons_cmv_nlopt(unsigned p, const double* x, double* grad, void* da
     return t_0 - 1.0L/2.0L*(c - m)*log((c + m)/(c - m))/sqrt(-c*f_2*m/(c + m));
 }
 
-
-int lcfit2_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
-                              const double* w, lcfit2_bsm_t* model)
+int lcfit2n_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
+                               const double* w, lcfit2_bsm_t* model)
 {
     lcfit2_fit_data data = { n, t, lnl, w, model->t0, model->d1, model->d2 };
 
