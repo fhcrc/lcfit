@@ -62,10 +62,9 @@ double lcfit2_var_theta(const double t, const lcfit2_bsm_t* model)
 {
     const double c = model->c;
     const double m = model->m;
-    const double t_0 = model->t0;
 
-    const double r = lcfit2_var_r(model);
-    const double theta = ((c + m) / (c - m)) * exp(r * (t - t_0));
+    const double theta_tilde = lcfit2_var_theta_tilde(t, model);
+    const double theta = ((c + m) / (c - m)) * theta_tilde;
 
     return theta;
 }
