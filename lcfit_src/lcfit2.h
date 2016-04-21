@@ -46,8 +46,8 @@ typedef struct {
 /** Computes the inflection point of the log-likelihood function for a given model. */
 double lcfit2_infl_t(const lcfit2_bsm_t* model);
 
-/** Computes the gradient of the log-likelihood function at branch length \c t for a given model. */
-void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad);
+/** Computes the gradient of the normalized log-likelihood function at branch length \c t for a given model. */
+void lcfit2n_gradient(const double t, const lcfit2_bsm_t* model, double* grad);
 
 /** Computes the unnormalized log-likelihood at branch length \c t for a given model. */
 double lcfit2_lnl(const double t, const lcfit2_bsm_t* model);

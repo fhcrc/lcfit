@@ -178,7 +178,7 @@ void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
     assert(c + m - v > 0.0);
 }
 
-void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
+void lcfit2n_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
 {
     const double c = model->c;
     const double m = model->m;
@@ -189,7 +189,11 @@ void lcfit2_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
     const double theta_tilde = lcfit2_var_theta_tilde(t, model);
     const double v = lcfit2_var_v(t, model);
 
-    // normalized log-likelihood gradient
+    //
+    // This is the gradient of the normalized log-likelihood function
+    // f(t) - f(t0).
+    //
+
     grad[0] = ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*c/(c + m + v) - ((r*(t - t_0)/(c - m) + (t - t_0)*(z/(c + m) - z/c)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*m/(c + m - v) - log(2*c) + log(c + m + v) - 1;
     grad[1] = -((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde - 1)*c/(c + m + v) + ((r*(t - t_0)/(c - m) - (t - t_0)*(z/(c + m) - z/m)/((c - m)*sqrt(z)))*v + 1/theta_tilde + 1)*m/(c + m - v) + log(c + m - v) - log(2*m) - 1;
 }

@@ -75,7 +75,7 @@ double lcfit2_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* dat
         sum_sq_err += w[i] * pow(err, 2.0);
 
         if (grad) {
-            lcfit2_gradient(t[i], &model, grad_i);
+            lcfit2n_gradient(t[i], &model, grad_i);
 
             grad[0] -= 2 * w[i] * err * grad_i[0];
             grad[1] -= 2 * w[i] * err * grad_i[1];

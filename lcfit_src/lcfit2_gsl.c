@@ -54,7 +54,7 @@ int lcfit2_opt_df(const gsl_vector* x, void* data, gsl_matrix* J)
     double grad_i[2];
 
     for (size_t i = 0; i < n; ++i) {
-        lcfit2_gradient(t[i], &model, grad_i);
+        lcfit2n_gradient(t[i], &model, grad_i);
 
         gsl_matrix_set(J, i, 0, w[i] * grad_i[0]);
         gsl_matrix_set(J, i, 1, w[i] * grad_i[1]);
