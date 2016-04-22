@@ -30,7 +30,7 @@ int lcfit2n_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
         // normalized lcfit2 log-likelihoods f(t[i]) - f(t0).
         //
 
-        const double err = lcfit2n_lnl(t[i], &model) - lnl[i];
+        const double err = lcfit2_norm_lnl(t[i], &model) - lnl[i];
         gsl_vector_set(f, i, w[i] * err);
     }
 

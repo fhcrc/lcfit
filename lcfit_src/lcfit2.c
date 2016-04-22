@@ -210,7 +210,7 @@ double lcfit2_lnl(const double t, const lcfit2_bsm_t* model)
     return lnl;
 }
 
-double lcfit2n_lnl(const double t, const lcfit2_bsm_t* model)
+double lcfit2_norm_lnl(const double t, const lcfit2_bsm_t* model)
 {
     return lcfit2_lnl(t, model) - lcfit2_lnl(model->t0, model);
 }

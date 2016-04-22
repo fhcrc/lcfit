@@ -53,7 +53,7 @@ void lcfit2n_gradient(const double t, const lcfit2_bsm_t* model, double* grad);
 double lcfit2_lnl(const double t, const lcfit2_bsm_t* model);
 
 /** Computes the normalized log-likelihood at branch length \c t for a given model. */
-double lcfit2n_lnl(const double t, const lcfit2_bsm_t* model);
+double lcfit2_norm_lnl(const double t, const lcfit2_bsm_t* model);
 
 /** Fits a model to normalized log-likelihood data, without weighting. */
 int lcfit2n_fit(const size_t n, const double* t, const double* lnl,

@@ -70,7 +70,7 @@ double lcfit2n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* da
         // normalized lcfit2 log-likelihoods f(t[i]) - f(t0).
         //
 
-        const double err = lnl[i] - lcfit2n_lnl(t[i], &model);
+        const double err = lnl[i] - lcfit2_norm_lnl(t[i], &model);
 
         sum_sq_err += w[i] * pow(err, 2.0);
 
