@@ -262,7 +262,8 @@ int lcfit2n_fit_weighted(const size_t n, const double* t, const double* lnl,
     return lcfit2n_fit_weighted_nlopt(n, t, lnl, w, model);
 }
 
-double lcfit2_delta(const lcfit2_bsm_t* model) {
+double lcfit2_delta(const lcfit2_bsm_t* model)
+{
     const double delta = lcfit2_infl_t(model) - model->t0;
 
     return delta;
