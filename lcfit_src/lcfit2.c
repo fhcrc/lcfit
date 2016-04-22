@@ -287,6 +287,13 @@ void lcfit2_three_points(const lcfit2_bsm_t* model, const double delta,
     }
 }
 
+void lcfit2_normalize(const double max_lnl, const size_t n, double* lnl)
+{
+    for (size_t i = 0; i < n; ++i) {
+        lnl[i] -= max_lnl;
+    }
+}
+
 int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                     lcfit2_bsm_t* model, const double min_t, const double max_t,
                     const double alpha)
@@ -297,6 +304,7 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     double* lnl = malloc(n_points * sizeof(double));
     double* w = malloc(n_points * sizeof(double));
 
+    const double max_lnl = lnl_fn(model->t0, lnl_fn_args);
 
     //
     // first pass
@@ -307,9 +315,10 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     lcfit2_three_points(model, lcfit2_delta(model), min_t, max_t, t);
     t[3] = max_t;
 
-    // evaluate, compute weights, and fit
+    // evaluate, normalize, compute weights, and fit
 
     lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
+    lcfit2_normalize(max_lnl, n_points, lnl);
     lcfit2_compute_weights(n_points, lnl, alpha, w);
 
 #ifdef LCFIT2_VERBOSE
@@ -328,9 +337,10 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
     lcfit2_three_points(model, lcfit2_delta(model), min_t, max_t, t);
 
-    // reevaluate and refit
+    // evaluate, normalize, compute weights, and fit
 
     lcfit2_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
+    lcfit2_normalize(max_lnl, n_points, lnl);
     lcfit2_compute_weights(n_points, lnl, alpha, w);
 
 #ifdef LCFIT2_VERBOSE
