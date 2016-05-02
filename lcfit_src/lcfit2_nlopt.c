@@ -94,7 +94,8 @@ double lcfit2n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* da
  * NLopt expects constraint functions of the form \f$f_c(x) \leq 0\f$,
  * so we use \f$f_c(x) = m - c\f$. That \f$c\f$ must be strictly
  * greater than \f$m\f$ is handled by the SLSQP algorithm itself, as
- * the lcfit2 log-likelihood function will return \c NaN in that case.
+ * the lcfit2 log-likelihood function will return \c NaN in the case
+ * where \f$c = m\f$.
  *
  * \param[in]  p     Number of model parameters.
  * \param[in]  x     Model parameters to evaluate.
