@@ -5,7 +5,7 @@
 
 #include "lcfit2.h"
 
-const size_t MAX_ITERATIONS = 1000;
+static const size_t MAX_ITERATIONS = 1000;
 
 int lcfit2n_opt_f(const gsl_vector* x, void* data, gsl_vector* f)
 {

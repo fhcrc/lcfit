@@ -14,7 +14,7 @@
 
 #include "lcfit2.h"
 
-const size_t MAX_ITERATIONS = 1000;
+static const size_t MAX_ITERATIONS = 1000;
 
 void lcfit2_print_state_nlopt(double sum_sq_err, const double* x, const double* grad)
 {
