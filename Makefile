@@ -42,6 +42,9 @@ lcfit-r:
 lcfit-compare: setup-cmake
 	$(MAKE) -C$(BUILD_DIR) $@
 
+lcfit2-compare: setup-cmake
+	$(MAKE) -C$(BUILD_DIR) $@
+
 lcfit-bakeoff: CMAKE_BUILD_TYPE=Debug
 lcfit-bakeoff: BUILD_DIR=$(BUILD)/debug
 lcfit-bakeoff: setup-cmake
