@@ -20,7 +20,7 @@ all: release
 
 release: CMAKE_BUILD_TYPE=Release
 release: BUILD_DIR=$(BUILD)/release
-release: build-all lcfit-r
+release: build-all
 
 debug: CMAKE_BUILD_TYPE=Debug
 debug: BUILD_DIR=$(BUILD)/debug
