@@ -1,0 +1,227 @@
+# Simulations for lcfit
+import os
+import os.path
+
+from nestly import Nest
+from nestly.scons import SConsWrap
+from SCons.Script import Environment
+
+environ = os.environ.copy()
+
+for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
+          'SLURM_NTASKS_PER_CORE', 'SLURM_CPUS_PER_TASK', 'SLURM_EXCLUSIVE'):
+    environ[k] = '1'
+environ['SLURM_TIMELIMIT'] = '0-6'
+
+env = Environment(ENV=environ)
+#env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
+env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
+#env.PrependENVPath('PATH', '../example')
+#env.PrependENVPath('PATH', './bin')
+
+env.PrependENVPath('R_LIBS_USER', './venv/lib/R')
+
+env['SRUN'] = ''
+
+n = Nest(base_dict={'n_sites': 1000})
+w = SConsWrap(n, 'runs', alias_environment=env)
+
+
+models = {
+    # Nucleotide models
+    'JC': {'name': 'JC69', 'alphabet': 'DNA'},
+    'Binary-0.25': {'name': 'Binary(kappa=0.25)', 'alphabet': 'Binary'},
+    'Binary-1.0': {'name': 'Binary(kappa=1.0)', 'alphabet': 'Binary'},
+    'Binary-4.0': {'name': 'Binary(kappa=4.0)', 'alphabet': 'Binary'},
+    'HKY85-2.0': {'name': 'HKY85(kappa=2.0, theta=0.5, theta1=0.5, theta2=0.75)',
+                  'alphabet': 'DNA'},
+
+    # Protein models
+    'JTT92': {'name': 'JTT92', 'alphabet': 'Protein'},
+    'LG08': {'name': 'LG08', 'alphabet': 'Protein'},
+
+    # Codons
+    #'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
+    'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA)\ngenetic_code=Standard'},
+    # Nonhomogenous
+    'nonhom-dna': {
+        'alphabet': 'DNA',
+        'detail': """
+nonhomogeneous = general
+nonhomogeneous.number_of_models = 3
+nonhomogeneous.root_freq=GC(theta=0.6)
+
+model1=T92(kappa=2, theta=0.6)
+model2=TN93(kappa1=10, kappa2=3, theta=0.25, theta2=0.6)
+model3=GTR(a=2, b=1, c=4, theta=0.25, theta1=0.90)
+
+model1.nodes_id=0:6
+model2.nodes_id=7:12
+model3.nodes_id=13:17
+""",
+        'ignore': 'GC.theta,T92.kappa,TN93.kappa,GTR.a,GTR.b,GTR.c,GTR.theta,GTR.theta1,GTR.theta2',
+    }
+}
+
+initial_values = ['1100,800,2.0,0.5',]
+
+sample_values = ['0.1,0.15,0.5,1.0',]
+
+rdist = {
+    'uniform': 'Constant()',
+    'gamma4-0.2': 'Gamma(n=4, alpha=0.2)',
+}
+
+w.add('branch_length_rate', [10, 100])
+w.add('seed', range(1))
+w.add('n_leaves', [10], create_dir=False)
+
+
+@w.add_target_with_env(env)
+def source_tree(env, outdir, control):
+    return env.Command('$OUTDIR/tree${seed}.tre',
+                       [],
+                       """R --slave -e "library(ape); """
+                       """set.seed($seed); """
+                       """write.tree(rtree($n_leaves, br = rexp, """
+                       """rate = $branch_length_rate), '$TARGET')" """)[0]
+
+
+w.add('model_name', models)
+w.add('model', lambda c: [models[c['model_name']]], create_dir=False)
+w.add('rdist_name', rdist)
+w.add('rdist', lambda c: [rdist[c['rdist_name']]], create_dir=False)
+w.add('initial', initial_values, label_func=lambda s: s.replace(',', '_'),
+      create_dir=False)
+w.add('sample', sample_values, label_func=lambda s: s.replace(',', '_'),
+      create_dir=False)
+
+
+def write_model_action(target, source, env):
+    c = env['control']
+    with open(str(target[0]), 'w') as fp:
+        print >> fp, """alphabet={model[alphabet]}
+rate_distribution={rdist}
+
+""".format(**c)
+        if 'name' in c['model']:
+            print >> fp, """model={model[name]}""".format(**c)
+        else:
+            print >> fp, """{model[detail]}""".format(**c)
+
+
+@w.add_target()
+def model_file(outdir, c):
+    target = os.path.join(outdir, 'model.bpp')
+    return env.Command(target, [], write_model_action,
+                       control=c)[0]
+
+
+def write_seqgen_file_action(target, source, env):
+    with open(str(target[0]), 'w') as fp:
+        print >> fp, """
+param={model_file}
+number_of_sites={n_sites}
+input.tree.format=Newick
+output.sequence.format=Fasta()""".format(**env['control'])
+
+
+@w.add_target()
+def seqgen_file(outdir, c):
+    target = os.path.join(outdir, 'seqgen.bpp')
+    return env.Command(target, [c['model_file'], c['source_tree']],
+                       write_seqgen_file_action,
+                       control=c)[0]
+
+
+@w.add_target()
+def alignment(outdir, c):
+    target = os.path.join(outdir, 'alignment.fasta')
+    cmd = ('bppseqgen --seed=0 '
+           'param=${SOURCES[1]} '
+           'input.tree.file=${SOURCES[0]} '
+           'output.sequence.file=$TARGET')
+    return env.Command(target, [c['source_tree'], c['seqgen_file']], cmd)[0]
+
+
+def write_bppml_file_action(target, source, env):
+    c = env['control']
+    target_base = os.path.join(env['outdir'], 'ml_tree')
+    with open(str(target[0]), 'w') as fp:
+        print >> fp, """
+param={model_file}
+
+input.sequence.file={alignment}
+input.sequence.format=Fasta()
+input.sequence.sites_to_use=all
+input.sequence.max_gap_allowed=100%
+init.tree=user
+input.tree.file={source_tree}
+input.tree.format=Newick
+init.brlen.method=Input
+
+output.tree.file={target_base}.tre
+output.tree.format=Newick
+output.infos={target_base}.infos
+output.estimates={target_base}.params.txt
+
+optimization.verbose=0
+optimization.method=DB
+optimization.reparametrization=no
+optimization.ignore_parameters=Gamma.alpha
+optimization.max_number_f_eval=10000
+optimization.tolerance=0.000001
+
+optimization.topology=no
+optimization.topology.algorithm=NNI
+optimization.topology.algorithm_nni.method=phyml
+""".format(target_base=target_base, **c)
+
+
+@w.add_target()
+def bppml_file(outdir, c):
+    target = os.path.join(outdir, 'bppml.bpp')
+    return env.Command(target,
+                       [c['model_file'], c['source_tree'], c['alignment']],
+                       write_bppml_file_action,
+                       control=c,
+                       outdir=outdir)[0]
+
+
+@w.add_target()
+def ml_tree(outdir, c):
+    target_base = os.path.join(outdir, 'ml_tree')
+    targets = [target_base + '.tre',
+               target_base + '.infos',
+               target_base + '.params.txt']
+
+    env['ENV']['SLURM_JOB_NAME'] = 'bppml-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
+    return env.Command(targets,
+                       [c['bppml_file'], c['alignment'], c['source_tree']],
+                       '${SRUN} bppml param=$SOURCE')[0]
+
+
+@w.add_target_with_env(env)
+def lcfit(env, outdir, c):
+    targets = [os.path.join(outdir, i)
+               for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv',
+                         'lcfit_tol.csv')]
+    env['ENV']['SLURM_JOB_NAME'] = 'lcfit-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
+    command = ( '${SRUN} '
+               'lcfit2-compare '
+               'param=${SOURCES[2]} '
+               'input.tree.file=${SOURCES[1]} '
+               'input.tree.format=Newick '
+               'input.sequence.file=${SOURCES[0]} '
+               'input.sequence.format=Fasta '
+               'lcfit.starting.values=$initial ' +
+               'lcfit.sample.branch.lengths=$sample ' +
+               'lcfit.tolerance.values=1e-6,1e-5,1e-4,1e-3,1e-2 '
+               'lcfit.output.likelihoods_file=${TARGETS[0]} '
+               'lcfit.output.maxima_file=${TARGETS[1]} '
+               'lcfit.output.fit_file=${TARGETS[2]} '
+               'lcfit.output.mltol_file=${TARGETS[3]}')
+
+    return env.Command(targets,
+                       [c['alignment'], c['ml_tree'], c['model_file']],
+                       command)
