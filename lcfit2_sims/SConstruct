@@ -14,8 +14,8 @@ for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
 environ['SLURM_TIMELIMIT'] = '0-6'
 
 env = Environment(ENV=environ)
-#env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
-env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
+env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
+#env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
 #env.PrependENVPath('PATH', '../example')
 #env.PrependENVPath('PATH', './bin')
 
