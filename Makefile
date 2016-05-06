@@ -62,7 +62,6 @@ setup-cmake:
 
 clean:
 	rm -rf $(BUILD)
-	R CMD REMOVE --library=$(PWD)/sims/venv/lib/R lcfit
 
 doc:
 	doxygen
