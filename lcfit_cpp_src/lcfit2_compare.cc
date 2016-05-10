@@ -57,9 +57,9 @@ void compute_sampling_bounds(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     }
 }
 
-void sample_curve(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                  const double min_t, const double max_t, const double t0,
-                  const int node_id, std::ostream& output)
+void sample_curves(double (*lnl_fn)(double, void*), void* lnl_fn_args, const lcfit2_bsm_t* model,
+                   const double min_t, const double max_t, const double t0,
+                   const int node_id, std::ostream& output)
 {
     const double lnl_t0 = lnl_fn(t0, lnl_fn_args);
     const double lnl_threshold = lnl_t0 - std::abs(0.01 * lnl_t0);
@@ -77,8 +77,13 @@ void sample_curve(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
     for (size_t i = 0; i < n_samples; ++i) {
         const double t = left_t + (i * delta);
-        const double lnl = lnl_fn(t, lnl_fn_args);
-        output << node_id << "," << t << "," << lnl << "\n";
+        const double empirical_lnl = lnl_fn(t, lnl_fn_args);
+        const double fit_lnl = lcfit2_lnl(t, model);
+
+        output << node_id << ","
+               << t << ","
+               << empirical_lnl << ","
+               << fit_lnl << "\n";
     }
 }
 
@@ -140,7 +145,7 @@ int run_main(int argc, char** argv)
     // Output files
     std::string lnl_filename = bpp::ApplicationTools::getAFilePath("lcfit2.output.lnl_file", params, true, false);
     std::ofstream lnl_output(lnl_filename);
-    lnl_output << "node_id,t,lnl\n";
+    lnl_output << "node_id,t,empirical,lcfit2\n";
     lnl_output << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     std::string lcfit2_filename = bpp::ApplicationTools::getAFilePath("lcfit2.output.fit_file", params, true, false);
@@ -193,19 +198,6 @@ int run_main(int argc, char** argv)
         std::cerr << "t0 = " << t0 << "\n";
 
         //
-        // sample empirical curve
-        //
-
-        const double min_t = 1e-6;
-        const double max_t = 1e4;
-
-        // GOTCHA: this function will set the branch length to
-        // something other than t0, so we'll reset it below before
-        // computing derivatives
-        sample_curve(&log_likelihood_callback, &lnl_data, min_t, max_t, t0,
-                     node_id, lnl_output);
-
-        //
         // find d1 and d2 at t0
         //
 
@@ -226,16 +218,29 @@ int run_main(int argc, char** argv)
         // fit with lcfit2
         //
 
+        const double min_t = 1e-6;
+        const double max_t = 1e4;
+
         lcfit2_bsm_t model = {1100.0, 800.0, t0, d1, d2};
 
         if (std::abs(d1) < 0.1) {
             const double alpha = 0.0;
 
+            // GOTCHA: this function can change the current branch length
             lcfit2_fit_auto(&log_likelihood_callback, &lnl_data, &model, min_t, max_t, alpha);
         }
 
         lcfit2_output << node_id << "," << model.c << "," << model.m << ","
                       << model.t0 << "," << model.d1 << "," << model.d2 << "\n";
+
+        //
+        // sample empirical and lcfit2 curves
+        //
+
+        // GOTCHA: this function can change the current branch length
+        sample_curves(&log_likelihood_callback, &lnl_data, &model,
+                      min_t, max_t, t0, node_id, lnl_output);
+
     }
 
     return 0;
