@@ -204,8 +204,8 @@ def ml_tree(outdir, c):
 @w.add_target_with_env(env)
 def lcfit(env, outdir, c):
     targets = [os.path.join(outdir, i)
-               for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv',
-                         'lcfit_tol.csv')]
+               for i in ('lnl.csv',
+                         'lcfit2.csv')]
     env['ENV']['SLURM_JOB_NAME'] = 'lcfit-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
     command = ( '${SRUN} '
                'lcfit2-compare '
@@ -214,14 +214,25 @@ def lcfit(env, outdir, c):
                'input.tree.format=Newick '
                'input.sequence.file=${SOURCES[0]} '
                'input.sequence.format=Fasta '
-               'lcfit.starting.values=$initial ' +
-               'lcfit.sample.branch.lengths=$sample ' +
-               'lcfit.tolerance.values=1e-6,1e-5,1e-4,1e-3,1e-2 '
-               'lcfit.output.likelihoods_file=${TARGETS[0]} '
-               'lcfit.output.maxima_file=${TARGETS[1]} '
-               'lcfit.output.fit_file=${TARGETS[2]} '
-               'lcfit.output.mltol_file=${TARGETS[3]}')
+               'lcfit2.output.lnl_file=${TARGETS[0]} '
+               'lcfit2.output.fit_file=${TARGETS[1]} ')
 
     return env.Command(targets,
                        [c['alignment'], c['ml_tree'], c['model_file']],
                        command)
+
+w.add_controls(env)
+
+#
+# aggregation
+#
+
+agg_lnl = env.Command(os.path.join(w.dest_dir, 'lnl.agg.csv'),
+                      [c['control'] for _, c in w],
+                      'nestagg delim lnl.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_lnl, [c['lcfit'][0] for _, c in w])
+
+agg_fit = env.Command(os.path.join(w.dest_dir, 'lcfit2.agg.csv'),
+                      [c['control'] for _, c in w],
+                      'nestagg delim lcfit2.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_fit, [c['lcfit'][1] for _, c in w])
