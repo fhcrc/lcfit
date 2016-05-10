@@ -6,14 +6,33 @@
 
 #include <Bpp/App/BppApplication.h>
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
+#include <Bpp/Phyl/App/PhylogeneticsApplicationTools.h>
 #include <Bpp/Phyl/Likelihood/RNonHomogeneousTreeLikelihood.h>
 #include <Bpp/Phyl/Likelihood/RHomogeneousTreeLikelihood.h>
-#include <Bpp/Phyl/App/PhylogeneticsApplicationTools.h>
+#include <Bpp/Phyl/OptimizationTools.h>
 #include <Bpp/Phyl/Model/SubstitutionModelSetTools.h>
 #include <Bpp/Seq/App/SequenceApplicationTools.h>
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 
 #include "lcfit2.h"
+
+struct log_likelihood_data {
+    bpp::TreeLikelihood* tl;
+    int node_id;
+};
+
+double log_likelihood_callback(double t, void* data)
+{
+    if (t < 1e-6 || t > 1e4) { throw std::invalid_argument("t is out of bounds"); }
+
+    log_likelihood_data* lnl_data = static_cast<log_likelihood_data*>(data);
+
+    bpp::TreeLikelihood* tl = lnl_data->tl;
+    int node_id = lnl_data->node_id;
+
+    tl->setParameterValue("BrLen" + std::to_string(node_id), t);
+    return tl->getLogLikelihood();
+}
 
 int run_main(int argc, char** argv)
 {
@@ -75,40 +94,30 @@ int run_main(int argc, char** argv)
     //
 
     for (const int& node_id : tree.getNodesId()) {
-
-        // Calculators
-        //TreeLikelihoodCalculator likelihood_calc(*bpp_tree_like);
-        //LCFitter fitter(start, sample_points, &likelihood_calc, &csv_fit_out);
-
-        // pseudocode equivalent of the initialization steps that
-        // occur above to obtain a log-likelihood calculator. this
-        // should happen somewhere else and must ensure that any
-        // changes are isolated to computations for this node
-
-        std::unique_ptr<bpp::TreeLikelihood> tl(bpp_tree_like->clone());
-        tl->initialize();
-
-        auto lnl_callback = [node_id](double t, void* data) {
-            if (t < 1e-6 || t > 1e4) { throw std::invalid_argument("t is out of bounds"); }
-
-            bpp::TreeLikelihood* calc = static_cast<bpp::TreeLikelihood*>(data);
-            calc->setParameterValue("BrLen" + std::to_string(node_id), t);
-            return calc->getLogLikelihood();
-        };
-
-        // should we/where do we enable derivative computation? can we
-        // turn them on when we need them and disable them when we
-        // don't, or is it a one-time thing?
-        //
-        // virtual void bpp::TreeLikelihood::enableDerivatives(bool yn)
-
-        // end pseudocode
-
-        clog << "[lcfit eval] Node " << std::setw(4) << node_id << "\n";
-
         if (!tree.hasDistanceToFather(node_id)) {
             continue;
         }
+
+        clog << "[lcfit2 eval] Node " << std::setw(4) << node_id << "\n";
+
+        //
+        // initialize the tree likelihood calculator
+        //
+
+        // clone the tree likelihood calculator to ensure that any
+        // changes are isolated to computations for this node
+
+        std::unique_ptr<bpp::TreeLikelihood> tl(bpp_tree_like->clone());
+
+        // derivatives can be enabled/disabled before the call to
+        // `tl->initialize()`. if they are disabled, computed
+        // derivative values will be zero. it appears that "enabled"
+        // is the default, but we enable them explicitly for clarity.
+
+        tl->enableDerivatives(true);
+        tl->initialize();
+
+        log_likelihood_data lnl_data = { tl.get(), node_id };
 
         //
         // sample empirical curve
@@ -116,38 +125,54 @@ int run_main(int argc, char** argv)
 
         // test: compute log-likelihood at the current branch length
         const double t = tl->getParameterValue("BrLen" + std::to_string(node_id));
-        const double lnl = lnl_callback(t, tl.get());
+        const double lnl = log_likelihood_callback(t, &lnl_data);
 
-        std::cerr << "ell(" << t << ") = " << lnl << "\n";
+        std::cerr << "t = " << t << "\n";
+        std::cerr << "ell(t) = " << lnl << "\n";
 
-        // ...
-
+        //
         // find t0
         //
-        // is the maximum-likelihood branch length just the value
-        // that's already attached to the branch when the tree is
-        // loaded? if so we don't actually need to do anything except
-        // cache the value before we start sampling the curve
 
-        // ...
+        bpp::DiscreteRatesAcrossSitesTreeLikelihood* drastl = dynamic_cast<bpp::DiscreteRatesAcrossSitesTreeLikelihood*>(tl.get());
+
+        bpp::ParameterList pl;
+        pl.addParameter(drastl->getBranchLengthsParameters().getParameter("BrLen" + std::to_string(node_id)));
+        bpp::OptimizationTools::optimizeBranchLengthsParameters(drastl, pl);
+
+        const double t0 = tl->getParameterValue("BrLen" + std::to_string(node_id));
+
+        std::cerr << "t0 = " << t0 << "\n";
 
         //
-        // find d1 and d2
+        // find d1 and d2 at t0
         //
-        // it may be possible to use Bio++ methods to get these values:
-        //
-        // virtual double getFirstOrderDerivative (const std::string &variable)
-        // virtual double getSecondOrderDerivative (const std::string &variable)
 
+        // the branch length is already set to t0 as a result of the optimization above
 
-        // ...
+        // GOTCHA: for unknown reasons the values returned by these
+        // functions appear to be the negatives of the corresponding
+        // derivatives, so we negate them again to get the proper
+        // values.
+        const double d1 = -(tl->getFirstOrderDerivative("BrLen" + std::to_string(node_id)));
+        const double d2 = -(tl->getSecondOrderDerivative("BrLen" + std::to_string(node_id)));
+
+        std::cerr << "d1(t0) = " << d1 << "\n";
+        std::cerr << "d2(t0) = " << d2 << "\n";
 
         //
         // fit with lcfit2
         //
 
-        // ...
+        const double min_t = 1e-6;
+        const double max_t = 1e4;
+        lcfit2_bsm_t model = {1100.0, 800.0, t0, d1, d2};
 
+        if (std::abs(d1) < 0.1) {
+            const double alpha = 0.0;
+
+            lcfit2_fit_auto(&log_likelihood_callback, &lnl_data, &model, min_t, max_t, alpha);
+        }
     }
 
     return 0;
