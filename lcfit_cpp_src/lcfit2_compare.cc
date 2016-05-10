@@ -226,7 +226,7 @@ int run_main(int argc, char** argv)
         if (std::abs(d1) < 0.1) {
             const double alpha = 0.0;
 
-            // GOTCHA: this function can change the current branch length
+            // GOTCHA: this function will change the current branch length
             lcfit2_fit_auto(&log_likelihood_callback, &lnl_data, &model, min_t, max_t, alpha);
 
             lcfit2_output << node_id << "," << model.c << "," << model.m << ","
@@ -238,7 +238,7 @@ int run_main(int argc, char** argv)
         //
 
         if (std::abs(d1) < 0.1) {
-            // GOTCHA: this function can change the current branch length
+            // GOTCHA: this function will change the current branch length
             sample_curves(&log_likelihood_callback, &lnl_data, &model,
                           min_t, max_t, t0, node_id, lnl_output);
         }
