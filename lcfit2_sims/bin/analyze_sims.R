@@ -50,7 +50,7 @@ lnl_tu <- lnl_t %>%
 #
 
 # normalized log-likelihood plots
-lnl_gtu <- lnl_tu %>%
+lnl_plots <- lnl_tu %>%
   group_by(key, node_id) %>%
   do(lnl_plot = ggplot(., aes(x = t)) +
        geom_line(aes(y = lnl, color = distribution, linetype = distribution)) +
@@ -62,5 +62,5 @@ lnl_gtu <- lnl_tu %>%
        ggtitle(sprintf("%s %s", first(.$key), first(.$node_id))))
 
 pdf("curves.pdf")
-print(lnl_gtu$lnl_plot)
+print(lnl_plots$lnl_plot)
 dev.off()
