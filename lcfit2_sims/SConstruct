@@ -73,7 +73,7 @@ rdist = {
 }
 
 w.add('branch_length_rate', [10, 100])
-w.add('seed', range(1))
+w.add('seed', range(2))
 w.add('n_leaves', [10], create_dir=False)
 
 
