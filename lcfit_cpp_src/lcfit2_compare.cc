@@ -77,8 +77,8 @@ void sample_curves(double (*lnl_fn)(double, void*), void* lnl_fn_args, const lcf
 
     for (size_t i = 0; i < n_samples; ++i) {
         const double t = left_t + (i * delta);
-        const double empirical_lnl = lnl_fn(t, lnl_fn_args);
-        const double fit_lnl = lcfit2_lnl(t, model);
+        const double empirical_lnl = lnl_fn(t, lnl_fn_args) - lnl_t0;
+        const double fit_lnl = lcfit2_norm_lnl(t, model);
 
         output << node_id << ","
                << t << ","
