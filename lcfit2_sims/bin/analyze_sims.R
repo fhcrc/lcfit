@@ -46,10 +46,34 @@ lnl_tu <- lnl_t %>%
   select(-c(n_sites, n_leaves, seed))
 
 #
-# plots
+# compute measures
 #
 
-# normalized log-likelihood plots
+kl_divergence <- function(p, q) {
+  sum(p * log2(p / q))
+}
+
+hellinger_distance <- function(p, q) {
+  (1 / sqrt(2)) * sqrt(sum( (sqrt(p) - sqrt(q))^2 ))
+}
+
+# note that the log-likelihoods are already normalized
+freqs <- lnl %>%
+  group_by(source_tree, model_name, rdist_name, branch_length_rate, node_id) %>%
+  select(-c(n_sites, n_leaves, seed)) %>%
+  mutate(empirical = exp(empirical),
+         lcfit2 = exp(lcfit2)) %>%
+  mutate(empirical = empirical / sum(empirical),
+         lcfit2 = lcfit2 / sum(lcfit2))
+
+measures <- freqs %>%
+  summarize(kl = kl_divergence(empirical, lcfit2),
+            hellinger = hellinger_distance(empirical, lcfit2))
+
+#
+# normalized log-likelihood curves
+#
+
 lnl_plots <- lnl_tu %>%
   group_by(key, node_id) %>%
   do(lnl_plot = ggplot(., aes(x = t)) +
@@ -61,6 +85,29 @@ lnl_plots <- lnl_tu %>%
        theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
        ggtitle(sprintf("%s %s", first(.$key), first(.$node_id))))
 
-pdf("curves.pdf")
-print(lnl_plots$lnl_plot)
+#pdf("curves.pdf")
+#print(lnl_plots$lnl_plot)
+#dev.off()
+
+#
+# distribution measures
+#
+
+p.measure <- ggplot(measures, aes(x = model_name, fill = model_name)) +
+  facet_grid(rdist_name ~ branch_length_rate) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1), 
+        legend.position = "none")
+
+# KL divergence
+p.kl <- p.measure +
+  geom_boxplot(aes(y = kl))
+
+# Hellinger distance
+p.hellinger <- p.measure +
+  geom_boxplot(aes(y = hellinger))
+
+pdf("measures.pdf")
+print(p.kl)
+print(p.hellinger)
 dev.off()
