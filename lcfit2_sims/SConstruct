@@ -43,6 +43,7 @@ models = {
     # Codons
     #'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
     'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA)\ngenetic_code=Standard'},
+
     # Nonhomogenous
     'nonhom-dna': {
         'alphabet': 'DNA',
