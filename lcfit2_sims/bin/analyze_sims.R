@@ -94,24 +94,28 @@ lnl_plots <- lnl_tu %>%
 #
 
 p.measure <- ggplot(measures, aes(x = model_name, fill = model_name)) +
-  facet_grid(rdist_name ~ branch_length_rate) +
+  xlab("model") +
+  facet_grid(rdist_name ~ branch_length_rate, scales = "free_y") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1), 
         legend.position = "none")
 
 # KL divergence
 p.kl <- p.measure +
-  geom_boxplot(aes(y = kl))
+  geom_boxplot(aes(y = kl)) +
+  ylab("KL divergence (bits)")
 
 # Hellinger distance
 p.hellinger <- p.measure +
-  geom_boxplot(aes(y = hellinger))
+  geom_boxplot(aes(y = hellinger)) +
+  ylab("Hellinger distance")
 
 # asymptotic error
 # GOTCHA: there's one data point for which the asymptotic error is 
 # about -3500, so we filter that one out for plotting
 p.err <- p.measure %+% filter(lcfit2, abs(err_max_t) < 3000) +
-  geom_boxplot(aes(y = err_max_t))
+  geom_boxplot(aes(y = err_max_t)) +
+  ylab("asymptote error (nats)")
 
 pdf("measures.pdf")
 print(p.kl)
