@@ -107,7 +107,12 @@ p.kl <- p.measure +
 p.hellinger <- p.measure +
   geom_boxplot(aes(y = hellinger))
 
+# asymptotic error
+p.err <- p.measure %+% lcfit2 +
+  geom_boxplot(aes(y = err_max_t))
+
 pdf("measures.pdf")
 print(p.kl)
 print(p.hellinger)
+print(p.err)
 dev.off()

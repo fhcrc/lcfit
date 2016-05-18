@@ -87,6 +87,17 @@ void sample_curves(double (*lnl_fn)(double, void*), void* lnl_fn_args, const lcf
     }
 }
 
+double compute_fit_error(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                         const lcfit2_bsm_t* model, const double t)
+{
+    const double lnl_t0 = lnl_fn(model->t0, lnl_fn_args);
+
+    const double empirical_lnl = lnl_fn(t, lnl_fn_args) - lnl_t0;
+    const double fit_lnl = lcfit2_norm_lnl(t, model);
+
+    return empirical_lnl - fit_lnl;
+}
+
 int run_main(int argc, char** argv)
 {
     bpp::BppApplication lcfit2_compare(argc, argv, "lcfit2-compare");
@@ -150,7 +161,7 @@ int run_main(int argc, char** argv)
 
     std::string lcfit2_filename = bpp::ApplicationTools::getAFilePath("lcfit2.output.fit_file", params, true, false);
     std::ofstream lcfit2_output(lcfit2_filename);
-    lcfit2_output << "node_id,c,m,t0,d1,d2\n";
+    lcfit2_output << "node_id,c,m,t0,d1,d2,err_max_t\n";
     lcfit2_output << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     //
@@ -229,8 +240,13 @@ int run_main(int argc, char** argv)
             // GOTCHA: this function will change the current branch length
             lcfit2_fit_auto(&log_likelihood_callback, &lnl_data, &model, min_t, max_t, alpha);
 
+            // compute the fit error at max_t
+            const double err_max_t =
+                    compute_fit_error(&log_likelihood_callback, &lnl_data, &model, max_t);
+
             lcfit2_output << node_id << "," << model.c << "," << model.m << ","
-                          << model.t0 << "," << model.d1 << "," << model.d2 << "\n";
+                          << model.t0 << "," << model.d1 << "," << model.d2 << ","
+                          << err_max_t << "\n";
         }
 
         //
