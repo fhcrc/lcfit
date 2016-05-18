@@ -108,7 +108,9 @@ p.hellinger <- p.measure +
   geom_boxplot(aes(y = hellinger))
 
 # asymptotic error
-p.err <- p.measure %+% lcfit2 +
+# GOTCHA: there's one data point for which the asymptotic error is 
+# about -3500, so we filter that one out for plotting
+p.err <- p.measure %+% filter(lcfit2, abs(err_max_t) < 3000) +
   geom_boxplot(aes(y = err_max_t))
 
 pdf("measures.pdf")
