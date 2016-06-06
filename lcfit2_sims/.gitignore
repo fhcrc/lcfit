@@ -1,2 +1,4 @@
 venv
 runs
+packrat/lib*/
+packrat/src/

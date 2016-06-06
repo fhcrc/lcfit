@@ -1,0 +1,144 @@
+PackratFormat: 1.4
+PackratVersion: 0.4.7.1
+RVersion: 3.2.4
+Repos: CRAN=https://cran.fhcrc.org/
+
+Package: BH
+Source: CRAN
+Version: 1.60.0-2
+Hash: be2967bcff307e561d9ba17faf03205c
+
+Package: DBI
+Source: CRAN
+Version: 0.4-1
+Hash: 6524d5c5d30ff74084ac028eeb19eb1b
+
+Package: R6
+Source: CRAN
+Version: 2.1.2
+Hash: c515e41c73294952cbb33ee1c1be5a2d
+
+Package: RColorBrewer
+Source: CRAN
+Version: 1.1-2
+Hash: c0d56cd15034f395874c870141870c25
+
+Package: Rcpp
+Source: CRAN
+Version: 0.12.4
+Hash: 115167d29098a4fd1e572fdbef809438
+
+Package: ape
+Source: CRAN
+Version: 3.4
+Hash: 27269ec5e079292fd9c5f4bc60c56a36
+Requires: lattice, nlme
+
+Package: assertthat
+Source: CRAN
+Version: 0.1
+Hash: 0afb92b59b02593c70ff8046700ba9d3
+
+Package: colorspace
+Source: CRAN
+Version: 1.2-6
+Hash: 00bb12245cd975c450cc4a960884fa15
+
+Package: dichromat
+Source: CRAN
+Version: 2.0-0
+Hash: 08eed0c80510af29bb15f840ccfe37ce
+
+Package: digest
+Source: CRAN
+Version: 0.6.9
+Hash: fd55d5a024f160fc001a5ece1e27782d
+
+Package: dplyr
+Source: CRAN
+Version: 0.4.3
+Hash: 20cd1262faea5d2fe20d27e29552c2db
+Requires: BH, DBI, R6, Rcpp, assertthat, lazyeval, magrittr
+
+Package: ggplot2
+Source: CRAN
+Version: 2.1.0
+Hash: 50e297b0191179c39c7dcae0eff72b51
+Requires: digest, gtable, plyr, reshape2, scales
+
+Package: gtable
+Source: CRAN
+Version: 0.2.0
+Hash: cd78381a9d3fea966ac39bd0daaf5554
+
+Package: labeling
+Source: CRAN
+Version: 0.3
+Hash: ecf589b42cd284b03a4beb9665482d3e
+
+Package: lattice
+Source: CRAN
+Version: 0.20-33
+Hash: d7158cf4e63e8c12cb227738076b37d8
+
+Package: lazyeval
+Source: CRAN
+Version: 0.1.10
+Hash: 9679f1ac7f6bc07bc79755f34cd15e1f
+
+Package: magrittr
+Source: CRAN
+Version: 1.5
+Hash: bdc4d48c3135e8f3b399536ddf160df4
+
+Package: munsell
+Source: CRAN
+Version: 0.4.3
+Hash: f96d896947fcaf9b6d0074002e9f4f9d
+Requires: colorspace
+
+Package: nlme
+Source: CRAN
+Version: 3.1-125
+Hash: 3cdfdaa27c9a2340a743180b91c34791
+Requires: lattice
+
+Package: packrat
+Source: CRAN
+Version: 0.4.7-1
+Hash: 16ca16d36eb18d1d16113606ecc5c400
+
+Package: plyr
+Source: CRAN
+Version: 1.8.3
+Hash: 2df5437483a9a53a2deb2afb73258847
+Requires: Rcpp
+
+Package: reshape2
+Source: CRAN
+Version: 1.4.1
+Hash: bda269da8b147b0beea2c0e16bdce20d
+Requires: Rcpp, plyr, stringr
+
+Package: scales
+Source: CRAN
+Version: 0.4.0
+Hash: 53844c573fd30a70f592fa45ec1e33a1
+Requires: RColorBrewer, Rcpp, dichromat, labeling, munsell, plyr
+
+Package: stringi
+Source: CRAN
+Version: 1.0-1
+Hash: cf342bc407bd5daec77ed1009d5244e1
+
+Package: stringr
+Source: CRAN
+Version: 1.0.0
+Hash: 2676dd5f88890910962b733b0f9540e1
+Requires: magrittr, stringi
+
+Package: tidyr
+Source: CRAN
+Version: 0.4.1
+Hash: f04fea3f45f0fd8246e22d3c38f0e98f
+Requires: Rcpp, dplyr, lazyeval, magrittr, stringi
