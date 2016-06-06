@@ -21,6 +21,10 @@ mkdir venv/lib/R
 $ R_LIBS_USER=$PWD/venv/lib/R R -e "install.packages('ape')"
 ```
 
+R packages are also installed in the `packrat` directory for use in the RStudio project.
+
+TODO: packrat-ify everything so the packages needed for the analysis are all in one place
+
 ## Bio++ libraries
 
 installed Bio++ 2.2.0 via homebrew/science
@@ -49,3 +53,11 @@ $ source env.sh
 ``` shell
 $ scons .
 ```
+
+# Running the analysis
+
+The analysis isn't run as part of the SCons build above.
+Instead, I've been running it in RStudio by sourcing the `bin/analyze_sims.R` file.
+Before doing so, the working directory should be set to the `runs` directory.
+
+TODO: run the analysis as part of the SCons build
