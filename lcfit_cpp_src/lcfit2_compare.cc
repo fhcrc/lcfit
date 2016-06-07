@@ -247,13 +247,11 @@ int run_main(int argc, char** argv)
             lcfit2_output << node_id << "," << model.c << "," << model.m << ","
                           << model.t0 << "," << model.d1 << "," << model.d2 << ","
                           << err_max_t << "\n";
-        }
 
-        //
-        // sample empirical and lcfit2 curves
-        //
+            //
+            // sample empirical and lcfit2 curves
+            //
 
-        if (std::abs(d1) < 0.1) {
             // GOTCHA: this function will change the current branch length
             sample_curves(&log_likelihood_callback, &lnl_data, &model,
                           min_t, max_t, t0, node_id, lnl_output);
