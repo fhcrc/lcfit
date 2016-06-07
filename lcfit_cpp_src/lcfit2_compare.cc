@@ -234,7 +234,9 @@ int run_main(int argc, char** argv)
 
         lcfit2_bsm_t model = {1100.0, 800.0, t0, d1, d2};
 
-        if (std::abs(d1) < 0.1) {
+        // require that t0 is a maximum, otherwise we're not in regime
+        // 1 or 2 and lcfit2 is invalid
+        if (std::abs(d1) < 0.1 && d2 < 0.0) {
             const double alpha = 0.0;
 
             // GOTCHA: this function will change the current branch length
