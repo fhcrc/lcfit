@@ -24,6 +24,8 @@ labels <- c(empirical = "empirical",
             lcfit = "lcfit",
             lcfit2 = "lcfit2")
 
+plot_curves <- FALSE
+
 #
 # load data
 #
@@ -41,9 +43,12 @@ lnl_t <- lnl %>%
 # unite run parameters into a single key and drop redundant columns.
 # currently n_sites is always 1000, n_leaves is always 10, and the seed is 
 # included in source_tree.
-lnl_tu <- lnl_t %>%
-  unite(key, source_tree, model_name, rdist_name, branch_length_rate) %>%
-  select(-c(n_sites, n_leaves, seed))
+
+if (plot_curves) {
+  lnl_tu <- lnl_t %>%
+    unite(key, source_tree, model_name, rdist_name, branch_length_rate) %>%
+    select(-c(n_sites, n_leaves, seed))
+}
 
 #
 # compute measures
@@ -74,20 +79,22 @@ measures <- freqs %>%
 # normalized log-likelihood curves
 #
 
-lnl_plots <- lnl_tu %>%
-  group_by(key, node_id) %>%
-  do(lnl_plot = ggplot(., aes(x = t)) +
-       geom_line(aes(y = lnl, color = distribution, linetype = distribution)) +
-       ylab("normalized log-likelihood") +
-       xlab("branch length") +
-       scale_linetype_manual(values = linetypes, labels = labels) +
-       scale_color_manual(values = colors, labels = labels) +
-       theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
-       ggtitle(sprintf("%s %s", first(.$key), first(.$node_id))))
+if (plot_curves) {
+  lnl_plots <- lnl_tu %>%
+    group_by(key, node_id) %>%
+    do(lnl_plot = ggplot(., aes(x = t)) +
+         geom_line(aes(y = lnl, color = distribution, linetype = distribution)) +
+         ylab("normalized log-likelihood") +
+         xlab("branch length") +
+         scale_linetype_manual(values = linetypes, labels = labels) +
+         scale_color_manual(values = colors, labels = labels) +
+         theme(legend.position = c(1, 1), legend.justification = c(1, 1)) +
+         ggtitle(sprintf("%s %s", first(.$key), first(.$node_id))))
 
-#pdf("curves.pdf")
-#print(lnl_plots$lnl_plot)
-#dev.off()
+  pdf("curves.pdf")
+  print(lnl_plots$lnl_plot)
+  dev.off()
+}
 
 #
 # distribution measures
