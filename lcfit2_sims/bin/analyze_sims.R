@@ -40,16 +40,6 @@ lcfit2 <- tbl_df(read.csv("lcfit2.agg.csv"))
 lnl_t <- lnl %>% 
   gather("distribution", "lnl", c(empirical, lcfit2))
 
-# unite run parameters into a single key and drop redundant columns.
-# currently n_sites is always 1000, n_leaves is always 10, and the seed is 
-# included in source_tree.
-
-if (plot_curves) {
-  lnl_tu <- lnl_t %>%
-    unite(key, source_tree, model_name, rdist_name, branch_length_rate) %>%
-    select(-c(n_sites, n_leaves, seed))
-}
-
 #
 # compute measures
 #
@@ -80,6 +70,13 @@ measures <- freqs %>%
 #
 
 if (plot_curves) {
+  # unite run parameters into a single key and drop redundant columns.
+  # currently n_sites is always 1000, n_leaves is always 10, and the seed is 
+  # included in source_tree.
+  lnl_tu <- lnl_t %>%
+    unite(key, source_tree, model_name, rdist_name, branch_length_rate) %>%
+    select(-c(n_sites, n_leaves, seed))
+
   lnl_plots <- lnl_tu %>%
     group_by(key, node_id) %>%
     do(lnl_plot = ggplot(., aes(x = t)) +
