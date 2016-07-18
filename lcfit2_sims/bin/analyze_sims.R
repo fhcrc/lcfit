@@ -30,8 +30,9 @@ plot_curves <- FALSE
 # load data
 #
 
-lnl <- tbl_df(read.csv("lnl.agg.csv"))
-lcfit2 <- tbl_df(read.csv("lcfit2.agg.csv"))
+# don't load the data again if the variables are already defined
+if (!exists("lnl")) { lnl <- tbl_df(read.csv("lnl.agg.csv")) }
+if (!exists("lcfit2")) { lcfit2 <- tbl_df(read.csv("lcfit2.agg.csv")) }
 
 #
 # tidy data
