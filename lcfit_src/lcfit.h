@@ -231,6 +231,9 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l,
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m,
                   int max_iter);
 
+double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                      double guess, double min_t, double max_t, double* d1, double* d2);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

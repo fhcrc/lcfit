@@ -13,6 +13,8 @@
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_blas.h>
+#include <gsl/gsl_deriv.h>
+#include <gsl/gsl_min.h>
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
 
@@ -726,3 +728,65 @@ int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_
     return res < 0 ? res : 0;
 }
 #endif /* NOTYET */
+
+typedef struct lnl_wrapper {
+    double (*lnl_fn)(double, void*);
+    void* lnl_fn_args;
+} lnl_wrapper_t;
+
+static double inv_lnl_fn(double t, void* data)
+{
+    lnl_wrapper_t* wrapper = (lnl_wrapper_t*) data;
+    return -(wrapper->lnl_fn(t, wrapper->lnl_fn_args));
+}
+
+double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                      double guess, double min_t, double max_t, double* d1, double* d2)
+{
+    lnl_wrapper_t wrapper;
+    wrapper.lnl_fn = lnl_fn;
+    wrapper.lnl_fn_args = lnl_fn_args;
+
+    gsl_function F;
+    F.function = &inv_lnl_fn;
+    F.params = &wrapper;
+
+    gsl_min_fminimizer* s = gsl_min_fminimizer_alloc(gsl_min_fminimizer_goldensection);
+    gsl_min_fminimizer_set(s, &F, guess, min_t, max_t);
+
+    const int MAX_ITER = 100;
+    int iter = 0;
+    int status;
+
+    do {
+        gsl_min_fminimizer_iterate(s);
+
+        guess = gsl_min_fminimizer_x_minimum(s);
+        min_t = gsl_min_fminimizer_x_lower(s);
+        max_t = gsl_min_fminimizer_x_upper(s);
+
+        status = gsl_min_test_interval(min_t, max_t, 0.0, 1e-5);
+        ++iter;
+    } while (status == GSL_CONTINUE && iter < MAX_ITER);
+
+    if (iter == MAX_ITER) {
+        fprintf(stderr, "WARNING: maximum number of iterations reached during minimization\n");
+    }
+
+    if (d1) {
+        double abserr = 0.0;
+        gsl_deriv_central(&F, guess, 1e-6, d1, &abserr);
+    }
+
+    if (d2) {
+        double inv_d1_backward = (s->f_minimum - s->f_lower) / (s->x_minimum - s->x_lower);
+        double inv_d1_forward = (s->f_upper - s->f_minimum) / (s->x_upper - s->x_minimum);
+
+        double inv_d2 = 2.0 * (inv_d1_forward - inv_d1_backward) / (s->x_upper - s->x_lower);
+        *d2 = -inv_d2;
+    }
+
+    gsl_min_fminimizer_free(s);
+
+    return guess;
+}
