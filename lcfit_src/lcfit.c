@@ -740,6 +740,26 @@ static double invert_wrapped_fn(double t, void* data)
     return -(wrapper->fn(t, wrapper->fn_args));
 }
 
+static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
+                                 double x, double* d1, double* d2)
+{
+    // the central differences below are fourth order, so use a step
+    // size relative to the fourth root of DBL_EPSILON
+    const double h = x * pow(DBL_EPSILON, 0.25);
+
+    // https://en.wikipedia.org/wiki/Five-point_stencil
+    // https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter#Tables_of_selected_convolution_coefficients
+
+    double fm2 = fn(x - 2*h, fn_args);
+    double fm1 = fn(x - h, fn_args);
+    double f0 = fn(x, fn_args);
+    double fp1 = fn(x + h, fn_args);
+    double fp2 = fn(x + 2*h, fn_args);
+
+    *d1 = (-fp2 + 8*fp1 - 8*fm1 + fm2) / (12*h);
+    *d2 = (-fp2 + 16*fp1 - 30*f0 + 16*fm1 - fm2) / (12*h*h);
+}
+
 double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                       double guess, double min_t, double max_t, double* d1, double* d2)
 {
@@ -773,17 +793,11 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         fprintf(stderr, "WARNING: maximum number of iterations reached during minimization\n");
     }
 
-    if (d1) {
-        double abserr = 0.0;
-        gsl_deriv_central(&F, guess, 1e-6, d1, &abserr);
-    }
+    if (d1 && d2) {
+        // could save one more function evaluation here by passing in
+        // s->f_minimum too.
 
-    if (d2) {
-        double inv_d1_backward = (s->f_minimum - s->f_lower) / (s->x_minimum - s->x_lower);
-        double inv_d1_forward = (s->f_upper - s->f_minimum) / (s->x_upper - s->x_minimum);
-
-        double inv_d2 = 2.0 * (inv_d1_forward - inv_d1_backward) / (s->x_upper - s->x_lower);
-        *d2 = -inv_d2;
+        estimate_derivatives(lnl_fn, lnl_fn_args, guess, d1, d2);
     }
 
     gsl_min_fminimizer_free(s);
