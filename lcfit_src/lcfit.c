@@ -729,26 +729,26 @@ int lcfit_bsm_minimize_kl(const size_t n, const double* t, const double* l, bsm_
 }
 #endif /* NOTYET */
 
-typedef struct lnl_wrapper {
-    double (*lnl_fn)(double, void*);
-    void* lnl_fn_args;
-} lnl_wrapper_t;
+typedef struct fn_wrapper {
+    double (*fn)(double, void*);
+    void* fn_args;
+} fn_wrapper_t;
 
-static double inv_lnl_fn(double t, void* data)
+static double invert_wrapped_fn(double t, void* data)
 {
-    lnl_wrapper_t* wrapper = (lnl_wrapper_t*) data;
-    return -(wrapper->lnl_fn(t, wrapper->lnl_fn_args));
+    fn_wrapper_t* wrapper = (fn_wrapper_t*) data;
+    return -(wrapper->fn(t, wrapper->fn_args));
 }
 
 double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                       double guess, double min_t, double max_t, double* d1, double* d2)
 {
-    lnl_wrapper_t wrapper;
-    wrapper.lnl_fn = lnl_fn;
-    wrapper.lnl_fn_args = lnl_fn_args;
+    fn_wrapper_t wrapper;
+    wrapper.fn = lnl_fn;
+    wrapper.fn_args = lnl_fn_args;
 
     gsl_function F;
-    F.function = &inv_lnl_fn;
+    F.function = &invert_wrapped_fn;
     F.params = &wrapper;
 
     gsl_min_fminimizer* s = gsl_min_fminimizer_alloc(gsl_min_fminimizer_goldensection);
