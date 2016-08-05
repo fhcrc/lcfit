@@ -740,6 +740,43 @@ static double invert_wrapped_fn(double t, void* data)
     return -(wrapper->fn(t, wrapper->fn_args));
 }
 
+static void bracket_maximum(double (*fn)(double, void*), void* fn_args,
+                            double* min_t, double* max_t)
+{
+    double t[3] = {*min_t, (*min_t + *max_t) / 2.0, *max_t};
+    double f[3] = {fn(t[0], fn_args), fn(t[1], fn_args), fn(t[2], fn_args)};
+
+    const size_t MAX_EVALS = 30;
+    size_t iter = 0;
+    // *success = false;
+
+    for (; iter < MAX_EVALS; ++iter) {
+        if (f[1] > f[0] && f[1] > f[2]) {
+            // *success = true;
+            break;
+        }
+
+        // the enclosed point should not be a minimum
+        assert(!(f[1] < f[0] && f[1] < f[2]));
+
+        if (f[0] < f[1] && f[1] < f[2]) { // CRV_MONO_INC
+            t[0] = t[1];
+            f[0] = f[1];
+        } else if (f[0] > f[1] && f[1] > f[2]) { // CRV_MONO_DEC
+            t[2] = t[1];
+            f[2] = f[1];
+        }
+
+        t[1] = (t[0] + t[2]) / 2.0;
+        f[1] = fn(t[1], fn_args);
+    }
+
+    fprintf(stderr, "bracket_maximum: %zu iterations\n", iter);
+
+    *min_t = t[0];
+    *max_t = t[2];
+}
+
 static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
                                  double x, double* d1, double* d2)
 {
@@ -761,8 +798,11 @@ static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
 }
 
 double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                      double guess, double min_t, double max_t, double* d1, double* d2)
+                      double min_t, double max_t, double* d1, double* d2)
 {
+    bracket_maximum(lnl_fn, lnl_fn_args, &min_t, &max_t);
+    double guess = (min_t + max_t) / 2.0;
+
     fn_wrapper_t wrapper;
     wrapper.fn = lnl_fn;
     wrapper.fn_args = lnl_fn_args;
