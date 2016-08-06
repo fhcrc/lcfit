@@ -759,10 +759,10 @@ static void bracket_maximum(double (*fn)(double, void*), void* fn_args,
         // the enclosed point should not be a minimum
         assert(!(f[1] < f[0] && f[1] < f[2]));
 
-        if (f[0] < f[1] && f[1] < f[2]) { // CRV_MONO_INC
+        if (f[0] < f[1] && f[1] < f[2]) { // monotonically increasing
             t[0] = t[1];
             f[0] = f[1];
-        } else if (f[0] > f[1] && f[1] > f[2]) { // CRV_MONO_DEC
+        } else if (f[0] > f[1] && f[1] > f[2]) { // monotonically decreasing
             t[2] = t[1];
             f[2] = f[1];
         }

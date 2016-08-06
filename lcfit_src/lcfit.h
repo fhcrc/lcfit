@@ -231,6 +231,17 @@ int lcfit_fit_bsm_weight(const size_t n, const double* t, const double* l,
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t* m,
                   int max_iter);
 
+/** Find the mode of a log-likelihood function and optionally compute derivatives there.
+ *
+ * \param[in]     lnl_fn       Log-likelihood callback function.
+ * \param[in]     lnl_fn_args  Data for log-likelihood callback function.
+ * \param[in]     min_t        Minimum branch length.
+ * \param[in]     max_t        Maximum branch length.
+ * \param[out]    d1           First derivative of the log-likelihood function at the mode.
+ * \param[out]    d2           Second derivative of the log-likelihood function at the mode.
+ *
+ * \return The mode of the log-likelihood function.
+ */
 double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                       double min_t, double max_t, double* d1, double* d2);
 
