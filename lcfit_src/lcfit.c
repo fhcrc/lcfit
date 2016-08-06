@@ -811,7 +811,7 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     F.function = &invert_wrapped_fn;
     F.params = &wrapper;
 
-    gsl_min_fminimizer* s = gsl_min_fminimizer_alloc(gsl_min_fminimizer_goldensection);
+    gsl_min_fminimizer* s = gsl_min_fminimizer_alloc(gsl_min_fminimizer_brent);
     gsl_min_fminimizer_set(s, &F, guess, min_t, max_t);
 
     const int MAX_ITER = 100;
