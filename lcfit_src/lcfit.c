@@ -856,11 +856,6 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         min_t = gsl_min_fminimizer_x_lower(s);
         max_t = gsl_min_fminimizer_x_upper(s);
 
-        // halt if the guess is no longer bracketed
-        if (guess <= min_t || guess >= max_t) {
-            break;
-        }
-
         status = gsl_min_test_interval(min_t, max_t, 0.0, pow(DBL_EPSILON, 0.25));
     } while (status == GSL_CONTINUE && iter < MAX_ITER);
 
