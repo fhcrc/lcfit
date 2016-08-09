@@ -741,6 +741,23 @@ static double invert_wrapped_fn(double t, void* data)
     return -(wrapper->fn(t, wrapper->fn_args));
 }
 
+// This routine attempts to bisect the range [min_t, max_t] of a
+// function until the evaluated points are non-monotonic. It is
+// expected that the function contains a maximum; if a minimum is
+// encountered instead, the routine will abort.
+//
+// TODO: return a status code indicating success or failure. if
+// MAX_EVALS is reached, it is likely that the curve is monotonically
+// decreasing and thus the maximum is at min_t.
+//
+// TODO: [efficiency] likelihood function maxima are far more likely
+// to be found close to zero. it would probably be more efficient if
+// the guesses were biased to the left.
+//
+// TODO: [efficiency] the final values of t and f(t) could be passed
+// back to the caller for reuse in initializing the minimizer (see
+// gsl_min_fminimizer_set_with_values).
+
 static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
                             double* min_t, double* max_t)
 {
@@ -779,6 +796,13 @@ static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
 
     return success;
 }
+
+// This function estimates the first and second derivatives of a
+// well-behaved function at a point x using a five-point stencil.
+//
+// TODO: [efficiency] if f(x) is known beforehand, one function
+// evaluation could be saved by passing that value in instead of
+// recomputing it.
 
 static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
                                  double x, double* d1, double* d2)
@@ -842,9 +866,6 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     }
 
     if (d1 && d2) {
-        // could save one more function evaluation here by passing in
-        // s->f_minimum too.
-
         estimate_derivatives(lnl_fn, lnl_fn_args, guess, d1, d2);
     }
 
