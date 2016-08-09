@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <math.h>
 #include <limits.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include <gsl/gsl_vector.h>
@@ -740,7 +741,7 @@ static double invert_wrapped_fn(double t, void* data)
     return -(wrapper->fn(t, wrapper->fn_args));
 }
 
-static void bracket_maximum(double (*fn)(double, void*), void* fn_args,
+static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
                             double* min_t, double* max_t)
 {
     double t[3] = {*min_t, (*min_t + *max_t) / 2.0, *max_t};
@@ -748,11 +749,11 @@ static void bracket_maximum(double (*fn)(double, void*), void* fn_args,
 
     const size_t MAX_EVALS = 30;
     size_t iter = 0;
-    // *success = false;
+    bool success = false;
 
     for (; iter < MAX_EVALS; ++iter) {
         if (f[1] > f[0] && f[1] > f[2]) {
-            // *success = true;
+            success = true;
             break;
         }
 
@@ -775,6 +776,8 @@ static void bracket_maximum(double (*fn)(double, void*), void* fn_args,
 
     *min_t = t[0];
     *max_t = t[2];
+
+    return success;
 }
 
 static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
