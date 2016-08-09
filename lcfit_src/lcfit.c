@@ -777,6 +777,9 @@ static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
         // the enclosed point should not be a minimum
         assert(!(f[1] < f[0] && f[1] < f[2]));
 
+        // the enclosed point should not be equal to either of the enclosing points
+        assert(f[1] != f[0] && f[1] != f[2]);
+
         if (f[0] < f[1] && f[1] < f[2]) { // monotonically increasing
             t[0] = t[1];
             f[0] = f[1];
