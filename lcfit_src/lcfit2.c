@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "lcfit.h"
 #include "lcfit2_gsl.h"
 #include "lcfit2_nlopt.h"
 
@@ -90,6 +91,20 @@ double lcfit2_var_v(const double t, const lcfit2_bsm_t* model)
     const double v = (c - m) / theta_tilde;
 
     return v;
+}
+
+void lcfit2_to_lcfit4(const lcfit2_bsm_t* model2, bsm_t* model4)
+{
+    model4->c = model2->c;
+    model4->m = model2->m;
+    model4->r = lcfit2_var_r(model2);
+    model4->b = lcfit2_var_b(model2);
+
+    // floating-point error can result in the computed b being very
+    // slightly less than zero, so set it to zero if this happens
+    if (model4->b < 0.0) {
+        model4->b = 0.0;
+    }
 }
 
 double lcfit2_d1f_t(const double t, const lcfit2_bsm_t* model)

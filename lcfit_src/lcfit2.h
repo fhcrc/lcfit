@@ -8,6 +8,8 @@
 
 #include <stddef.h>
 
+#include "lcfit.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,6 +44,9 @@ typedef struct {
     /** Second derivative of the log-likelihood function. */
     const double d2;
 } lcfit2_fit_data;
+
+/** Converts an lcfit2 model to an lcfit4 model. */
+void lcfit2_to_lcfit4(const lcfit2_bsm_t* model2, bsm_t* model4);
 
 /** Computes the inflection point of the log-likelihood function for a given model. */
 double lcfit2_infl_t(const lcfit2_bsm_t* model);
