@@ -827,21 +827,18 @@ static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
     *d2 = (-fp2 + 16*fp1 - 30*f0 + 16*fm1 - fm2) / (12*h*h);
 }
 
-double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                      double min_t, double max_t, double* d1, double* d2)
+static double find_maximum(double (*fn)(double, void*), void* fn_args,
+                           double guess, double min_t, double max_t)
 {
-    bracket_maximum(lnl_fn, lnl_fn_args, &min_t, &max_t);
-    double guess = (min_t + max_t) / 2.0;
-
     fprintf(stderr, "min = %g, guess = %g, max = %g\n", min_t, guess, max_t);
     fprintf(stderr, "f(min) = %g, f(guess) = %g, f(max) = %g\n",
-            lnl_fn(min_t, lnl_fn_args),
-            lnl_fn(guess, lnl_fn_args),
-            lnl_fn(max_t, lnl_fn_args));
+            fn(min_t, fn_args),
+            fn(guess, fn_args),
+            fn(max_t, fn_args));
 
     fn_wrapper_t wrapper;
-    wrapper.fn = lnl_fn;
-    wrapper.fn_args = lnl_fn_args;
+    wrapper.fn = fn;
+    wrapper.fn_args = fn_args;
 
     gsl_function F;
     F.function = &invert_wrapped_fn;
@@ -871,11 +868,24 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         fprintf(stderr, "WARNING: maximum number of iterations reached during minimization\n");
     }
 
+    gsl_min_fminimizer_free(s);
+
+    return guess;
+}
+
+double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                      double min_t, double max_t, double* d1, double* d2)
+{
+    bool is_bracketed = bracket_maximum(lnl_fn, lnl_fn_args, &min_t, &max_t);
+    double guess = (min_t + max_t) / 2.0;
+
+    if (is_bracketed) {
+        guess = find_maximum(lnl_fn, lnl_fn_args, guess, min_t, max_t);
+    }
+
     if (d1 && d2) {
         estimate_derivatives(lnl_fn, lnl_fn_args, guess, d1, d2);
     }
-
-    gsl_min_fminimizer_free(s);
 
     return guess;
 }
