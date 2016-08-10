@@ -833,6 +833,12 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     bracket_maximum(lnl_fn, lnl_fn_args, &min_t, &max_t);
     double guess = (min_t + max_t) / 2.0;
 
+    fprintf(stderr, "min = %g, guess = %g, max = %g\n", min_t, guess, max_t);
+    fprintf(stderr, "f(min) = %g, f(guess) = %g, f(max) = %g\n",
+            lnl_fn(min_t, lnl_fn_args),
+            lnl_fn(guess, lnl_fn_args),
+            lnl_fn(max_t, lnl_fn_args));
+
     fn_wrapper_t wrapper;
     wrapper.fn = lnl_fn;
     wrapper.fn_args = lnl_fn_args;
@@ -858,6 +864,8 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
         status = gsl_min_test_interval(min_t, max_t, 0.0, pow(DBL_EPSILON, 0.25));
     } while (status == GSL_CONTINUE && iter < MAX_ITER);
+
+    fprintf(stderr, "lcfit_maximize: %d iterations\n", iter);
 
     if (iter == MAX_ITER) {
         fprintf(stderr, "WARNING: maximum number of iterations reached during minimization\n");
