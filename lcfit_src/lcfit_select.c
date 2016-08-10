@@ -13,6 +13,8 @@
 #include <stdio.h>
 //#endif
 
+#include "lcfit2.h"
+
 const static size_t MAX_ITERS = 30;
 
 #ifdef LCFIT_DEBUG
@@ -478,4 +480,31 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
     }
 
     return ml_t;
+}
+
+double lcfit_fit_unified(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                         bsm_t* model, const double min_t, const double max_t)
+{
+    double d1;
+    double d2;
+    double t0 = lcfit_maximize(lnl_fn, lnl_fn_args, min_t, max_t, &d1, &d2);
+
+    if (fabs(d1) < 0.1) {
+        lcfit2_bsm_t lcfit2_model = {1100.0, 800.0, t0, d1, d2};
+        const double alpha = 0.0;
+
+        lcfit2_fit_auto(lnl_fn, lnl_fn_args, &lcfit2_model, min_t, max_t, alpha);
+        lcfit2_to_lcfit4(&lcfit2_model, model);
+    } else {
+        // HACK: basically copied from AdHocIntegrator.cpp
+
+        log_like_function_t lnl_fn_wrapper = {lnl_fn, lnl_fn_args};
+        double t[4] = {0.1, 0.15, 0.5, 1.0};
+        const double tolerance = 1e-3;
+        bool success = false;
+
+        t0 = estimate_ml_t(&lnl_fn_wrapper, t, 4, tolerance, model, &success, min_t, max_t);
+    }
+
+    return t0;
 }

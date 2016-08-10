@@ -152,6 +152,9 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
 void
 subset_points(point_t p[], const size_t n, const size_t k);
 
+double lcfit_fit_unified(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                         bsm_t* model, const double min_t, const double max_t);
+
 #ifdef LCFIT_DEBUG
 void
 lcfit_select_initialize(void);
