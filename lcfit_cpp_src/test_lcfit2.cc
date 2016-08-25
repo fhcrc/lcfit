@@ -83,3 +83,30 @@ TEST_CASE("simple normalized curves are fitted correctly", "[simple_curves]") {
         REQUIRE(fit_model4.b == Approx(true_model.b));
     }
 }
+
+TEST_CASE("automatic fitting of a function works correctly", "[lcfit2_fit_auto]") {
+    SECTION("with an lcfit4 log-likelihood function") {
+        bsm_t true_model = {1200.0, 800.0, 2.0, 0.5};
+
+        const double t0 = lcfit_bsm_ml_t(&true_model);
+        const double d1 = 0.0;
+        const double d2 = lcfit4_d2f_t(t0, &true_model);
+
+        lcfit2_bsm_t fit_model = {1100.0, 800.0, t0, d1, d2};
+
+        const double min_t = 0.0;
+        const double max_t = 10.0;
+        const double alpha = 0.0;
+
+        double (*f)(double, void*) = (double (*)(double, void*))(&lcfit_bsm_log_like);
+        lcfit2_fit_auto(f, &true_model, &fit_model, min_t, max_t, alpha);
+
+        bsm_t fit_model4;
+        lcfit2_to_lcfit4(&fit_model, &fit_model4);
+
+        REQUIRE(fit_model4.c == Approx(true_model.c));
+        REQUIRE(fit_model4.m == Approx(true_model.m));
+        REQUIRE(fit_model4.r == Approx(true_model.r));
+        REQUIRE(fit_model4.b == Approx(true_model.b));
+    }
+}
