@@ -152,6 +152,27 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
 void
 subset_points(point_t p[], const size_t n, const size_t k);
 
+/**
+ * Fit a <tt>c, m, r, b</tt> model to a log-likelihood function.
+ *
+ * This function first classifies the log-likelihood function as
+ * either monotonic or non-monotonic by iteratively finding the mode
+ * of the function and computing the first derivative there. If the
+ * function is non-monotonic (i.e., the first derivative at the mode
+ * is close to zero), a model is fitted using the lcfit2 procedure.
+ * Otherwise, the iterative lcfit4 procedure is used.
+ *
+ * Note that this function is not very well-optimized for monotonic
+ * functions.
+ *
+ * \param[in]     lnl_fn       Log-likelihood function to fit.
+ * \param[in]     lnl_fn_args  Additional data to pass to log-likelihood function.
+ * \param[in,out] model        Model parameters, updated in-place.
+ * \param[in]     min_t        Lower bound on branch length.
+ * \param[in]     max_t        Upper bound on branch length.
+ *
+ * \return The estimated ML branch length.
+ */
 double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                       bsm_t* model, const double min_t, const double max_t);
 
