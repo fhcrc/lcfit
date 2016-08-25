@@ -4,6 +4,20 @@
 #include "lcfit.h"
 #include "lcfit2.h"
 
+double lcfit4_d2f_t(const double t, const bsm_t* model)
+{
+    const double c = model->c;
+    const double m = model->m;
+    const double r = model->r;
+    const double b = model->b;
+
+    const double theta = exp(r * (t + b));
+
+    const double d2 = ((c - m)*pow(r, 2)*pow(theta, 3) - 2*(c + m)*pow(r, 2)*pow(theta, 2) + (c - m)*pow(r, 2)*theta)/(pow(theta, 4) - 2*pow(theta, 2) + 1);
+
+    return d2;
+}
+
 TEST_CASE("simple normalized curves are fitted correctly", "[simple_curves]") {
     SECTION("with points sampled from a parabola") {
         const double t0 = 0.1;
@@ -49,21 +63,8 @@ TEST_CASE("simple normalized curves are fitted correctly", "[simple_curves]") {
             norm_lnl[i] = f(t[i]) - f(t0);
         }
 
-        auto d2f = [&true_model](double t) {
-            const double& c = true_model.c;
-            const double& m = true_model.m;
-            const double& r = true_model.r;
-            const double& b = true_model.b;
-
-            const double theta = exp(r * (t + b));
-
-            const double d2 = ((c - m)*pow(r, 2)*pow(theta, 3) - 2*(c + m)*pow(r, 2)*pow(theta, 2) + (c - m)*pow(r, 2)*theta)/(pow(theta, 4) - 2*pow(theta, 2) + 1); // correct
-
-            return d2;
-        };
-
         const double d1 = 0.0;
-        double d2 = d2f(t0);
+        const double d2 = lcfit4_d2f_t(t0, &true_model);
 
         lcfit2_bsm_t fit_model = {1100.0, 800.0, t0, d1, d2};
 
