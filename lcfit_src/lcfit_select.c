@@ -482,8 +482,8 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
     return ml_t;
 }
 
-double lcfit_fit_unified(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                         bsm_t* model, const double min_t, const double max_t)
+double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                      bsm_t* model, const double min_t, const double max_t)
 {
     double d1;
     double d2;
