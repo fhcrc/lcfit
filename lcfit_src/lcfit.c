@@ -764,11 +764,11 @@ static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
     double t[3] = {*min_t, (*min_t + *max_t) / 2.0, *max_t};
     double f[3] = {fn(t[0], fn_args), fn(t[1], fn_args), fn(t[2], fn_args)};
 
-    const size_t MAX_EVALS = 30;
+    const size_t MAX_ITER = 30;
     size_t iter = 0;
     bool success = false;
 
-    for (; iter < MAX_EVALS; ++iter) {
+    for (; iter < MAX_ITER; ++iter) {
         if (f[1] > f[0] && f[1] > f[2]) {
             success = true;
             break;
