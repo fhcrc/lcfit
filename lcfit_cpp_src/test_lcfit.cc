@@ -315,8 +315,57 @@ TEST_CASE("trying to fit a model returns an error",
     }
 }
 
-TEST_CASE("estimated maximum likelihood branch length is within tolerance",
+TEST_CASE("estimate_ml_t converges to the correct model",
           "[estimate_ml_t]") {
+    double (*lnl_callback)(double, void*) = reinterpret_cast<double (*)(double, void*)>(&lcfit_bsm_log_like);
+
+    const std::vector<double> t = {MIN_BL, 0.1, 0.5, MAX_BL};
+    const double tolerance = 1e-3;
+    bool success = false;
+
+    SECTION("in regime 1") {
+        bsm_t true_model = REGIME_1;
+        log_like_function_t log_like = {lnl_callback, &true_model};
+
+        bsm_t model = DEFAULT_INIT;
+        double result = estimate_ml_t(&log_like, t.data(), t.size(),
+                                      tolerance, &model, &success,
+                                      MIN_BL, MAX_BL);
+
+        REQUIRE(success == true);
+
+        REQUIRE(model.c == Approx(true_model.c));
+        REQUIRE(model.m == Approx(true_model.m));
+        REQUIRE(model.r == Approx(true_model.r));
+        REQUIRE(model.b == Approx(true_model.b));
+    }
+
+    SECTION("in regime 2") {
+        bsm_t true_model = REGIME_2;
+        log_like_function_t log_like = {lnl_callback, &true_model};
+
+        bsm_t model = DEFAULT_INIT;
+        double result = estimate_ml_t(&log_like, t.data(), t.size(),
+                                      tolerance, &model, &success,
+                                      MIN_BL, MAX_BL);
+
+        REQUIRE(success == true);
+
+        REQUIRE(model.c == Approx(true_model.c));
+        REQUIRE(model.m == Approx(true_model.m));
+        REQUIRE(model.r == Approx(true_model.r));
+        REQUIRE(model.b == Approx(true_model.b));
+    }
+
+    // For this test, estimate_ml_t does not typically converge to the
+    // correct model for regimes 3 and 4. The sample points it selects
+    // will all be very close to one extreme of the allowable branch
+    // length range and thus the empirical curve's behavior at the
+    // other extreme is not captured well.
+}
+
+TEST_CASE("estimated maximum likelihood branch length is within tolerance",
+          "[ml_t_tolerance]") {
     bsm_t true_model = {1200.0, 300.0, 1.0, 0.2}; // ml_t = 0.310826
     const double true_ml_t = lcfit_bsm_ml_t(&true_model);
     log_like_function_t log_like =
