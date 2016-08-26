@@ -4,6 +4,12 @@
 #include "lcfit.h"
 #include "lcfit_select.h"
 
+double lcfit_lnl_callback(double t, void* data)
+{
+    const bsm_t* model = reinterpret_cast<const bsm_t*>(data);
+    return lcfit_bsm_log_like(t, model);
+}
+
 const bsm_t REGIME_1 = {10.0, 1.0, 1.0, 0.0};
 const bsm_t REGIME_2 = {10.0, 1.0, 1.0, 0.1};
 const bsm_t REGIME_3 = {10.0, 1.0, 1.0, 1.0};
@@ -118,8 +124,7 @@ TEST_CASE("curves are classified correctly", "[classify_curve]") {
 
 TEST_CASE("test points are selected properly", "[select_points]") {
     bsm_t model = {1200.0, 300.0, 1.0, 0.2}; // ml_t = 0.310826
-    log_like_function_t log_like =
-            {(double (*)(double, void*)) &lcfit_bsm_log_like, &model};
+    log_like_function_t log_like = {lcfit_lnl_callback, &model};
 
     SECTION("when the maximum is to the left of the starting points") {
         std::vector<double> t = {0.5, 1.0, 1.1};
@@ -317,15 +322,13 @@ TEST_CASE("trying to fit a model returns an error",
 
 TEST_CASE("estimate_ml_t converges to the correct model",
           "[estimate_ml_t]") {
-    double (*lnl_callback)(double, void*) = reinterpret_cast<double (*)(double, void*)>(&lcfit_bsm_log_like);
-
     const std::vector<double> t = {MIN_BL, 0.1, 0.5, MAX_BL};
     const double tolerance = 1e-3;
     bool success = false;
 
     SECTION("in regime 1") {
         bsm_t true_model = REGIME_1;
-        log_like_function_t log_like = {lnl_callback, &true_model};
+        log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
 
         bsm_t model = DEFAULT_INIT;
         double result = estimate_ml_t(&log_like, t.data(), t.size(),
@@ -342,7 +345,7 @@ TEST_CASE("estimate_ml_t converges to the correct model",
 
     SECTION("in regime 2") {
         bsm_t true_model = REGIME_2;
-        log_like_function_t log_like = {lnl_callback, &true_model};
+        log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
 
         bsm_t model = DEFAULT_INIT;
         double result = estimate_ml_t(&log_like, t.data(), t.size(),
@@ -368,8 +371,7 @@ TEST_CASE("estimated maximum likelihood branch length is within tolerance",
           "[ml_t_tolerance]") {
     bsm_t true_model = {1200.0, 300.0, 1.0, 0.2}; // ml_t = 0.310826
     const double true_ml_t = lcfit_bsm_ml_t(&true_model);
-    log_like_function_t log_like =
-            {(double (*)(double, void*)) &lcfit_bsm_log_like, &true_model};
+    log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
 
     bsm_t model = {1800.0, 400.0, 1.0, 0.5};
     bool success = false;
