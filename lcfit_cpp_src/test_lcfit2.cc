@@ -98,7 +98,7 @@ TEST_CASE("automatic fitting of a function works correctly", "[lcfit2_fit_auto]"
         const double max_t = 10.0;
         const double alpha = 0.0;
 
-        double (*f)(double, void*) = (double (*)(double, void*))(&lcfit_bsm_log_like);
+        double (*f)(double, void*) = reinterpret_cast<double (*)(double, void*)>(&lcfit_bsm_log_like);
         lcfit2_fit_auto(f, &true_model, &fit_model, min_t, max_t, alpha);
 
         bsm_t fit_model4;
