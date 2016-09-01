@@ -741,14 +741,18 @@ static double invert_wrapped_fn(double t, void* data)
     return -(wrapper->fn(t, wrapper->fn_args));
 }
 
-// This routine attempts to bisect the range [min_t, max_t] of a
-// function until the evaluated points are non-monotonic. It is
-// expected that the function contains a maximum; if a minimum is
-// encountered instead, the routine will abort.
+// This function attempts to bisect the range [min_t, max_t] of a
+// supplied function until the evaluated points enclose a maximum. If
+// successful, the function updates min_t and max_t and returns true.
 //
-// TODO: return a status code indicating success or failure. if
-// MAX_EVALS is reached, it is likely that the curve is monotonically
-// decreasing and thus the maximum is at min_t.
+// It is assumed that the supplied function behaves similarly to one
+// of the lcfit regimes. It's not guaranteed to do anything useful
+// otherwise.
+//
+// If a minimum is encountered instead of a maximum, the function
+// aborts and returns false. The function also returns false if the
+// number of bisection iterations exceeds a hard-coded threshold. In
+// any case, min_t and max_t are not updated if false is returned.
 //
 // TODO: [efficiency] likelihood function maxima are far more likely
 // to be found close to zero. it would probably be more efficient if
@@ -769,21 +773,24 @@ static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
     bool success = false;
 
     for (; iter < MAX_ITER; ++iter) {
-        if (f[1] > f[0] && f[1] > f[2]) {
+        if (f[1] > f[0] && f[1] > f[2]) {  // maximum enclosed
             success = true;
             break;
-        }
-
-        // the enclosed point should not be a minimum
-        assert(!(f[1] < f[0] && f[1] < f[2]));
-
-        // the enclosed point should not be equal to either of the enclosing points
-        assert(f[1] != f[0] && f[1] != f[2]);
-
-        if (f[0] < f[1] && f[1] < f[2]) { // monotonically increasing
+        } else if (f[1] < f[0] && f[1] < f[2]) {  // minimum enclosed
+            // success = false;
+            break;
+        } else if (f[0] < f[1] && f[1] < f[2]) {  // monotonically increasing
             t[0] = t[1];
             f[0] = f[1];
-        } else if (f[0] > f[1] && f[1] > f[2]) { // monotonically decreasing
+        } else if ((f[0] > f[1] && f[1] > f[2])  // monotonically decreasing
+                   || (f[1] == f[2])) {          // asymptote
+            // If the rightmost points are equal, we assume they're
+            // out on the asymptote to within the precision of a
+            // double. Since we're also assuming the function behaves
+            // similarly to one of the lcfit regimes, we won't find a
+            // local maximum out there, so we bisect to the left
+            // instead.
+
             t[2] = t[1];
             f[2] = f[1];
         }
@@ -794,8 +801,10 @@ static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
 
     fprintf(stderr, "bracket_maximum: %zu iterations\n", iter);
 
-    *min_t = t[0];
-    *max_t = t[2];
+    if (success) {
+        *min_t = t[0];
+        *max_t = t[2];
+    }
 
     return success;
 }
