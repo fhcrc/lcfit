@@ -150,6 +150,7 @@ double lcfit2_infl_t(const lcfit2_bsm_t* model)
 
 void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
 {
+#ifndef NDEBUG
     const double c = model->c;
     const double m = model->m;
 
@@ -157,11 +158,6 @@ void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
     const double r = lcfit2_var_r(model);
     const double theta_tilde = lcfit2_var_theta_tilde(t, model);
     const double v = lcfit2_var_v(t, model);
-
-#if 0
-    fprintf(stderr, "model_assert: t = %g, c = %g, m = %g, t_0 = %g, f_2 = %g, z = %g, r = %g, theta_tilde = %g, v = %g\n",
-            t, c, m, t_0, f_2, z, r, theta_tilde, v);
-#endif
 
     assert(isfinite(z));
     assert(isfinite(r));
@@ -187,6 +183,7 @@ void lcfit2_model_assert_at(const double t, const lcfit2_bsm_t* model)
 
     // log(c + m - v) must be valid
     assert(c + m - v > 0.0);
+#endif /* NDEBUG */
 }
 
 void lcfit2n_gradient(const double t, const lcfit2_bsm_t* model, double* grad)
