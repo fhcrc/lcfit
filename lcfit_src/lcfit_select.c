@@ -61,6 +61,7 @@ point_ll_minmax(const point_t points[], const size_t n,
     }
 }
 
+#ifdef LCFIT_AUTO_VERBOSE
 static void print_points(FILE* fp, const point_t* points, const size_t n)
 {
     char* sep = "";
@@ -69,6 +70,7 @@ static void print_points(FILE* fp, const point_t* points, const size_t n)
         sep = ", ";
     }
 }
+#endif /* LCFIT_AUTO_VERBOSE */
 
 curve_type_t
 classify_curve(const point_t points[], const size_t n)
