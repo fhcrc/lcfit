@@ -489,6 +489,11 @@ double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     double d2;
     double t0 = lcfit_maximize(lnl_fn, lnl_fn_args, min_t, max_t, &d1, &d2);
 
+#ifdef LCFIT_AUTO_VERBOSE
+    fprintf(stderr, "lmax_t0 = %g, lmax_d1(lmax_t0) = %g, lmax_d2(lmax_t0) = %g\n",
+            t0, d1, d2);
+#endif /* LCFIT_AUTO_VERBOSE */
+
     if (fabs(d1) < 0.1) {
         lcfit2_bsm_t lcfit2_model = {1100.0, 800.0, t0, d1, d2};
         const double alpha = 0.0;
