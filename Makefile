@@ -29,6 +29,8 @@ debug: build-all
 build-all: setup-cmake
 	$(MAKE) -C $(BUILD_DIR)
 
+test: CMAKE_BUILD_TYPE=Debug
+test: BUILD_DIR=$(BUILD)/debug
 test: lcfit-test
 	$(BUILD_DIR)/lcfit_cpp_src/lcfit-test
 
