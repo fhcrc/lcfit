@@ -799,7 +799,9 @@ static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
         f[1] = fn(t[1], fn_args);
     }
 
+#ifdef LCFIT_AUTO_VERBOSE
     fprintf(stderr, "bracket_maximum: %zu iterations\n", iter);
+#endif /* LCFIT_AUTO_VERBOSE */
 
     if (success) {
         *min_t = t[0];
@@ -839,11 +841,13 @@ static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
 static double find_maximum(double (*fn)(double, void*), void* fn_args,
                            double guess, double min_t, double max_t)
 {
+#ifdef LCFIT_AUTO_VERBOSE
     fprintf(stderr, "min = %g, guess = %g, max = %g\n", min_t, guess, max_t);
     fprintf(stderr, "f(min) = %g, f(guess) = %g, f(max) = %g\n",
             fn(min_t, fn_args),
             fn(guess, fn_args),
             fn(max_t, fn_args));
+#endif /* LCFIT_AUTO_VERBOSE */
 
     fn_wrapper_t wrapper;
     wrapper.fn = fn;
@@ -871,7 +875,9 @@ static double find_maximum(double (*fn)(double, void*), void* fn_args,
         status = gsl_min_test_interval(min_t, max_t, 0.0, pow(DBL_EPSILON, 0.25));
     } while (status == GSL_CONTINUE && iter < MAX_ITER);
 
+#ifdef LCFIT_AUTO_VERBOSE
     fprintf(stderr, "lcfit_maximize: %d iterations\n", iter);
+#endif /* LCFIT_AUTO_VERBOSE */
 
     if (iter == MAX_ITER) {
         fprintf(stderr, "WARNING: maximum number of iterations reached during minimization\n");
