@@ -145,7 +145,7 @@ double lcfit2_infl_t(const lcfit2_bsm_t* model)
 
 #ifdef LCFIT2_VERBOSE
     fprintf(stderr, "d2f(infl_t) = %g\n", lcfit2_d2f_t(infl_t, model));
-#endif
+#endif /* LCFIT2_VERBOSE */
 
     assert(fabs(lcfit2_d2f_t(infl_t, model)) <= 1e-6);
 
@@ -341,7 +341,7 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     fprintf(stderr, "initial delta = %g\n", lcfit2_delta(model));
     lcfit2_print_array("t", n_points, t);
     lcfit2_print_array("w", n_points, w);
-#endif
+#endif /* LCFIT2_VERBOSE */
 
     int status = lcfit2n_fit_weighted(n_points, t, lnl, w, model);
 
@@ -363,7 +363,7 @@ int lcfit2_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     fprintf(stderr, "revised delta = %g\n", lcfit2_delta(model));
     lcfit2_print_array("t", n_points, t);
     lcfit2_print_array("w", n_points, w);
-#endif
+#endif /* LCFIT2_VERBOSE */
 
     status = lcfit2n_fit_weighted(n_points, t, lnl, w, model);
 

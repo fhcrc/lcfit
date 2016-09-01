@@ -329,9 +329,9 @@ double bsm_fit_objective(unsigned p,
         }
     }
 
-#ifdef VERBOSE
+#ifdef LCFIT4_VERBOSE
     print_state_nlopt(fit_data->iterations, sum_sq_err, x, grad);
-#endif /* VERBOSE */
+#endif /* LCFIT4_VERBOSE */
     ++fit_data->iterations;
     return sum_sq_err;
 }
@@ -454,17 +454,17 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
     assert(s != NULL && "Solver allocation failed!");
     gsl_multifit_fdfsolver_set(s, &fdf, &x_view.vector); /* Taking address of view.vector gives a const gsl_vector * */
 
-#ifdef VERBOSE
+#ifdef LCFIT4_VERBOSE
     print_state_gsl(0, s);
-#endif /* VERBOSE */
+#endif /* LCFIT4_VERBOSE */
 
     do {
         d.iterations++;
         status = gsl_multifit_fdfsolver_iterate(s);
 
-#ifdef VERBOSE
+#ifdef LCFIT4_VERBOSE
         print_state_gsl(d.iterations, s);
-#endif /* VERBOSE */
+#endif /* LCFIT4_VERBOSE */
 
         if (status) {
             break;
@@ -474,7 +474,7 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
 
 #define FIT(i) gsl_vector_get(s->x, i)
 #define ERR(i) sqrt(gsl_matrix_get(covar,i,i))
-#ifdef REALLY_VERBOSE
+#ifdef LCFIT4_NOISY
     gsl_matrix* covar = gsl_matrix_alloc(4, 4);
     gsl_multifit_covar(s->J, 0.0, covar);
     gsl_matrix_fprintf(stderr, covar, "%g");
@@ -485,12 +485,12 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
     fprintf(stderr, "b = %.5f +/- %.5f\n", FIT(3), ERR(3));
 
     gsl_matrix_free(covar);
-#endif /* REALLY_VERBOSE */
+#endif /* LCFIT4_NOISY */
 
-#ifdef VERBOSE
+#ifdef LCFIT4_VERBOSE
     fprintf(stderr, "[G] status = %s (%d)   iterations %zu\n",
             gsl_strerror(status), status, d.iterations);
-#endif /* VERBOSE */
+#endif /* LCFIT4_VERBOSE */
 
     // translate from GSL status to LCFIT status
     // GSL error codes are defined in gsl_errno.h
@@ -575,10 +575,10 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
 
     int status = nlopt_optimize(opt, x, &minf);
 
-#ifdef VERBOSE
+#ifdef LCFIT4_VERBOSE
     fprintf(stderr, "[N] status = %s (%d)   iterations %zu\n",
             nlopt_strerror(status), status, fit_data.iterations);
-#endif /* VERBOSE */
+#endif /* LCFIT4_VERBOSE */
 
     switch (status) {
     case NLOPT_SUCCESS:

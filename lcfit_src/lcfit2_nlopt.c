@@ -84,7 +84,7 @@ double lcfit2n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* da
 
 #ifdef LCFIT2_VERBOSE
     lcfit2_print_state_nlopt(sum_sq_err, x, grad);
-#endif
+#endif /* LCFIT2_VERBOSE */
 
     return sum_sq_err;
 }

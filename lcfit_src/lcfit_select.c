@@ -359,13 +359,13 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
     assert(points[0].t >= min_t);
     assert(points[n_pts - 1].t <= max_t);
 
-#ifdef VERBOSE
+#ifdef LCFIT_AUTO_VERBOSE
     fprintf(stderr, "starting iterative fit\n");
 
     fprintf(stderr, "starting points: ");
     print_points(stderr, points, n_pts);
     fprintf(stderr, "\n");
-#endif /* VERBOSE */
+#endif /* LCFIT_AUTO_VERBOSE */
 
     /* Allocate an extra point for scratch */
     points = realloc(points, sizeof(point_t) * (n_pts + 1));
@@ -393,13 +393,13 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
             wbuf[i] = exp(alpha * (lbuf[i] - max_pt->ll));
         }
 
-#ifdef VERBOSE
+#ifdef LCFIT_AUTO_VERBOSE
         fprintf(stderr, "weights: ");
         for (size_t i = 0; i < n_pts; ++i) {
             fprintf(stderr, "%g ", wbuf[i]);
         }
         fprintf(stderr, "\n");
-#endif /* VERBOSE */
+#endif /* LCFIT_AUTO_VERBOSE */
 
         lcfit_fit_bsm_weight(n_pts, tbuf, lbuf, wbuf, model, 250);
 
@@ -456,11 +456,11 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
         ++n_pts;
         points = realloc(points, sizeof(point_t) * (n_pts + 1));
 
-#ifdef VERBOSE
+#ifdef LCFIT_AUTO_VERBOSE
         fprintf(stderr, "current points: ");
         print_points(stderr, points, n_pts);
         fprintf(stderr, "\n");
-#endif /* VERBOSE */
+#endif /* LCFIT_AUTO_VERBOSE */
     }
 
     if (iter == MAX_ITERS) {
@@ -469,9 +469,9 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
 
     free(points);
 
-#ifdef VERBOSE
+#ifdef LCFIT_AUTO_VERBOSE
     fprintf(stderr, "ending iterative fit after %zu iteration(s)\n", iter);
-#endif /* VERBOSE */
+#endif /* LCFIT_AUTO_VERBOSE */
 
     if (ml_t < min_t) {
         ml_t = min_t;
