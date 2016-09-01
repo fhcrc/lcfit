@@ -324,11 +324,11 @@ TEST_CASE("estimate_ml_t converges to the correct model",
           "[estimate_ml_t]") {
     const std::vector<double> t = {MIN_BL, 0.1, 0.5, MAX_BL};
     const double tolerance = 1e-3;
-    bool success = false;
 
     SECTION("in regime 1") {
         bsm_t true_model = REGIME_1;
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
+        bool success = false;
 
         bsm_t model = DEFAULT_INIT;
         double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
@@ -347,6 +347,7 @@ TEST_CASE("estimate_ml_t converges to the correct model",
     SECTION("in regime 2") {
         bsm_t true_model = REGIME_2;
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
+        bool success = false;
 
         bsm_t model = DEFAULT_INIT;
         double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
