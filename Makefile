@@ -32,7 +32,7 @@ build-all: setup-cmake
 test: CMAKE_BUILD_TYPE=Debug
 test: BUILD_DIR=$(BUILD)/debug
 test: lcfit-test
-	$(BUILD_DIR)/lcfit_cpp_src/lcfit-test
+	$(BUILD_DIR)/lcfit_cpp_src/lcfit-test 2> lcfit-test.log
 
 example: release lcfit-compare
 example:
