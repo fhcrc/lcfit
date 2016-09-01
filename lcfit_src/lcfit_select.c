@@ -495,7 +495,7 @@ double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 #endif /* LCFIT_AUTO_VERBOSE */
 
     if (fabs(d1) < 0.1) {
-        lcfit2_bsm_t lcfit2_model = {1100.0, 800.0, t0, d1, d2};
+        lcfit2_bsm_t lcfit2_model = {model->c, model->m, t0, d1, d2};
         const double alpha = 0.0;
 
         lcfit2_fit_auto(lnl_fn, lnl_fn_args, &lcfit2_model, min_t, max_t, alpha);
