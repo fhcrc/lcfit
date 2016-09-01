@@ -4,6 +4,17 @@
 #include "lcfit.h"
 #include "lcfit_select.h"
 
+std::ostream& operator<<(std::ostream& os, const bsm_t& model)
+{
+    os << "["
+       << model.c << ", "
+       << model.m << ", "
+       << model.r << ", "
+       << model.b << "]";
+
+    return os;
+}
+
 double lcfit_lnl_callback(double t, void* data)
 {
     const bsm_t* model = reinterpret_cast<const bsm_t*>(data);
