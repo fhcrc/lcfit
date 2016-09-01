@@ -331,12 +331,12 @@ TEST_CASE("estimate_ml_t converges to the correct model",
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
 
         bsm_t model = DEFAULT_INIT;
-        double ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
-                                    tolerance, &model, &success,
-                                    MIN_BL, MAX_BL);
+        double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
+                                        tolerance, &model, &success,
+                                        MIN_BL, MAX_BL);
 
         REQUIRE(success == true);
-        REQUIRE(ml_t == Approx(lcfit_bsm_ml_t(&true_model)));
+        REQUIRE(fit_ml_t == Approx(lcfit_bsm_ml_t(&true_model)));
 
         REQUIRE(model.c == Approx(true_model.c));
         REQUIRE(model.m == Approx(true_model.m));
@@ -349,12 +349,12 @@ TEST_CASE("estimate_ml_t converges to the correct model",
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
 
         bsm_t model = DEFAULT_INIT;
-        double ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
-                                    tolerance, &model, &success,
-                                    MIN_BL, MAX_BL);
+        double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
+                                        tolerance, &model, &success,
+                                        MIN_BL, MAX_BL);
 
         REQUIRE(success == true);
-        REQUIRE(ml_t == Approx(lcfit_bsm_ml_t(&true_model)));
+        REQUIRE(fit_ml_t == Approx(lcfit_bsm_ml_t(&true_model)));
 
         REQUIRE(model.c == Approx(true_model.c));
         REQUIRE(model.m == Approx(true_model.m));
