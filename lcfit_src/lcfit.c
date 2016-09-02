@@ -758,8 +758,23 @@ static double invert_wrapped_fn(double t, void* data)
 // If a minimum is encountered instead of a maximum, the function
 // aborts and returns false. The function also returns false if the
 // number of bisection iterations exceeds a hard-coded threshold. In
-// any case, min_t and max_t are not updated if false is returned.
+// any case, min_t and max_t are updated even if false is returned.
 //
+// In the case where the function evaluates to *exactly* the same
+// value at the two rightmost points, it is assumed that these
+// represent an asymptote to within the precision of a double. Since
+// we're also assuming the function behaves similarly to one of the
+// lcfit regimes, we won't find a local maximum out there, so we
+// continue the search to the left instead.
+//
+// The bounds returned in this case can be potentially surprising, in
+// that they won't approach the initial value of max_t but instead
+// some value between min_t and max_t for which the value of the
+// function at that point is indistinguishable (to within the
+// precision of a double) from that at max_t. For example, assume f(t)
+// is piecewise linear such that f(0) = 0, f(5) = 1, and f(10) = 1.
+// The bounds returned will approach 5, not 10.
+
 // TODO: [efficiency] likelihood function maxima are far more likely
 // to be found close to zero. it would probably be more efficient if
 // the guesses were biased to the left.
@@ -790,13 +805,6 @@ debug_export bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
             f[0] = f[1];
         } else if ((f[0] > f[1] && f[1] > f[2])  // monotonically decreasing
                    || (f[1] == f[2])) {          // asymptote
-            // If the rightmost points are equal, we assume they're
-            // out on the asymptote to within the precision of a
-            // double. Since we're also assuming the function behaves
-            // similarly to one of the lcfit regimes, we won't find a
-            // local maximum out there, so we bisect to the left
-            // instead.
-
             t[2] = t[1];
             f[2] = f[1];
         }
@@ -809,10 +817,8 @@ debug_export bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
     fprintf(stderr, "bracket_maximum: %zu iterations\n", iter);
 #endif /* LCFIT_AUTO_VERBOSE */
 
-    if (success) {
-        *min_t = t[0];
-        *max_t = t[2];
-    }
+    *min_t = t[0];
+    *max_t = t[2];
 
     return success;
 }
