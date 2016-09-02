@@ -341,18 +341,18 @@ TEST_CASE("estimate_ml_t converges to the correct model",
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
         bool success = false;
 
-        bsm_t model = DEFAULT_INIT;
+        bsm_t fit_model = DEFAULT_INIT;
         double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
-                                        tolerance, &model, &success,
+                                        tolerance, &fit_model, &success,
                                         MIN_BL, MAX_BL);
 
         REQUIRE(success == true);
         REQUIRE(fit_ml_t == Approx(lcfit_bsm_ml_t(&true_model)));
 
-        REQUIRE(model.c == Approx(true_model.c));
-        REQUIRE(model.m == Approx(true_model.m));
-        REQUIRE(model.r == Approx(true_model.r));
-        REQUIRE(model.b == Approx(true_model.b));
+        REQUIRE(fit_model.c == Approx(true_model.c));
+        REQUIRE(fit_model.m == Approx(true_model.m));
+        REQUIRE(fit_model.r == Approx(true_model.r));
+        REQUIRE(fit_model.b == Approx(true_model.b));
     }
 
     SECTION("in regime 2") {
@@ -360,18 +360,18 @@ TEST_CASE("estimate_ml_t converges to the correct model",
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
         bool success = false;
 
-        bsm_t model = DEFAULT_INIT;
+        bsm_t fit_model = DEFAULT_INIT;
         double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
-                                        tolerance, &model, &success,
+                                        tolerance, &fit_model, &success,
                                         MIN_BL, MAX_BL);
 
         REQUIRE(success == true);
         REQUIRE(fit_ml_t == Approx(lcfit_bsm_ml_t(&true_model)));
 
-        REQUIRE(model.c == Approx(true_model.c));
-        REQUIRE(model.m == Approx(true_model.m));
-        REQUIRE(model.r == Approx(true_model.r));
-        REQUIRE(model.b == Approx(true_model.b));
+        REQUIRE(fit_model.c == Approx(true_model.c));
+        REQUIRE(fit_model.m == Approx(true_model.m));
+        REQUIRE(fit_model.r == Approx(true_model.r));
+        REQUIRE(fit_model.b == Approx(true_model.b));
     }
 
     // For this test, estimate_ml_t does not typically converge to the
