@@ -442,7 +442,7 @@ TEST_CASE("bracket_maximum behaves properly",
 
         double guess = (min_t + max_t) / 2.0;
 
-        REQUIRE(guess == Approx(MAX_BL));
+        REQUIRE(lcfit_lnl_callback(guess, &true_model) == Approx(lcfit_lnl_callback(MAX_BL, &true_model)));
     }
 }
 
