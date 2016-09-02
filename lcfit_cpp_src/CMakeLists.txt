@@ -2,8 +2,6 @@ cmake_minimum_required (VERSION 2.8.1)
 
 # Comparison
 project(liblcfit_cpp C CXX)
-set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
-set(CMAKE_C_FLAGS_DEBUG "-g -DLCFIT4_VERBOSE -DLCFIT2_VERBOSE -DLCFIT_AUTO_VERBOSE")
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -DVERBOSE")
 
