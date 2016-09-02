@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 2.8)
 # Build the LCFIT C library
 project(liblcfit C)
 set(CMAKE_C_FLAGS "-std=c99 -Wall -pedantic")
-set(CMAKE_C_FLAGS_DEBUG "-g -DLCFIT4_VERBOSE -DLCFIT2_VERBOSE -DLCFIT_AUTO_VERBOSE")
+set(CMAKE_C_FLAGS_DEBUG "-g -DLCFIT_DEBUG -DLCFIT4_VERBOSE -DLCFIT2_VERBOSE -DLCFIT_AUTO_VERBOSE")
 
 # Find GSL
 include(FindGsl)
