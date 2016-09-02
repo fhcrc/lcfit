@@ -452,6 +452,27 @@ TEST_CASE("lcfit_fit_auto converges to a good model",
             CHECK(fit_norm_lnl == Approx(true_norm_lnl).epsilon(1e-2));
         }
     }
+
+    SECTION("in regime 3") {
+        bsm_t true_model = REGIME_3;
+        double true_ml_t = lcfit_bsm_ml_t(&true_model);
+
+        bsm_t fit_model = DEFAULT_INIT;
+
+        double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, &true_model, &fit_model, MIN_BL, MAX_BL);
+
+        CAPTURE(fit_model);
+        REQUIRE(fit_ml_t == Approx(true_ml_t));
+
+        const std::vector<double> ts = {MIN_BL, 1e-3, 1e-2, 1e-1, 1.0, 10.0};
+        for (const double& t : ts) {
+            double fit_lnl = lcfit_bsm_log_like(t, &fit_model);
+            double true_lnl = lcfit_bsm_log_like(t, &true_model);
+
+            CAPTURE(t);
+            CHECK(fit_lnl == Approx(true_lnl).epsilon(1e-2));
+        }
+    }
 }
 
 TEST_CASE("estimated maximum likelihood branch length is within tolerance",
