@@ -7,37 +7,12 @@
 #include <float.h>
 #include <math.h>
 #include <stdbool.h>
-#include <string.h>
-
-//#ifdef LCFIT_DEBUG
 #include <stdio.h>
-//#endif
+#include <string.h>
 
 #include "lcfit2.h"
 
 const static size_t MAX_ITERS = 30;
-
-#ifdef LCFIT_DEBUG
-static int is_initialized = false;
-#endif
-static size_t ml_likelihood_calls = 0;
-static size_t bracket_likelihood_calls = 0;
-
-#ifdef LCFIT_DEBUG
-void show_likelihood_calls(void)
-{
-    fprintf(stdout, "LCFIT ML Estimation LL calls: %zu\n", ml_likelihood_calls);
-    fprintf(stdout, "LCFIT Bracketing LL calls: %zu\n", bracket_likelihood_calls);
-}
-
-void lcfit_select_initialize(void)
-{
-  if(!is_initialized) {
-    is_initialized = true;
-    atexit(show_likelihood_calls);
-  }
-}
-#endif
 
 /** Default maximum number of points to evaluate in select_points */
 static const size_t DEFAULT_MAX_POINTS = 8;
@@ -167,7 +142,6 @@ select_points(log_like_function_t *log_like, const point_t starting_pts[],
 
         points[n].t = next_t;
         points[n].ll = log_like->fn(next_t, log_like->args);
-        bracket_likelihood_calls++;
 
         sort_by_t(points, n + 1);
     }
@@ -295,7 +269,6 @@ evaluate_ll(log_like_function_t *log_like, const double *ts,
     for(i = 0; i < n_pts; ++i, ++p) {
         p->t = *ts++;
         p->ll = log_like->fn(p->t, log_like->args);
-        ml_likelihood_calls++;
     }
 }
 
@@ -440,7 +413,6 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
 
         points[n_pts].t = next_t;
         points[n_pts].ll = log_like->fn(next_t, log_like->args);
-        ml_likelihood_calls++;
 
         prev_t = next_t;
 
