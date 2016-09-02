@@ -21,6 +21,12 @@
 
 #include <nlopt.h>
 
+#ifdef LCFIT_DEBUG
+#define debug_export
+#else
+#define debug_export static
+#endif
+
 const static double LAMBDA = 50;
 
 /** Minimum bound on mutation rate. */
@@ -762,8 +768,8 @@ static double invert_wrapped_fn(double t, void* data)
 // back to the caller for reuse in initializing the minimizer (see
 // gsl_min_fminimizer_set_with_values).
 
-static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
-                            double* min_t, double* max_t)
+debug_export bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
+                                  double* min_t, double* max_t)
 {
     double t[3] = {*min_t, (*min_t + *max_t) / 2.0, *max_t};
     double f[3] = {fn(t[0], fn_args), fn(t[1], fn_args), fn(t[2], fn_args)};
@@ -818,8 +824,8 @@ static bool bracket_maximum(double (*fn)(double, void*), void* fn_args,
 // evaluation could be saved by passing that value in instead of
 // recomputing it.
 
-static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
-                                 double x, double* d1, double* d2)
+debug_export void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
+                                       double x, double* d1, double* d2)
 {
     // the central differences below are fourth order, so use a step
     // size relative to the fourth root of DBL_EPSILON
@@ -838,8 +844,8 @@ static void estimate_derivatives(double (*fn)(double, void*), void* fn_args,
     *d2 = (-fp2 + 16*fp1 - 30*f0 + 16*fm1 - fm2) / (12*h*h);
 }
 
-static double find_maximum(double (*fn)(double, void*), void* fn_args,
-                           double guess, double min_t, double max_t)
+debug_export double find_maximum(double (*fn)(double, void*), void* fn_args,
+                                 double guess, double min_t, double max_t)
 {
 #ifdef LCFIT_AUTO_VERBOSE
     fprintf(stderr, "min = %g, guess = %g, max = %g\n", min_t, guess, max_t);
