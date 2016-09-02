@@ -381,6 +381,79 @@ TEST_CASE("estimate_ml_t converges to the correct model",
     // other extreme is not captured well.
 }
 
+TEST_CASE("lcfit_fit_auto converges to a good model",
+          "[lcfit_fit_auto]") {
+    // lcfit2, which lcfit_fit_auto will use under the hood for curves
+    // in regimes 1 and 2, doesn't converge to the true regime 1 model
+    // {10.0, 1.0, 1.0, 0.0} given the (current DEFAULT_INIT) model
+    // {1100.0, 800.0, 2.0, 0.5}. It is unknown why this is the case.
+    // lcfit2 actually only uses the c and m values from the initial
+    // model, and other values of c and m converge properly, so it is
+    // at least known that these model parameters are influencing
+    // lcfit2 convergence.
+    //
+    // In the meantime, we run the regime 1 and 2 tests with a
+    // different initial model that has a smaller m value.
+
+    SECTION("in regime 1") {
+        bsm_t true_model = REGIME_1;
+        double true_ml_t = lcfit_bsm_ml_t(&true_model);
+        double true_ml_ll = lcfit_bsm_log_like(true_ml_t, &true_model);
+
+        //bsm_t fit_model = DEFAULT_INIT;
+        bsm_t fit_model = {1100.0, 100.0, 2.0, 0.5};
+
+        double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, &true_model, &fit_model, MIN_BL, MAX_BL);
+        double fit_ml_ll = lcfit_bsm_log_like(fit_ml_t, &fit_model);
+
+        CAPTURE(fit_model);
+        REQUIRE(fit_ml_t == Approx(true_ml_t));
+
+        REQUIRE(fit_model.c == Approx(true_model.c));
+        REQUIRE(fit_model.m == Approx(true_model.m));
+        REQUIRE(fit_model.r == Approx(true_model.r));
+        REQUIRE(fit_model.b == Approx(true_model.b));
+
+        const std::vector<double> ts = {MIN_BL, true_ml_t, MAX_BL};
+        for (const double& t : ts) {
+            double fit_norm_lnl = lcfit_bsm_log_like(t, &fit_model) - fit_ml_ll;
+            double true_norm_lnl = lcfit_bsm_log_like(t, &true_model) - true_ml_ll;
+
+            CAPTURE(t);
+            CHECK(fit_norm_lnl == Approx(true_norm_lnl).epsilon(1e-2));
+        }
+    }
+
+    SECTION("in regime 2") {
+        bsm_t true_model = REGIME_2;
+        double true_ml_t = lcfit_bsm_ml_t(&true_model);
+        double true_ml_ll = lcfit_bsm_log_like(true_ml_t, &true_model);
+
+        //bsm_t fit_model = DEFAULT_INIT;
+        bsm_t fit_model = {1100.0, 100.0, 2.0, 0.5};
+
+        double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, &true_model, &fit_model, MIN_BL, MAX_BL);
+        double fit_ml_ll = lcfit_bsm_log_like(fit_ml_t, &fit_model);
+
+        CAPTURE(fit_model);
+        REQUIRE(fit_ml_t == Approx(true_ml_t));
+
+        REQUIRE(fit_model.c == Approx(true_model.c));
+        REQUIRE(fit_model.m == Approx(true_model.m));
+        REQUIRE(fit_model.r == Approx(true_model.r));
+        REQUIRE(fit_model.b == Approx(true_model.b));
+
+        const std::vector<double> ts = {MIN_BL, true_ml_t, MAX_BL};
+        for (const double& t : ts) {
+            double fit_norm_lnl = lcfit_bsm_log_like(t, &fit_model) - fit_ml_ll;
+            double true_norm_lnl = lcfit_bsm_log_like(t, &true_model) - true_ml_ll;
+
+            CAPTURE(t);
+            CHECK(fit_norm_lnl == Approx(true_norm_lnl).epsilon(1e-2));
+        }
+    }
+}
+
 TEST_CASE("estimated maximum likelihood branch length is within tolerance",
           "[ml_t_tolerance]") {
     bsm_t true_model = {1200.0, 300.0, 1.0, 0.2}; // ml_t = 0.310826
