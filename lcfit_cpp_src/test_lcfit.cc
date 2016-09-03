@@ -442,6 +442,11 @@ TEST_CASE("bracket_maximum behaves properly",
 
         double guess = (min_t + max_t) / 2.0;
 
+        // In regime 4, bracket_maximum will return bounds for which
+        // the behavior of the function is nearly indistinguishable
+        // (to within the precision of a double) from the asymptotic
+        // behavior. As such we test for the proper function behavior
+        // rather than testing the bounds themselves.
         REQUIRE(lcfit_lnl_callback(guess, &true_model) == Approx(lcfit_lnl_callback(MAX_BL, &true_model)));
     }
 }
