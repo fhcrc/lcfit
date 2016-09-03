@@ -315,9 +315,7 @@ TEST_CASE("test point subsets are selected properly", "[subset_points]") {
     }
 }
 
-TEST_CASE("trying to fit a model returns an error",
-          "[lcfit_fit_bsm_errors]") {
-
+TEST_CASE("trying to fit a model returns an error", "[lcfit_fit_bsm_errors]") {
     const int MAX_ITER = 250;
 
     SECTION("when given fewer than four points to fit") {
@@ -332,8 +330,7 @@ TEST_CASE("trying to fit a model returns an error",
     }
 }
 
-TEST_CASE("estimate_ml_t converges to the correct model",
-          "[estimate_ml_t]") {
+TEST_CASE("estimate_ml_t converges to the correct model", "[estimate_ml_t]") {
     const std::vector<double> t = {MIN_BL, 0.1, 0.5, MAX_BL};
     const double tolerance = 1e-3;
 
@@ -382,8 +379,7 @@ TEST_CASE("estimate_ml_t converges to the correct model",
     // other extreme is not captured well.
 }
 
-TEST_CASE("bracket_maximum behaves properly",
-          "[bracket_maximum]") {
+TEST_CASE("bracket_maximum behaves properly", "[bracket_maximum]") {
     double min_t = MIN_BL;
     double max_t = MAX_BL;
 
@@ -441,8 +437,7 @@ double log_callback(double x, void*)
     return std::log(x);
 }
 
-TEST_CASE("derivatives are estimated properly",
-          "[estimate_derivatives]") {
+TEST_CASE("derivatives are estimated properly", "[estimate_derivatives]") {
     double d1;
     double d2;
 
@@ -471,8 +466,7 @@ TEST_CASE("derivatives are estimated properly",
     }
 }
 
-TEST_CASE("lcfit_fit_auto converges to a good model",
-          "[lcfit_fit_auto]") {
+TEST_CASE("lcfit_fit_auto converges to a good model", "[lcfit_fit_auto]") {
     // lcfit2, which lcfit_fit_auto will use under the hood for curves
     // in regimes 1 and 2, doesn't converge to the true regime 1 model
     // {10.0, 1.0, 1.0, 0.0} given the (current DEFAULT_INIT) model
@@ -565,8 +559,7 @@ TEST_CASE("lcfit_fit_auto converges to a good model",
     }
 }
 
-TEST_CASE("estimated maximum likelihood branch length is within tolerance",
-          "[ml_t_tolerance]") {
+TEST_CASE("estimated maximum likelihood branch length is within tolerance", "[ml_t_tolerance]") {
     bsm_t true_model = {1200.0, 300.0, 1.0, 0.2}; // ml_t = 0.310826
     const double true_ml_t = lcfit_bsm_ml_t(&true_model);
     log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
@@ -711,8 +704,7 @@ TEST_CASE("fitting actually improves fit", "[lcfit_fit_bsm]") {
     }
 }
 
-TEST_CASE("maximum-likelihood branch lengths are computed properly",
-          "[lcfit_bsm_ml_t]") {
+TEST_CASE("maximum-likelihood branch lengths are computed properly", "[lcfit_bsm_ml_t]") {
     SECTION("in regime 1") {
         REQUIRE(lcfit_bsm_ml_t(&REGIME_1) == Approx(0.2006707));
     }
