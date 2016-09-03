@@ -383,17 +383,15 @@ TEST_CASE("estimate_ml_t converges to the correct model",
 }
 
 TEST_CASE("bracket_maximum behaves properly",
-          "[bracket_maximum]")
-{
+          "[bracket_maximum]") {
+    double min_t = MIN_BL;
+    double max_t = MAX_BL;
+
     SECTION("for curves in regime 1") {
         bsm_t true_model = REGIME_1;
         double true_ml_t = lcfit_bsm_ml_t(&true_model);
 
-        double min_t = MIN_BL;
-        double max_t = MAX_BL;
-
         bool success = bracket_maximum(lcfit_lnl_callback, &true_model, &min_t, &max_t);
-
         REQUIRE(success == true);
 
         REQUIRE(min_t < true_ml_t);
@@ -404,11 +402,7 @@ TEST_CASE("bracket_maximum behaves properly",
         bsm_t true_model = REGIME_2;
         double true_ml_t = lcfit_bsm_ml_t(&true_model);
 
-        double min_t = MIN_BL;
-        double max_t = MAX_BL;
-
         bool success = bracket_maximum(lcfit_lnl_callback, &true_model, &min_t, &max_t);
-
         REQUIRE(success == true);
 
         REQUIRE(min_t < true_ml_t);
@@ -418,26 +412,17 @@ TEST_CASE("bracket_maximum behaves properly",
     SECTION("for curves in regime 3") {
         bsm_t true_model = REGIME_3;
 
-        double min_t = MIN_BL;
-        double max_t = MAX_BL;
-
         bool success = bracket_maximum(lcfit_lnl_callback, &true_model, &min_t, &max_t);
-
         REQUIRE(success == false);
 
         double guess = (min_t + max_t) / 2.0;
-
         REQUIRE(guess == Approx(MIN_BL));
     }
 
     SECTION("for curves in regime 4") {
         bsm_t true_model = REGIME_4;
 
-        double min_t = MIN_BL;
-        double max_t = MAX_BL;
-
         bool success = bracket_maximum(lcfit_lnl_callback, &true_model, &min_t, &max_t);
-
         REQUIRE(success == false);
 
         double guess = (min_t + max_t) / 2.0;
