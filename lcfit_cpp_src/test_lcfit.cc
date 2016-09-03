@@ -377,7 +377,7 @@ TEST_CASE("estimate_ml_t converges to the correct model", "[estimate_ml_t]") {
     // other extreme is not captured well.
 }
 
-TEST_CASE("bracket_maximum behaves properly", "[bracket_maximum]") {
+TEST_CASE("maxima are bracketed and found properly", "[bracket_and_find]") {
     double min_t = MIN_BL;
     double max_t = MAX_BL;
 
@@ -390,6 +390,11 @@ TEST_CASE("bracket_maximum behaves properly", "[bracket_maximum]") {
 
         REQUIRE(min_t < true_ml_t);
         REQUIRE(max_t > true_ml_t);
+
+        double guess = (min_t + max_t) / 2.0;
+
+        double est_ml_t = find_maximum(lcfit_lnl_callback, &true_model, guess, min_t, max_t);
+        REQUIRE(est_ml_t == Approx(true_ml_t));
     }
 
     SECTION("for curves in regime 2") {
@@ -401,6 +406,11 @@ TEST_CASE("bracket_maximum behaves properly", "[bracket_maximum]") {
 
         REQUIRE(min_t < true_ml_t);
         REQUIRE(max_t > true_ml_t);
+
+        double guess = (min_t + max_t) / 2.0;
+
+        double est_ml_t = find_maximum(lcfit_lnl_callback, &true_model, guess, min_t, max_t);
+        REQUIRE(est_ml_t == Approx(true_ml_t));
     }
 
     SECTION("for curves in regime 3") {
@@ -419,13 +429,13 @@ TEST_CASE("bracket_maximum behaves properly", "[bracket_maximum]") {
         bool success = bracket_maximum(lcfit_lnl_callback, &true_model, &min_t, &max_t);
         REQUIRE(success == false);
 
-        double guess = (min_t + max_t) / 2.0;
-
         // In regime 4, bracket_maximum will return bounds for which
         // the behavior of the function is nearly indistinguishable
         // (to within the precision of a double) from the asymptotic
         // behavior. As such we test for the proper function behavior
         // rather than testing the bounds themselves.
+
+        double guess = (min_t + max_t) / 2.0;
         REQUIRE(lcfit_lnl_callback(guess, &true_model) == Approx(lcfit_lnl_callback(MAX_BL, &true_model)));
     }
 }
