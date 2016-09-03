@@ -333,13 +333,13 @@ TEST_CASE("trying to fit a model returns an error", "[lcfit_fit_bsm_errors]") {
 TEST_CASE("estimate_ml_t converges to the correct model", "[estimate_ml_t]") {
     const std::vector<double> t = {MIN_BL, 0.1, 0.5, MAX_BL};
     const double tolerance = 1e-3;
+    bsm_t fit_model = DEFAULT_INIT;
+    bool success = false;
 
     SECTION("in regime 1") {
         bsm_t true_model = REGIME_1;
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
-        bool success = false;
 
-        bsm_t fit_model = DEFAULT_INIT;
         double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
                                         tolerance, &fit_model, &success,
                                         MIN_BL, MAX_BL);
@@ -356,9 +356,7 @@ TEST_CASE("estimate_ml_t converges to the correct model", "[estimate_ml_t]") {
     SECTION("in regime 2") {
         bsm_t true_model = REGIME_2;
         log_like_function_t log_like = {lcfit_lnl_callback, &true_model};
-        bool success = false;
 
-        bsm_t fit_model = DEFAULT_INIT;
         double fit_ml_t = estimate_ml_t(&log_like, t.data(), t.size(),
                                         tolerance, &fit_model, &success,
                                         MIN_BL, MAX_BL);
