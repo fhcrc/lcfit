@@ -451,6 +451,41 @@ TEST_CASE("bracket_maximum behaves properly",
     }
 }
 
+double log_callback(double x, void*)
+{
+    return std::log(x);
+}
+
+TEST_CASE("derivatives are estimated properly",
+          "[estimate_derivatives]") {
+    double d1;
+    double d2;
+
+    SECTION("for log(x), x = 0.1") {
+        double x = 0.1;
+        estimate_derivatives(&log_callback, NULL, x, &d1, &d2);
+
+        REQUIRE(d1 == Approx(1.0 / x));
+        REQUIRE(d2 == Approx(-1.0 / (x * x)));
+    }
+
+    SECTION("for log(x), x = 1.0") {
+        double x = 1.0;
+        estimate_derivatives(&log_callback, NULL, x, &d1, &d2);
+
+        REQUIRE(d1 == Approx(1.0 / x));
+        REQUIRE(d2 == Approx(-1.0 / (x * x)));
+    }
+
+    SECTION("for log(x), x = 10.0") {
+        double x = 10.0;
+        estimate_derivatives(&log_callback, NULL, x, &d1, &d2);
+
+        REQUIRE(d1 == Approx(1.0 / x));
+        REQUIRE(d2 == Approx(-1.0 / (x * x)));
+    }
+}
+
 TEST_CASE("lcfit_fit_auto converges to a good model",
           "[lcfit_fit_auto]") {
     // lcfit2, which lcfit_fit_auto will use under the hood for curves
