@@ -480,7 +480,7 @@ double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         // HACK: basically copied from AdHocIntegrator.cpp
 
         log_like_function_t lnl_fn_wrapper = {lnl_fn, lnl_fn_args};
-        double t[4] = {0.1, 0.15, 0.5, 1.0};
+        double t[4] = {0.1, 0.5, 1.0, max_t};
         const double tolerance = 1e-3;
         bool success = false;
 
