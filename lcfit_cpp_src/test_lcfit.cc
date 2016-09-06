@@ -395,6 +395,13 @@ TEST_CASE("maxima are bracketed and found properly", "[bracket_and_find]") {
 
         double est_ml_t = find_maximum(lcfit_lnl_callback, &true_model, guess, min_t, max_t);
         REQUIRE(est_ml_t == Approx(true_ml_t));
+
+        double d1;
+        double d2;
+        estimate_derivatives(lcfit_lnl_callback, &true_model, est_ml_t, &d1, &d2);
+
+        REQUIRE(d1 == Approx(0.0));
+        REQUIRE(d2 < -0.1);
     }
 
     SECTION("for curves in regime 2") {
@@ -411,6 +418,13 @@ TEST_CASE("maxima are bracketed and found properly", "[bracket_and_find]") {
 
         double est_ml_t = find_maximum(lcfit_lnl_callback, &true_model, guess, min_t, max_t);
         REQUIRE(est_ml_t == Approx(true_ml_t));
+
+        double d1;
+        double d2;
+        estimate_derivatives(lcfit_lnl_callback, &true_model, est_ml_t, &d1, &d2);
+
+        REQUIRE(d1 == Approx(0.0));
+        REQUIRE(d2 < -0.1);
     }
 
     SECTION("for curves in regime 3") {
@@ -437,6 +451,13 @@ TEST_CASE("maxima are bracketed and found properly", "[bracket_and_find]") {
 
         double guess = (min_t + max_t) / 2.0;
         REQUIRE(lcfit_lnl_callback(guess, &true_model) == Approx(lcfit_lnl_callback(MAX_BL, &true_model)));
+
+        double d1;
+        double d2;
+        estimate_derivatives(lcfit_lnl_callback, &true_model, guess, &d1, &d2);
+
+        REQUIRE(d1 == Approx(0.0));
+        REQUIRE(d2 == Approx(0.0));
     }
 }
 
