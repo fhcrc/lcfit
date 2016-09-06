@@ -232,7 +232,9 @@ subset_points(point_t p[], const size_t n, const size_t k)
     assert(curvature == CRV_ENC_MAXIMA || curvature == CRV_MONO_DEC);
 
     if (curvature == CRV_MONO_DEC) {
-        /* Keep leftmost k points, which are already in place. */
+        /* Keep leftmost k - 1 points, which are already in place, and
+         * the rightmost point (for matching the asymptote). */
+        p[k - 1] = p[n - 1];
         return;
     }
 
