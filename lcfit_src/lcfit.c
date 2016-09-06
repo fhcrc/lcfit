@@ -345,11 +345,11 @@ double bsm_fit_objective(unsigned p,
 int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, int max_iter)
 {
     double *w = calloc(n, sizeof(double));
-    int status, i;
+    for (size_t i = 0; i < n; i++) {
+        w[i] = 1.0L;
+    }
 
-    for (i = 0; i < n; i++)
-	w[i] = 1.0L;
-    status = lcfit_fit_bsm_weight(n, t, l, w, m, max_iter);
+    int status = lcfit_fit_bsm_weight(n, t, l, w, m, max_iter);
     free(w);
     return(status);
 }
