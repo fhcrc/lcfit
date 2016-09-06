@@ -355,8 +355,8 @@ int lcfit_fit_bsm(const size_t n, const double* t, const double* l, bsm_t *m, in
 }
 
 // Declare our implementations before the delegator function definition.
-int lcfit_fit_bsm_weighted_gsl(const size_t, const double*, const double*, const double*, bsm_t*, int);
-int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, const double*, bsm_t*, int);
+int lcfit_fit_bsm_weighted_gsl(const size_t, const double*, const double*, const double*, bsm_t*, size_t);
+int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, const double*, bsm_t*, size_t);
 
 int check_model(const bsm_t* m)
 {
@@ -408,7 +408,7 @@ int lcfit_fit_bsm_weight(const size_t n,
                          const double* l,
                          const double *w,
                          bsm_t *m,
-                         int max_iter)
+                         size_t max_iter)
 {
     if (n < 4) {
         fprintf(stderr, "ERROR: fitting a model requires at least four points\n");
@@ -436,7 +436,7 @@ int lcfit_fit_bsm_weighted_gsl(const size_t n,
                                const double* l,
                                const double *w,
                                bsm_t *m,
-                               int max_iter)
+                               size_t max_iter)
 {
     double x[4] = {m->c, m->m, m->r, m->b};
     int status = GSL_SUCCESS;
@@ -561,7 +561,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
                                  const double* l,
                                  const double *w,
                                  bsm_t *m,
-                                 int max_iter)
+                                 size_t max_iter)
 {
     struct data_to_fit fit_data = { n, t, l, w, 0 };
 
