@@ -143,8 +143,6 @@ double lcfit2_infl_t(const lcfit2_bsm_t* model)
 
     const double infl_t = -b + (1.0 / r) * log((c + m + 2 * sqrt(c * m)) / (c - m));
 
-    assert(fabs(lcfit2_d2f_t(infl_t, model)) <= 1e-6);
-
     return infl_t;
 }
 
