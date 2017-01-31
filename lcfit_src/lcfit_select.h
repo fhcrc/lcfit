@@ -173,7 +173,7 @@ subset_points(point_t p[], const size_t n, const size_t k);
  *
  * \return The estimated ML branch length.
  */
-double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+double lcfit_fit_auto(double (*lnl_fn)(double, void*), void (*lnl_fn_d)(double, void*, double*, double*), void* lnl_fn_args,
                       bsm_t* model, const double min_t, const double max_t);
 
 #ifdef LCFIT_DEBUG

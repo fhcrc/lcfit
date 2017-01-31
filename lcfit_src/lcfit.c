@@ -180,9 +180,12 @@ int lcfit_weights(const void* data, gsl_vector* weight)
 
 void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
 {
-    gsl_vector* grad = gsl_vector_alloc(4);
+#if defined GSL_MAJOR_VERSION && GSL_MAJOR_VERSION==1
+	gsl_vector* grad = gsl_vector_alloc(4);
     gsl_multifit_gradient(s->J, s->f, grad);
-
+#else
+	(s->type->gradient) (s->state, s->g);
+#endif
     fprintf(stderr, "G[%4zu] rsse = %.3f", iter, gsl_blas_dnrm2(s->f));
     fprintf(stderr, ", model = { %.3f, %.3f, %.6f, %.6f }",
             gsl_vector_get(s->x, 0),
@@ -190,13 +193,19 @@ void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
             gsl_vector_get(s->x, 2),
             gsl_vector_get(s->x, 3));
     fprintf(stderr, ", grad = { %.6f, %.6f, %.6f, %.6f }",
+#if defined GSL_MAJOR_VERSION && GSL_MAJOR_VERSION==1
             gsl_vector_get(grad, 0),
             gsl_vector_get(grad, 1),
             gsl_vector_get(grad, 2),
             gsl_vector_get(grad, 3));
-    fprintf(stderr, "\n");
-
     gsl_vector_free(grad);
+#else
+            gsl_vector_get(s->g, 0),
+            gsl_vector_get(s->g, 1),
+            gsl_vector_get(s->g, 2),
+            gsl_vector_get(s->g, 3));
+#endif
+    fprintf(stderr, "\n");
 }
 
 /* Evaluate the likelihood curve described in data at the point x. */

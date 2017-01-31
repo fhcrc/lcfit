@@ -458,12 +458,19 @@ estimate_ml_t(log_like_function_t *log_like, const double* t,
     return ml_t;
 }
 
-double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+double lcfit_fit_auto(double (*lnl_fn)(double, void*), void (*lnl_fn_d)(double, void*, double*, double*), void* lnl_fn_args,
                       bsm_t* model, const double min_t, const double max_t)
 {
     double d1;
     double d2;
-    double t0 = lcfit_maximize(lnl_fn, lnl_fn_args, min_t, max_t, &d1, &d2);
+    double t0;
+    if(lnl_fn_d != NULL){
+    	t0 = lcfit_maximize(lnl_fn, lnl_fn_args, min_t, max_t, NULL, NULL);
+    	lnl_fn_d(t0, lnl_fn_args, &d1, &d2);
+    }
+    else{
+    	t0 = lcfit_maximize(lnl_fn, lnl_fn_args, min_t, max_t, &d1, &d2);
+    }
 
 #ifdef LCFIT_AUTO_VERBOSE
     fprintf(stderr, "lmax_t0 = %g, lmax_d1(lmax_t0) = %g, lmax_d2(lmax_t0) = %g\n",
