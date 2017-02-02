@@ -38,10 +38,6 @@ example: release lcfit-compare
 example:
 	$(MAKE) -C example
 
-lcfit-r:
-	R -e "Rcpp::compileAttributes('lcfit_R')"
-	R CMD INSTALL --library=$(PWD)/sims/venv/lib/R lcfit_R
-
 lcfit-compare: setup-cmake
 	$(MAKE) -C$(BUILD_DIR) $@
 
