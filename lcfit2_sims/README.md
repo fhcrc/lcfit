@@ -6,6 +6,9 @@
 # create a virtualenv
 $ virtualenv venv
 
+# activate virtualenv
+$ source venv/bin/activate
+
 # install packages
 $ pip install -r requirements.txt
 $ pip install --egg SCons==2.3.0
@@ -14,16 +17,11 @@ $ pip install --egg SCons==2.3.0
 ## R packages
 
 ``` shell
-# create user library directory
-mkdir venv/lib/R
-
-# install packages into user library
-$ R_LIBS_USER=$PWD/venv/lib/R R -e "install.packages('ape')"
+# restore packrat project
+$ R --slave -e "0" --args --bootstrap-packrat"
 ```
 
-R packages are also installed in the `packrat` directory for use in the RStudio project.
-
-TODO: packrat-ify everything so the packages needed for the analysis are all in one place
+R packages are installed into the `packrat/lib` directory for use in the RStudio project.
 
 ## Bio++ libraries
 
