@@ -209,7 +209,7 @@ def lcfit(env, outdir, c):
                          'lcfit2.csv')]
     env['ENV']['SLURM_JOB_NAME'] = 'lcfit-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
     command = ( '${SRUN} '
-               'lcfit2-compare '
+               'lcfit-compare '
                'param=${SOURCES[2]} '
                'input.tree.file=${SOURCES[1]} '
                'input.tree.format=Newick '

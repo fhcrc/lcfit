@@ -31,8 +31,8 @@ target_link_libraries(lcfit_cpp
 
 # applications
 
-set(LCFIT2_COMPARE_CPP
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_compare.cc)
+set(LCFIT_COMPARE_CPP
+  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_compare.cc)
 
 set(LCFIT_APP_LIBS
   bpp-core
@@ -40,8 +40,8 @@ set(LCFIT_APP_LIBS
   bpp-phyl
   lcfit_cpp-static)
 
-add_executable(lcfit2-compare EXCLUDE_FROM_ALL ${LCFIT2_COMPARE_CPP})
-target_link_libraries(lcfit2-compare ${LCFIT_APP_LIBS})
+add_executable(lcfit-compare EXCLUDE_FROM_ALL ${LCFIT_COMPARE_CPP})
+target_link_libraries(lcfit-compare ${LCFIT_APP_LIBS})
 
 # lcfit-test
 

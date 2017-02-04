@@ -38,9 +38,9 @@ example: release lcfit-compare
 example:
 	$(MAKE) -C example
 
-lcfit2-compare: CMAKE_BUILD_TYPE=Debug
-lcfit2-compare: BUILD_DIR=$(BUILD)/debug
-lcfit2-compare: setup-cmake
+lcfit-compare: CMAKE_BUILD_TYPE=Debug
+lcfit-compare: BUILD_DIR=$(BUILD)/debug
+lcfit-compare: setup-cmake
 	$(MAKE) -C$(BUILD_DIR) $@
 
 lcfit-test: CMAKE_BUILD_TYPE=Debug
