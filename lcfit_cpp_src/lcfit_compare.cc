@@ -104,9 +104,9 @@ double compute_fit_error(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
 int run_main(int argc, char** argv)
 {
-    bpp::BppApplication lcfit2_compare(argc, argv, "lcfit2-compare");
+    bpp::BppApplication lcfit_compare(argc, argv, "lcfit-compare");
 
-    std::map<std::string, std::string> params = lcfit2_compare.getParams();
+    std::map<std::string, std::string> params = lcfit_compare.getParams();
 
     //
     // Argument parsing
@@ -158,15 +158,15 @@ int run_main(int argc, char** argv)
     }
 
     // Output files
-    std::string lnl_filename = bpp::ApplicationTools::getAFilePath("lcfit2.output.lnl_file", params, true, false);
+    std::string lnl_filename = bpp::ApplicationTools::getAFilePath("lcfit.output.lnl_file", params, true, false);
     std::ofstream lnl_output(lnl_filename);
-    lnl_output << "node_id,t,empirical,lcfit2\n";
+    lnl_output << "node_id,t,empirical,lcfit\n";
     lnl_output << std::setprecision(std::numeric_limits<double>::max_digits10);
 
-    std::string lcfit2_filename = bpp::ApplicationTools::getAFilePath("lcfit2.output.fit_file", params, true, false);
-    std::ofstream lcfit2_output(lcfit2_filename);
-    lcfit2_output << "node_id,c,m,r,b,t0,d1,d2,err_max_t\n";
-    lcfit2_output << std::setprecision(std::numeric_limits<double>::max_digits10);
+    std::string lcfit_filename = bpp::ApplicationTools::getAFilePath("lcfit.output.fit_file", params, true, false);
+    std::ofstream lcfit_output(lcfit_filename);
+    lcfit_output << "node_id,c,m,r,b,t0,d1,d2,err_max_t\n";
+    lcfit_output << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     //
     // Run evaluations on each node, write output
@@ -177,7 +177,7 @@ int run_main(int argc, char** argv)
             continue;
         }
 
-        clog << "[lcfit2 eval] Node " << std::setw(4) << node_id << "\n";
+        clog << "[lcfit eval] Node " << std::setw(4) << node_id << "\n";
 
         //
         // initialize the tree likelihood calculator
@@ -230,7 +230,7 @@ int run_main(int argc, char** argv)
         std::cerr << "d2(t0) = " << d2 << "\n";
 
         //
-        // fit with lcfit2
+        // fit with lcfit
         //
 
         const double min_t = 1e-6;
@@ -245,12 +245,12 @@ int run_main(int argc, char** argv)
         const double err_max_t =
                 compute_fit_error(&log_likelihood_callback, &lnl_data, &model, t0, max_t);
 
-        lcfit2_output << node_id << "," << model.c << "," << model.m << ","
-                      << model.r << "," << model.b << "," << t0 << ","
-                      << d1 << "," << d2 << "," << err_max_t << "\n";
+        lcfit_output << node_id << "," << model.c << "," << model.m << ","
+                     << model.r << "," << model.b << "," << t0 << ","
+                     << d1 << "," << d2 << "," << err_max_t << "\n";
 
         //
-        // sample empirical and lcfit2 curves
+        // sample empirical and lcfit curves
         //
 
         // GOTCHA: this function will change the current branch length

@@ -32,14 +32,14 @@ plot_curves <- FALSE
 
 # don't load the data again if the variables are already defined
 if (!exists("lnl")) { lnl <- tbl_df(read.csv("lnl.agg.csv")) }
-if (!exists("lcfit2")) { lcfit2 <- tbl_df(read.csv("lcfit2.agg.csv")) }
+if (!exists("lcfit")) { lcfit <- tbl_df(read.csv("lcfit.agg.csv")) }
 
 #
 # tidy data
 # 
 
 lnl_t <- lnl %>% 
-  gather("distribution", "lnl", c(empirical, lcfit2))
+  gather("distribution", "lnl", c(empirical, lcfit))
 
 #
 # compute measures
@@ -58,13 +58,13 @@ freqs <- lnl %>%
   group_by(source_tree, model_name, rdist_name, branch_length_rate, node_id) %>%
   select(-c(n_sites, n_leaves, seed)) %>%
   mutate(empirical = exp(empirical),
-         lcfit2 = exp(lcfit2)) %>%
+         lcfit = exp(lcfit)) %>%
   mutate(empirical = empirical / sum(empirical),
-         lcfit2 = lcfit2 / sum(lcfit2))
+         lcfit = lcfit / sum(lcfit))
 
 measures <- freqs %>%
-  summarize(kl = kl_divergence(empirical, lcfit2),
-            hellinger = hellinger_distance(empirical, lcfit2))
+  summarize(kl = kl_divergence(empirical, lcfit),
+            hellinger = hellinger_distance(empirical, lcfit))
 
 #
 # normalized log-likelihood curves
@@ -118,7 +118,7 @@ p.hellinger <- p.measure +
 # asymptotic error
 # GOTCHA: there's one data point for which the asymptotic error is 
 # about -3500, so we filter that one out for plotting
-p.err <- p.measure %+% filter(lcfit2, abs(err_max_t) < 3000) +
+p.err <- p.measure %+% filter(lcfit, abs(err_max_t) < 3000) +
   geom_boxplot(aes(y = err_max_t)) +
   ylab("asymptote error (nats)")
 
