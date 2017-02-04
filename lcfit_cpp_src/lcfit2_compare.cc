@@ -16,7 +16,8 @@
 #include <Bpp/Seq/Container/SiteContainerTools.h>
 
 #include "gsl.h"
-#include "lcfit2.h"
+#include "lcfit.h"
+#include "lcfit_select.h"
 
 struct log_likelihood_data {
     bpp::TreeLikelihood* tl;
@@ -57,11 +58,13 @@ void compute_sampling_bounds(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     }
 }
 
-void sample_curves(double (*lnl_fn)(double, void*), void* lnl_fn_args, const lcfit2_bsm_t* model,
+void sample_curves(double (*lnl_fn)(double, void*), void* lnl_fn_args, const bsm_t* model,
                    const double min_t, const double max_t, const double t0,
                    const int node_id, std::ostream& output)
 {
     const double lnl_t0 = lnl_fn(t0, lnl_fn_args);
+    const double lcfit_t0 = lcfit_bsm_log_like(t0, model);
+
     const double lnl_threshold = lnl_t0 - std::abs(0.01 * lnl_t0);
 
     double left_t;
@@ -78,7 +81,7 @@ void sample_curves(double (*lnl_fn)(double, void*), void* lnl_fn_args, const lcf
     for (size_t i = 0; i < n_samples; ++i) {
         const double t = left_t + (i * delta);
         const double empirical_lnl = lnl_fn(t, lnl_fn_args) - lnl_t0;
-        const double fit_lnl = lcfit2_norm_lnl(t, model);
+        const double fit_lnl = lcfit_bsm_log_like(t, model) - lcfit_t0;
 
         output << node_id << ","
                << t << ","
@@ -88,12 +91,13 @@ void sample_curves(double (*lnl_fn)(double, void*), void* lnl_fn_args, const lcf
 }
 
 double compute_fit_error(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                         const lcfit2_bsm_t* model, const double t)
+                         const bsm_t* model, const double t0, const double t)
 {
-    const double lnl_t0 = lnl_fn(model->t0, lnl_fn_args);
+    const double lnl_t0 = lnl_fn(t0, lnl_fn_args);
+    const double lcfit_t0 = lcfit_bsm_log_like(t0, model);
 
     const double empirical_lnl = lnl_fn(t, lnl_fn_args) - lnl_t0;
-    const double fit_lnl = lcfit2_norm_lnl(t, model);
+    const double fit_lnl = lcfit_bsm_log_like(t, model) - lcfit_t0;
 
     return empirical_lnl - fit_lnl;
 }
@@ -161,7 +165,7 @@ int run_main(int argc, char** argv)
 
     std::string lcfit2_filename = bpp::ApplicationTools::getAFilePath("lcfit2.output.fit_file", params, true, false);
     std::ofstream lcfit2_output(lcfit2_filename);
-    lcfit2_output << "node_id,c,m,t0,d1,d2,err_max_t\n";
+    lcfit2_output << "node_id,c,m,r,b,t0,d1,d2,err_max_t\n";
     lcfit2_output << std::setprecision(std::numeric_limits<double>::max_digits10);
 
     //
@@ -232,32 +236,26 @@ int run_main(int argc, char** argv)
         const double min_t = 1e-6;
         const double max_t = 1e4;
 
-        lcfit2_bsm_t model = {1100.0, 800.0, t0, d1, d2};
+        bsm_t model = {1100.0, 800.0, 2.0, 0.5};
 
-        // require that t0 is a maximum, otherwise we're not in regime
-        // 1 or 2 and lcfit2 is invalid
-        if (std::abs(d1) < 0.1 && d2 < 0.0) {
-            const double alpha = 0.0;
+        // GOTCHA: this function will change the current branch length
+        lcfit_fit_auto(&log_likelihood_callback, &lnl_data, &model, min_t, max_t);
 
-            // GOTCHA: this function will change the current branch length
-            lcfit2_fit_auto(&log_likelihood_callback, &lnl_data, &model, min_t, max_t, alpha);
+        // compute the fit error at max_t
+        const double err_max_t =
+                compute_fit_error(&log_likelihood_callback, &lnl_data, &model, t0, max_t);
 
-            // compute the fit error at max_t
-            const double err_max_t =
-                    compute_fit_error(&log_likelihood_callback, &lnl_data, &model, max_t);
+        lcfit2_output << node_id << "," << model.c << "," << model.m << ","
+                      << model.r << "," << model.b << "," << t0 << ","
+                      << d1 << "," << d2 << "," << err_max_t << "\n";
 
-            lcfit2_output << node_id << "," << model.c << "," << model.m << ","
-                          << model.t0 << "," << model.d1 << "," << model.d2 << ","
-                          << err_max_t << "\n";
+        //
+        // sample empirical and lcfit2 curves
+        //
 
-            //
-            // sample empirical and lcfit2 curves
-            //
-
-            // GOTCHA: this function will change the current branch length
-            sample_curves(&log_likelihood_callback, &lnl_data, &model,
-                          min_t, max_t, t0, node_id, lnl_output);
-        }
+        // GOTCHA: this function will change the current branch length
+        sample_curves(&log_likelihood_callback, &lnl_data, &model,
+                      min_t, max_t, t0, node_id, lnl_output);
     }
 
     return 0;
