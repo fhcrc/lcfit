@@ -2,6 +2,7 @@
 
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlin.h>
+#include <gsl/gsl_version.h>
 
 #include "lcfit2.h"
 
@@ -73,7 +74,7 @@ int lcfit2n_opt_fdf(const gsl_vector* x, void* data, gsl_vector* f, gsl_matrix* 
 
 void lcfit2_print_state_gsl(size_t iter, const gsl_multifit_fdfsolver* s)
 {
-#if defined GSL_MAJOR_VERSION && GSL_MAJOR_VERSION<2
+#ifndef GSL_MAJOR_VERSION
     gsl_vector* grad = gsl_vector_alloc(2);
     gsl_multifit_gradient(s->J, s->f, grad);
 #else
@@ -84,7 +85,7 @@ void lcfit2_print_state_gsl(size_t iter, const gsl_multifit_fdfsolver* s)
             gsl_vector_get(s->x, 0),
             gsl_vector_get(s->x, 1));
     fprintf(stderr, ", grad = { %.6f, %.6f }",
-#if defined GSL_MAJOR_VERSION && GSL_MAJOR_VERSION<2
+#ifndef GSL_MAJOR_VERSION
             gsl_vector_get(grad, 0),
             gsl_vector_get(grad, 1));
     gsl_vector_free(grad);
@@ -135,7 +136,7 @@ int lcfit2n_fit_weighted_gsl(const size_t n, const double* t, const double* lnl,
         if (status) {
             break;
         }
-#if defined GSL_MAJOR_VERSION && GSL_MAJOR_VERSION<2
+#ifndef GSL_MAJOR_VERSION
         gsl_vector* grad = gsl_vector_alloc(2);
         gsl_multifit_gradient(s->J, s->f, grad);
         status = gsl_multifit_test_gradient(grad, sqrt(DBL_EPSILON));

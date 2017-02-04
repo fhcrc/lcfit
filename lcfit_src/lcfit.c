@@ -18,6 +18,7 @@
 #include <gsl/gsl_min.h>
 #include <gsl/gsl_multifit_nlin.h>
 #include <gsl/gsl_roots.h>
+#include <gsl/gsl_version.h>
 
 #include <nlopt.h>
 
@@ -180,7 +181,7 @@ int lcfit_weights(const void* data, gsl_vector* weight)
 
 void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
 {
-#if defined GSL_MAJOR_VERSION && GSL_MAJOR_VERSION<2
+#ifndef GSL_MAJOR_VERSION
 	gsl_vector* grad = gsl_vector_alloc(4);
     gsl_multifit_gradient(s->J, s->f, grad);
 #else
@@ -193,7 +194,7 @@ void print_state_gsl(size_t iter, gsl_multifit_fdfsolver* s)
             gsl_vector_get(s->x, 2),
             gsl_vector_get(s->x, 3));
     fprintf(stderr, ", grad = { %.6f, %.6f, %.6f, %.6f }",
-#if defined GSL_MAJOR_VERSION && GSL_MAJOR_VERSION<2
+#ifndef GSL_MAJOR_VERSION
             gsl_vector_get(grad, 0),
             gsl_vector_get(grad, 1),
             gsl_vector_get(grad, 2),
