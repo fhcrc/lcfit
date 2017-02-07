@@ -234,7 +234,7 @@ int run_main(int argc, char** argv)
         //
 
         const double min_t = 1e-6;
-        const double max_t = 1e4;
+        const double max_t = 20.0;
 
         bsm_t model = {1100.0, 800.0, 2.0, 0.5};
 
