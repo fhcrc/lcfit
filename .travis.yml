@@ -19,7 +19,7 @@ install:
   - cd ..
 
 script:
-  - make lcfit-test
+  - make test
 
 compiler:
   - clang
