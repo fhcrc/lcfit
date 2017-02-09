@@ -40,17 +40,13 @@ $ make && make install
 $ cd ..
 ```
 
-# Activate environment
-
-``` shell
-$ source env.sh
-```
-
 # Running simulations
 
 ``` shell
 $ scons .
 ```
+
+The simulations can take several hours to complete, so you may wish to parallelize them by passing the `-j #` flag to `scons`, where `#` is the number of concurrent jobs to use.
 
 # Running the analysis
 

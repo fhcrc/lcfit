@@ -38,12 +38,7 @@ To build and run the test suite, run `make test`.
 
 ## Running simulations
 
-Running the simulations requires [SCons](http://www.scons.org), the Bio++ program suite (on Debian/Ubuntu, `sudo apt-get install bppsuite`), Python 2.7, and R 3.1.3.
-The required Python and R packages are listed in `sims/requirements.txt` and `sims/R-packages.txt`.
-
 [nestly](https://github.com/fhcrc/nestly) is used to build an extensive hierarchy of directories and configuration files to measure the behavior of `lcfit` when applied to a wide variety of data.
-The simulations can take several hours to complete, but they can be run in parallel by passing the `-j` option to `scons`.
-This will cause `scons` to launch multiple `slurm` jobs at once instead of running them sequentially.
 
-    $ cd sims
-    $ scons -j 10
+Running the simulations requires Python 2.7, R 3.2.4, and BppSuite 2.2.0 in addition to the dependencies required for the `lcfit-compare` tool described above.
+Instructions for installing the Python and R package dependencies and running the simulations can be found in `sims/README.md`.
