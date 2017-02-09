@@ -1,4 +1,4 @@
-.PHONY: all cmake-debug debug cmake-release release lcfit-compare lcfit-test test clean doc
+.PHONY: all cmake-debug debug cmake-release release lcfit-compare lcfit-test test example clean doc
 
 BUILD_DIR	:= _build
 RELEASE_DIR	:= $(BUILD_DIR)/release
@@ -28,6 +28,9 @@ lcfit-test: debug
 
 test: lcfit-test
 	$(DEBUG_DIR)/test/lcfit-test 2> lcfit-test.log
+
+example: lcfit-compare
+	$(MAKE) -C example
 
 clean:
 	rm -rf $(BUILD_DIR)
