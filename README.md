@@ -12,10 +12,9 @@ Compiling the lcfit C library requires the [GNU Scientific Library](http://www.g
 Compiling the lcfit C++ extension library, the `lcfit-compare` tool, and the test suite requires a C++11-compatible compiler.
 Additionally, the `lcfit-compare` tool requires the libraries `bpp-core`, `bpp-seq`, and `bpp-phyl` from [Bio++ 2.2.0](http://biopp.univ-montp2.fr/wiki/index.php/Installation).
 
-
 On Debian/Ubuntu:
 
-```
+```shell
 sudo apt-get install \
     libgsl0-dev \
     libnlopt-dev \
@@ -29,6 +28,8 @@ sudo apt-get install \
 
 Run `make` to obtain static and dynamic libraries.
 Run `make doc` to build documentation (requires [Doxygen](http://doxygen.org)).
+
+To build the `lcfit-compare` tool required for running the example and simulations, run `make lcfit-compare`.
 
 
 ### Running unit tests
