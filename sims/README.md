@@ -18,7 +18,7 @@ $ pip install --egg SCons==2.3.0
 
 ``` shell
 # restore packrat project
-$ R --slave -e "0" --args --bootstrap-packrat"
+$ R --slave -e "0" --args --bootstrap-packrat
 ```
 
 R packages are installed into the `packrat/lib` directory for use in the RStudio project.
