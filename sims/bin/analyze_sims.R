@@ -100,20 +100,49 @@ if (plot_curves) {
 
 p.measure <- ggplot(measures, aes(x = model_name, fill = model_name)) +
   xlab("model") +
-  facet_grid(rdist_name ~ branch_length_rate, scales = "free_y") +
+  facet_grid(rdist_name ~ branch_length_rate) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1), 
+  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1),
         legend.position = "none")
 
-# KL divergence
-p.kl <- p.measure +
-  geom_boxplot(aes(y = kl)) +
-  ylab("KL divergence (bits)")
+# compute the upper limits of the boxplot whiskers for each rate distribution
+upper_limits <- measures %>%
+  group_by(rdist_name, branch_length_rate, model_name) %>%
+  summarize(kl = boxplot.stats(kl)$stats[5],
+            hellinger = boxplot.stats(hellinger)$stats[5]) %>%
+  group_by(rdist_name) %>%
+  summarize(top_kl = max(kl),
+            top_hellinger = max(hellinger))
 
-# Hellinger distance
-p.hellinger <- p.measure +
-  geom_boxplot(aes(y = hellinger)) +
-  ylab("Hellinger distance")
+measure_plots <- measures %>%
+  group_by(rdist_name) %>%
+  inner_join(upper_limits) %>%
+  do(kl = p.measure %+% . +
+       geom_boxplot(aes(y = kl)) +
+       coord_cartesian(ylim = 1.05 * c(0.0, .$top_kl[1])) +
+       ylab("KL divergence (bits)"),
+     hellinger = p.measure %+% . +
+       geom_boxplot(aes(y = hellinger)) +
+       coord_cartesian(ylim = 1.05 * c(0.0, .$top_hellinger[1])) +
+       ylab("Hellinger distance"))
+
+# summarize the outliers above the thresholds
+upper_limits.t <- upper_limits %>%
+  rename(kl = top_kl, hellinger = top_hellinger) %>%
+  gather(measure, limit, kl, hellinger)
+
+outliers <- measures %>%
+  gather(measure, value, kl, hellinger) %>%
+  group_by(rdist_name, branch_length_rate, measure) %>%
+  inner_join(upper_limits.t) %>%
+  filter(value > limit) %>%
+  summarize(count = n(),
+            threshold = first(limit),
+            mean = mean(value),
+            median = median(value),
+            max = max(value)) %>%
+  ungroup() %>%
+  arrange(measure, rdist_name, branch_length_rate)
 
 # asymptotic error
 # GOTCHA: there's one data point for which the asymptotic error is 
@@ -123,7 +152,7 @@ p.err <- p.measure %+% filter(lcfit, abs(err_max_t) < 3000) +
   ylab("asymptote error (nats)")
 
 pdf("measures.pdf")
-print(p.kl)
-print(p.hellinger)
+print(measure_plots$kl)
+print(measure_plots$hellinger)
 print(p.err)
 dev.off()
