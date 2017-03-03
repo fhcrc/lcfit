@@ -142,7 +142,7 @@ outliers <- measures %>%
   inner_join(upper_limits.t) %>%
   filter(value > limit) %>%
   summarize(count = n(),
-            threshold = first(limit),
+            lower_threshold = first(limit),
             mean = mean(value),
             median = median(value),
             max = max(value)) %>%
