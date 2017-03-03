@@ -98,9 +98,14 @@ if (plot_curves) {
 # distribution measures
 #
 
+# adjust branch length rate labels to show mu (scale) instead of lambda (rate)
+measures$branch_length_rate <- factor(measures$branch_length_rate,
+                                      labels = c(bquote(mu==0.1),
+                                                 bquote(mu==0.01)))
+
 p.measure <- ggplot(measures, aes(x = model_name, fill = model_name)) +
   xlab("model") +
-  facet_grid(rdist_name ~ branch_length_rate) +
+  facet_grid(. ~ branch_length_rate, labeller = label_parsed) +
   theme_bw(base_size = 18) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         legend.position = "none")
