@@ -168,8 +168,12 @@ pdf("kl-uniform.pdf")
 print(measure_plots$kl[[2]])
 dev.off()
 
-pdf("hellinger.pdf")
-print(measure_plots$hellinger)
+pdf("hellinger-gamma.pdf")
+print(measure_plots$hellinger[[1]])
+dev.off()
+
+pdf("hellinger-uniform.pdf")
+print(measure_plots$hellinger[[2]])
 dev.off()
 
 pdf("asymptote_err.pdf")
