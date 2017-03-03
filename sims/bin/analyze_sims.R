@@ -101,8 +101,8 @@ if (plot_curves) {
 p.measure <- ggplot(measures, aes(x = model_name, fill = model_name)) +
   xlab("model") +
   facet_grid(rdist_name ~ branch_length_rate) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 30, vjust = 1, hjust = 1),
+  theme_bw(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         legend.position = "none")
 
 # compute the upper limits of the boxplot whiskers for each rate distribution
