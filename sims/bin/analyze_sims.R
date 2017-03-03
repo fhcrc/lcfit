@@ -151,8 +151,22 @@ p.err <- p.measure %+% filter(lcfit, abs(err_max_t) < 3000) +
   geom_boxplot(aes(y = err_max_t)) +
   ylab("asymptote error (nats)")
 
-pdf("measures.pdf")
-print(measure_plots$kl)
+#pdf("kl.pdf")
+#print(measure_plots$kl)
+#dev.off()
+
+pdf("kl-gamma.pdf")
+print(measure_plots$kl[[1]])
+dev.off()
+
+pdf("kl-uniform.pdf")
+print(measure_plots$kl[[2]])
+dev.off()
+
+pdf("hellinger.pdf")
 print(measure_plots$hellinger)
+dev.off()
+
+pdf("asymptote_err.pdf")
 print(p.err)
 dev.off()
