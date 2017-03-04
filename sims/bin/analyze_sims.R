@@ -179,3 +179,10 @@ dev.off()
 pdf("asymptote_err.pdf")
 print(p.err)
 dev.off()
+
+# write KL outliers table to file
+outliers.kl <- filter(outliers, measure == "kl") %>%
+  select(-measure)
+colnames(outliers.kl) <- c("Rate Distribution", "Branch Length Mean", "Count", "Plot Threshold", "Mean", "Median", "Maximum")
+print.xtable(xtable(outliers.kl, label = "TABLEkloutliers", digits = 4),
+             file = "kl-outliers.texi")
