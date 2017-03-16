@@ -27,6 +27,9 @@ labels <- c(empirical = "empirical",
 
 plot_curves <- FALSE
 
+theme_set(theme_bw(18))
+theme_update(strip.background = element_blank())
+
 #
 # load data
 #
@@ -107,7 +110,6 @@ measures$branch_length_rate <- factor(measures$branch_length_rate,
 p.measure <- ggplot(measures, aes(x = model_name, fill = model_name)) +
   xlab("model") +
   facet_grid(. ~ branch_length_rate, labeller = label_parsed) +
-  theme_bw(base_size = 18) +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
         legend.position = "none")
 
