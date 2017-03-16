@@ -1,6 +1,7 @@
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(xtable)
 
 #
 # plot setup
