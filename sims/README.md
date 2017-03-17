@@ -22,7 +22,7 @@ pip install --egg SCons==2.3.0
 
 ``` shell
 # restore packrat project
-R --slave -e "0" --args --bootstrap-packrat
+R --no-restore --slave -e "0" --args --bootstrap-packrat
 ```
 
 packrat installs the R packages into the `packrat/lib` directory.
@@ -66,7 +66,7 @@ The simulation analysis isn't run as part of the SCons build above.
 Instead, it can be run from the command line:
 
 ``` shell
-R --slave -e "setwd('runs'); source('../bin/analyze_sims.R')"
+R --no-restore --slave -e "setwd('runs'); source('../bin/analyze_sims.R')"
 ```
 
 The analysis will produce the file `runs/measures.pdf` summarizing lcfit's performance.
