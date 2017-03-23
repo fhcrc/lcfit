@@ -51,16 +51,17 @@ double lcfit3n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* da
     const double* lnl = d->lnl;
     const double* w = d->w;
 
-    lcfit3_bsm_t model = { x[0], x[1], d->t0, d->d1, d->d2 };
+    lcfit3_bsm_t model = { x[0], x[1], x[2], d->d1, d->d2 };
 
     double sum_sq_err = 0.0;
 
     if (grad) {
         grad[0] = 0.0;
         grad[1] = 0.0;
+        grad[2] = 0.0;
     }
 
-    double grad_i[2];
+    double grad_i[3];
 
     for (size_t i = 0; i < n; ++i) {
         //
@@ -79,6 +80,7 @@ double lcfit3n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* da
 
             grad[0] -= 2 * w[i] * err * grad_i[0];
             grad[1] -= 2 * w[i] * err * grad_i[1];
+            grad[2] -= 2 * w[i] * err * grad_i[2];
         }
     }
 
