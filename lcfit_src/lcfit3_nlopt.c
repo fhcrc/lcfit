@@ -21,11 +21,11 @@ void lcfit3_print_state_nlopt(double sum_sq_err, const double* x, const double* 
     size_t iter = 0;
 
     fprintf(stderr, "N[%4zu] rsse = %.3f", iter, sqrt(sum_sq_err));
-    fprintf(stderr, ", model = { %.3f, %.3f }",
-            x[0], x[1]);
+    fprintf(stderr, ", model = { %.3f, %.3f, %.3f }",
+            x[0], x[1], x[2]);
     if (grad) {
-        fprintf(stderr, ", grad = { %.6f, %.6f }",
-                grad[0], grad[1]);
+        fprintf(stderr, ", grad = { %.6f, %.6f, %.6f }",
+                grad[0], grad[1], grad[2]);
     }
     fprintf(stderr, "\n");
 }
