@@ -114,6 +114,7 @@ double lcfit3_cons_cm_nlopt(unsigned p, const double* x, double* grad, void* dat
     if (grad) {
         grad[0] = -1.0;
         grad[1] = 1.0;
+        grad[2] = 0.0;
     }
 
     return m - c;
