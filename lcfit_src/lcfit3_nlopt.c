@@ -159,29 +159,29 @@ double lcfit3_cons_cmv_nlopt(unsigned p, const double* x, double* grad, void* da
 int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
                                const double* w, lcfit3_bsm_t* model)
 {
-    lcfit3_fit_data data = { n, t, lnl, w, model->t0, model->d1, model->d2 };
+    lcfit3_fit_data data = { n, t, lnl, w, model->d1, model->d2 };
 
-    const double lower_bounds[2] = { 1.0, 1.0 };
-    const double upper_bounds[2] = { INFINITY, INFINITY };
+    const double lower_bounds[3] = { 1.0, 1.0, 1.0 };
+    const double upper_bounds[3] = { INFINITY, INFINITY, INFINITY };
 
-    nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 2);
+    nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 3);
     nlopt_set_min_objective(opt, lcfit3n_opt_fdf_nlopt, &data);
     nlopt_set_lower_bounds(opt, lower_bounds);
     nlopt_set_upper_bounds(opt, upper_bounds);
 
     nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
-    nlopt_add_inequality_constraint(opt, lcfit3_cons_cmv_nlopt, &data, 0.0);
 
     nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
     nlopt_set_maxeval(opt, MAX_ITERATIONS);
 
-    double x[2] = { model->c, model->m };
+    double x[3] = { model->c, model->m, model->theta_b };
     double sum_sq_err = 0.0;
 
     int status = nlopt_optimize(opt, x, &sum_sq_err);
 
     model->c = x[0];
     model->m = x[1];
+    model->theta_b = x[2];
 
     nlopt_destroy(opt);
     return status;
