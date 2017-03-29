@@ -120,42 +120,6 @@ double lcfit3_cons_cm_nlopt(unsigned p, const double* x, double* grad, void* dat
     return m - c;
 }
 
-/** NLopt constraint function and its gradient for enforcing that \f$c + m - \nu > 0\f$.
- *
- * The constraint \f$c + m - \nu > 0\f$ implies that
- * \f[
- *   t_0 \leq \frac{1}{r} \log \left( \frac{c + m}{c - m} \right).
- * \f]
- * NLopt expects constraint functions of the form \f$f_c(x) \leq 0\f$, so we use
- * \f[
- *   f_c(x) = t_0 - \frac{1}{r} \log \left( \frac{c + m}{c - m} \right).
- * \f]
- *
- * \param[in]  p     Number of model parameters.
- * \param[in]  x     Model parameters to evaluate.
- * \param[out] grad  Gradient of the constraint function at \c x.
- * \param[in]  data  Observed log-likelihood data.
- *
- * \return Value of the constraint function at \c x.
- */
-double lcfit3_cons_cmv_nlopt(unsigned p, const double* x, double* grad, void* data)
-{
-    lcfit3_fit_data* d = (lcfit3_fit_data*) data;
-
-    const double c = x[0];
-    const double m = x[1];
-    const double t_0 = d->t0;
-    const double f_2 = d->d2;
-
-    if (grad) {
-        grad[0] = (1.0L/2.0L)*pow(c - m, 2)*(-1/(c - m) + (c + m)/pow(c - m, 2))/(sqrt(-c*f_2*m/(c + m))*(c + m)) - 1.0L/2.0L*log((c + m)/(c - m))/sqrt(-c*f_2*m/(c + m)) - 1.0L/4.0L*(c - m)*(-c*f_2*m/pow(c + m, 2) + f_2*m/(c + m))*log((c + m)/(c - m))/pow(-c*f_2*m/(c + m), 3.0L/2.0L);
-
-        grad[1] = -1.0L/2.0L*pow(c - m, 2)*(1.0/(c - m) + (c + m)/pow(c - m, 2))/(sqrt(-c*f_2*m/(c + m))*(c + m)) + (1.0L/2.0L)*log((c + m)/(c - m))/sqrt(-c*f_2*m/(c + m)) - 1.0L/4.0L*(c - m)*(-c*f_2*m/pow(c + m, 2) + c*f_2/(c + m))*log((c + m)/(c - m))/pow(-c*f_2*m/(c + m), 3.0L/2.0L);
-    }
-
-    return t_0 - 1.0L/2.0L*(c - m)*log((c + m)/(c - m))/sqrt(-c*f_2*m/(c + m));
-}
-
 int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
                                const double* w, lcfit3_bsm_t* model)
 {
