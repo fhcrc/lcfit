@@ -45,6 +45,9 @@ typedef struct {
 /** Converts an lcfit3 model to an lcfit4 model. */
 void lcfit3_to_lcfit4(const lcfit3_bsm_t* model3, bsm_t* model4);
 
+/** Computes the gradient of the normalized log-likelihood function at branch length \c t for a given model. */
+void lcfit3n_gradient(const double t, const lcfit3_bsm_t* model, double* grad);
+
 /** Computes the log-likelihood at branch length \c t for a given model. */
 double lcfit3_lnl(const double t, const lcfit3_bsm_t* model);
 
