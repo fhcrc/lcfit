@@ -61,7 +61,8 @@ int lcfit3n_fit_weighted(const size_t n, const double* t, const double* lnl,
 
 /** Fits a model to a log-likelihood function. */
 int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
-                    lcfit3_bsm_t* model, const double min_t, const double max_t);
+                    lcfit3_bsm_t* model, const double min_t, const double max_t,
+                    const double alpha);
 
 #ifdef __cplusplus
 } /* extern "C" */
