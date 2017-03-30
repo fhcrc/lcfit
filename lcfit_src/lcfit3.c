@@ -1,10 +1,12 @@
 #include "lcfit3.h"
 
+#include <assert.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "lcfit.h"
 #include "lcfit3_nlopt.h"
 
 void lcfit3_print_array(const char* name, const size_t n, const double* x)
@@ -41,6 +43,16 @@ double lcfit3_var_q(const lcfit3_bsm_t* model)
     return q;
 }
 
+double lcfit3_var_b(const lcfit3_bsm_t* model)
+{
+    const double theta_b = model->theta_b;
+
+    const double r = lcfit3_var_r(model);
+    const double b = log(theta_b) / r;
+
+    return b;
+}
+
 double lcfit3_var_theta(const double t, const lcfit3_bsm_t* model)
 {
     const double theta_b = model->theta_b;
@@ -49,6 +61,19 @@ double lcfit3_var_theta(const double t, const lcfit3_bsm_t* model)
     const double theta = theta_b * exp(r * t);
 
     return theta;
+}
+
+void lcfit3_to_lcfit4(const lcfit3_bsm_t* model3, bsm_t* model4)
+{
+    model4->c = model3->c;
+    model4->m = model3->m;
+    model4->r = lcfit3_var_r(model3);
+    model4->b = lcfit3_var_b(model3);
+
+    fprintf(stderr, "r = %g, b = %g\n", model4->r, model4->b);
+
+    assert(model4->r > 0.0);
+    assert(model4->b >= 0.0);
 }
 
 void lcfit3n_gradient(const double t, const lcfit3_bsm_t* model, double* grad)
