@@ -178,7 +178,7 @@ int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* ln
     nlopt_set_upper_bounds(opt, upper_bounds);
 
     nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
-    nlopt_add_inequality_constraint(opt, lcfit3_cons_theta_b_nlopt, &data, 0.0);
+    //nlopt_add_inequality_constraint(opt, lcfit3_cons_theta_b_nlopt, &data, 0.0);
     nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_nlopt, &data, 0.0);
 
     nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
