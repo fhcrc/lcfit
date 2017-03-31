@@ -13,13 +13,17 @@ set(LCFIT_LIB_C_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_select.h
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2.h
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_gsl.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_nlopt.h)
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_nlopt.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit3.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit3_nlopt.h)
 set(LCFIT_LIB_C_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit.c
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_select.c
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2.c
     ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_gsl.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_nlopt.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_nlopt.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit3.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/lcfit3_nlopt.c)
 add_library(lcfit-static STATIC ${LCFIT_LIB_C_FILES})
 add_library(lcfit SHARED ${LCFIT_LIB_C_FILES})
 target_link_libraries(lcfit-static
