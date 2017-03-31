@@ -162,18 +162,20 @@ int lcfit3n_fit_weighted(const size_t n, const double* t, const double* lnl,
     return lcfit3n_fit_weighted_nlopt(n, t, lnl, w, model);
 }
 
-void lcfit3_three_points(const lcfit3_bsm_t* model, const double min_t,
-                         const double max_t, double* t)
+void lcfit3_four_points(const lcfit3_bsm_t* model, const double min_t,
+                        const double max_t, double* t)
 {
     t[0] = min_t;
 
     // 1/2 derivative point of an exponential with the same slope at t = 0
     const double f_1 = model->d1;
     const double lambda = sqrt(-f_1);
-    t[1] = log(2)/lambda;
-    assert(t[1] > min_t && t[1] < max_t);
+    t[2] = log(2)/lambda;
+    assert(t[2] > min_t && t[2] < max_t);
 
-    t[2] = max_t;
+    t[1] = (t[0] + t[2]) / 2.0;
+
+    t[3] = max_t;
 }
 
 void lcfit3_normalize(const double max_lnl, const size_t n, double* lnl)
@@ -187,7 +189,7 @@ int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
                     lcfit3_bsm_t* model, const double min_t, const double max_t,
                     const double alpha)
 {
-    const size_t n_points = 3;
+    const size_t n_points = 4;
 
     double* t = malloc(n_points * sizeof(double));
     double* lnl = malloc(n_points * sizeof(double));
@@ -201,7 +203,7 @@ int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
     // initialize sample points
 
-    lcfit3_three_points(model, min_t, max_t, t);
+    lcfit3_four_points(model, min_t, max_t, t);
 
     // evaluate, normalize, compute weights, and fit
 
