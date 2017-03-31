@@ -149,6 +149,21 @@ double lcfit3_cons_theta_b_nlopt(unsigned p, const double* x, double* grad, void
     return theta_b - (c + m)/(c - m);
 }
 
+double lcfit3_cons_regime_3_nlopt(unsigned p, const double* x, double* grad, void* data)
+{
+    const double c = x[0];
+    const double m = x[1];
+    const double theta_b = x[2];
+
+    if (grad) {
+        grad[0] = -pow(sqrt(c) + sqrt(m), 2)/pow(c - m, 2) + (sqrt(c) + sqrt(m))/(sqrt(c)*(c - m));
+        grad[1] = pow(sqrt(c) + sqrt(m), 2)/pow(c - m, 2) + (sqrt(c) + sqrt(m))/(sqrt(m)*(c - m));
+        grad[2] = -1.0;
+    }
+
+    return -theta_b + pow(sqrt(c) + sqrt(m), 2)/(c - m);
+}
+
 int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
                                const double* w, lcfit3_bsm_t* model)
 {
@@ -164,6 +179,7 @@ int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* ln
 
     nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
     nlopt_add_inequality_constraint(opt, lcfit3_cons_theta_b_nlopt, &data, 0.0);
+    nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_nlopt, &data, 0.0);
 
     nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
     nlopt_set_maxeval(opt, MAX_ITERATIONS);
