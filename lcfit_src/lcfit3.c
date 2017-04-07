@@ -101,7 +101,6 @@ double lcfit3_lnl(const double t, const lcfit3_bsm_t* model)
 {
     const double c = model->c;
     const double m = model->m;
-    const double theta_b = model->theta_b;
 
     const double theta = lcfit3_var_theta(t, model);
 
