@@ -28,12 +28,14 @@ TEST_CASE("lcfit3 automatic fitting of a function works correctly", "[lcfit3_fit
     SECTION("with an lcfit4 log-likelihood function") {
         bsm_t true_model = REGIME_3;
 
-        const double theta_b = exp(true_model.b * true_model.r);
+        const double c = 1100.0;
+        const double m = 800.0;
+        const double theta_b = (c + m + 2*sqrt(c*m))/(c - m) + 1.0;
 
         const double d1 = lcfit4_d1f_t(0.0, &true_model);
         const double d2 = lcfit4_d2f_t(0.0, &true_model);
 
-        lcfit3_bsm_t fit_model = {1100.0, 800.0, 3.0, d1, d2};
+        lcfit3_bsm_t fit_model = {c, m, theta_b, d1, d2};
 
         const double min_t = 0.0;
         const double max_t = 10.0;
