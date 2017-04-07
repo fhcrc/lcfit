@@ -482,7 +482,7 @@ double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         const double m = model->m;
         const double theta_b = (c + m + 2.0*sqrt(c * m))/(c - m) + 1.0;
 
-        lcfit3_bsm_t lcfit3_model = {model->c, model->m, theta_b, d1, d2};
+        lcfit3_bsm_t lcfit3_model = {c, m, theta_b, d1, d2};
         const double alpha = 0.0;
 
         lcfit3_fit_auto(lnl_fn, lnl_fn_args, &lcfit3_model, min_t, max_t, alpha);
