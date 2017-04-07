@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "lcfit2.h"
+#include "lcfit3.h"
 
 const static size_t MAX_ITERS = 30;
 
@@ -477,14 +478,15 @@ double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
         lcfit2_fit_auto(lnl_fn, lnl_fn_args, &lcfit2_model, min_t, max_t, alpha);
         lcfit2_to_lcfit4(&lcfit2_model, model);
     } else {
-        // HACK: basically copied from AdHocIntegrator.cpp
+        const double c = model->c;
+        const double m = model->m;
+        const double theta_b = (c + m + 2.0*sqrt(c * m))/(c - m) + 1.0;
 
-        log_like_function_t lnl_fn_wrapper = {lnl_fn, lnl_fn_args};
-        double t[4] = {0.1, 0.5, 1.0, max_t};
-        const double tolerance = 1e-3;
-        bool success = false;
+        lcfit3_bsm_t lcfit3_model = {model->c, model->m, theta_b, d1, d2};
+        const double alpha = 0.0;
 
-        t0 = estimate_ml_t(&lnl_fn_wrapper, t, 4, tolerance, model, &success, min_t, max_t);
+        lcfit3_fit_auto(lnl_fn, lnl_fn_args, &lcfit3_model, min_t, max_t, alpha);
+        lcfit3_to_lcfit4(&lcfit3_model, model);
     }
 
     return t0;
