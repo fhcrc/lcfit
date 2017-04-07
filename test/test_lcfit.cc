@@ -569,21 +569,23 @@ TEST_CASE("lcfit_fit_auto converges to a good model", "[lcfit_fit_auto]") {
     SECTION("in regime 3") {
         bsm_t true_model = REGIME_3;
         double true_ml_t = lcfit_bsm_ml_t(&true_model);
+        double true_ml_ll = lcfit_bsm_log_like(true_ml_t, &true_model);
 
         bsm_t fit_model = DEFAULT_INIT;
 
         double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, &true_model, &fit_model, MIN_BL, MAX_BL);
+        double fit_ml_ll = lcfit_bsm_log_like(fit_ml_t, &fit_model);
 
         CAPTURE(fit_model);
         REQUIRE(fit_ml_t == Approx(true_ml_t));
 
-        const std::vector<double> ts = {MIN_BL, 1e-3, 1e-2, 1e-1, 1.0, 10.0};
+        const std::vector<double> ts = {MIN_BL, 1e-3, 1e-2, 1e-1, 1.0, MAX_BL};
         for (const double& t : ts) {
-            double fit_lnl = lcfit_bsm_log_like(t, &fit_model);
-            double true_lnl = lcfit_bsm_log_like(t, &true_model);
+            double fit_norm_lnl = lcfit_bsm_log_like(t, &fit_model) - fit_ml_ll;
+            double true_norm_lnl = lcfit_bsm_log_like(t, &true_model) - true_ml_ll;
 
             CAPTURE(t);
-            CHECK(fit_lnl == Approx(true_lnl).epsilon(1e-2));
+            CHECK(fit_norm_lnl == Approx(true_norm_lnl).epsilon(1e-2));
         }
     }
 }
