@@ -14,9 +14,9 @@
 extern "C" {
 #endif
 
-/** Fits a model to normalized log-likelihood data using NLopt, with weighting. */
-int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
-                               const double* w, lcfit3_bsm_t* model);
+/** Fits a model to log-likelihood data using NLopt, with weighting. */
+int lcfit3_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
+                              const double* w, lcfit3_bsm_t* model);
 
 #ifdef __cplusplus
 } /* extern "C" */

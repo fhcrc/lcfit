@@ -32,9 +32,6 @@ void lcfit3_print_state_nlopt(double sum_sq_err, const double* x, const double* 
 
 /** NLopt objective function and its gradient.
  *
- * This function expects that the observed log-likelihoods have been
- * normalized such that the log-likelihood at \f$t_0\f$ is zero.
- *
  * \param[in]  p     Number of model parameters.
  * \param[in]  x     Model parameters to evaluate.
  * \param[out] grad  Gradient of the objective function at \c x.
@@ -42,7 +39,7 @@ void lcfit3_print_state_nlopt(double sum_sq_err, const double* x, const double* 
  *
  * \return Sum of squared error from observed log-likelihoods.
  */
-double lcfit3n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* data)
+double lcfit3_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* data)
 {
     lcfit3_fit_data* d = (lcfit3_fit_data*) data;
 
@@ -64,19 +61,12 @@ double lcfit3n_opt_fdf_nlopt(unsigned p, const double* x, double* grad, void* da
     double grad_i[3];
 
     for (size_t i = 0; i < n; ++i) {
-        //
-        // We expect that the observed log-likelihoods have already
-        // been normalized. The error is therefore the sum of squared
-        // differences between those log-likelihoods and the
-        // normalized lcfit3 log-likelihoods f(t[i]) - f(t0).
-        //
-
-        const double err = lnl[i] - lcfit3_norm_lnl(t[i], &model);
+        const double err = lnl[i] - lcfit3_lnl(t[i], &model);
 
         sum_sq_err += w[i] * pow(err, 2.0);
 
         if (grad) {
-            lcfit3n_gradient(t[i], &model, grad_i);
+            lcfit3_gradient(t[i], &model, grad_i);
 
             grad[0] -= 2 * w[i] * err * grad_i[0];
             grad[1] -= 2 * w[i] * err * grad_i[1];
@@ -135,8 +125,8 @@ double lcfit3_cons_regime_3_nlopt(unsigned p, const double* x, double* grad, voi
     return -theta_b + pow(sqrt(c) + sqrt(m), 2)/(c - m);
 }
 
-int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
-                               const double* w, lcfit3_bsm_t* model)
+int lcfit3_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
+                              const double* w, lcfit3_bsm_t* model)
 {
     lcfit3_fit_data data = { n, t, lnl, w, model->d1, model->d2 };
 
@@ -144,7 +134,7 @@ int lcfit3n_fit_weighted_nlopt(const size_t n, const double* t, const double* ln
     const double upper_bounds[3] = { INFINITY, INFINITY, INFINITY };
 
     nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 3);
-    nlopt_set_min_objective(opt, lcfit3n_opt_fdf_nlopt, &data);
+    nlopt_set_min_objective(opt, lcfit3_opt_fdf_nlopt, &data);
     nlopt_set_lower_bounds(opt, lower_bounds);
     nlopt_set_upper_bounds(opt, upper_bounds);
 

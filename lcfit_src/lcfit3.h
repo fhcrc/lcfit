@@ -45,22 +45,19 @@ typedef struct {
 /** Converts an lcfit3 model to an lcfit4 model. */
 void lcfit3_to_lcfit4(const lcfit3_bsm_t* model3, bsm_t* model4);
 
-/** Computes the gradient of the normalized log-likelihood function at branch length \c t for a given model. */
-void lcfit3n_gradient(const double t, const lcfit3_bsm_t* model, double* grad);
+/** Computes the gradient of the log-likelihood function at branch length \c t for a given model. */
+void lcfit3_gradient(const double t, const lcfit3_bsm_t* model, double* grad);
 
 /** Computes the log-likelihood at branch length \c t for a given model. */
 double lcfit3_lnl(const double t, const lcfit3_bsm_t* model);
 
-/** Computes the normalized log-likelihood at branch length \c t for a given model. */
-double lcfit3_norm_lnl(const double t, const lcfit3_bsm_t* model);
+/** Fits a model to log-likelihood data, without weighting. */
+int lcfit3_fit(const size_t n, const double* t, const double* lnl,
+               lcfit3_bsm_t* model);
 
-/** Fits a model to normalized log-likelihood data, without weighting. */
-int lcfit3n_fit(const size_t n, const double* t, const double* lnl,
-                lcfit3_bsm_t* model);
-
-/** Fits a model to normalized log-likelihood data, with weighting. */
-int lcfit3n_fit_weighted(const size_t n, const double* t, const double* lnl,
-                         const double* w, lcfit3_bsm_t* model);
+/** Fits a model to log-likelihood data, with weighting. */
+int lcfit3_fit_weighted(const size_t n, const double* t, const double* lnl,
+                        const double* w, lcfit3_bsm_t* model);
 
 /** Fits a model to a log-likelihood function. */
 int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
