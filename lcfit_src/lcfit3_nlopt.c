@@ -158,32 +158,40 @@ double lcfit3_cons_regime_2_upper_nlopt(unsigned p, const double* x, double* gra
 
 const char* nlopt_strerror(int status);
 
+static nlopt_opt create_optimizer(nlopt_algorithm algorithm, lcfit3_bsm_t* model,
+                                  lcfit3_fit_data* data, unsigned int max_iterations)
+{
+    const double lower_bounds[3] = { 1.0, 1.0, 1.0 };
+    const double upper_bounds[3] = { INFINITY, INFINITY, INFINITY };
+
+    nlopt_opt opt = nlopt_create(algorithm, 3);
+    nlopt_set_min_objective(opt, lcfit3_opt_fdf_nlopt, data);
+    nlopt_set_lower_bounds(opt, lower_bounds);
+    nlopt_set_upper_bounds(opt, upper_bounds);
+
+    nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, data, 0.0);
+
+    if (model->d2 < 0.0) {
+        // regime 2 -- t0 is negative, inflection point is positive
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_lower_nlopt, data, 0.0);
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_upper_nlopt, data, 0.0);
+    } else {
+        // regime 3 -- t0 is negative, inflection point is negative
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_lower_nlopt, data, 0.0);
+    }
+
+    nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
+    nlopt_set_maxeval(opt, max_iterations);
+
+    return opt;
+}
+
 int lcfit3_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl,
                               const double* w, lcfit3_bsm_t* model)
 {
     lcfit3_fit_data data = { n, t, lnl, w, model->d1, model->d2 };
 
-    const double lower_bounds[3] = { 1.0, 1.0, 1.0 };
-    const double upper_bounds[3] = { INFINITY, INFINITY, INFINITY };
-
-    nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 3);
-    nlopt_set_min_objective(opt, lcfit3_opt_fdf_nlopt, &data);
-    nlopt_set_lower_bounds(opt, lower_bounds);
-    nlopt_set_upper_bounds(opt, upper_bounds);
-
-    nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
-
-    if (model->d2 < 0.0) {
-        // regime 2 -- t0 is negative, inflection point is positive
-        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_lower_nlopt, &data, 0.0);
-        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_upper_nlopt, &data, 0.0);
-    } else {
-        // regime 3 -- t0 is negative, inflection point is negative
-        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_lower_nlopt, &data, 0.0);
-    }
-
-    nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
-    nlopt_set_maxeval(opt, MAX_ITERATIONS);
+    nlopt_opt opt = create_optimizer(NLOPT_LD_SLSQP, model, &data, MAX_ITERATIONS);
 
     double x[3] = { model->c, model->m, model->theta_b };
     double sum_sq_err = 0.0;
@@ -193,26 +201,8 @@ int lcfit3_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl
     if (status < 0 || sum_sq_err > 1.0) {
         nlopt_destroy(opt);
 
-        opt = nlopt_create(NLOPT_LD_MMA, 3);
-        nlopt_set_min_objective(opt, lcfit3_opt_fdf_nlopt, &data);
-        nlopt_set_lower_bounds(opt, lower_bounds);
-        nlopt_set_upper_bounds(opt, upper_bounds);
-
-        nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
-
-        if (model->d2 < 0.0) {
-            // regime 2 -- t0 is negative, inflection point is positive
-            nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_lower_nlopt, &data, 0.0);
-            nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_upper_nlopt, &data, 0.0);
-        } else {
-            // regime 3 -- t0 is negative, inflection point is negative
-            nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_lower_nlopt, &data, 0.0);
-        }
-
-        nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
-
         // MMA converges more slowly than SLSQP, so allow more iterations
-        nlopt_set_maxeval(opt, 10*MAX_ITERATIONS);
+        opt = create_optimizer(NLOPT_LD_MMA, model, &data, 10*MAX_ITERATIONS);
 
         status = nlopt_optimize(opt, x, &sum_sq_err);
         fprintf(stderr, "secondary optimization complete\n");
