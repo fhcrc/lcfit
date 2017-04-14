@@ -110,7 +110,7 @@ double lcfit3_cons_cm_nlopt(unsigned p, const double* x, double* grad, void* dat
     return m - c;
 }
 
-double lcfit3_cons_regime_3_nlopt(unsigned p, const double* x, double* grad, void* data)
+double lcfit3_cons_regime_3_lower_nlopt(unsigned p, const double* x, double* grad, void* data)
 {
     const double c = x[0];
     const double m = x[1];
@@ -126,7 +126,7 @@ double lcfit3_cons_regime_3_nlopt(unsigned p, const double* x, double* grad, voi
 }
 
 // this constraint ensures that r > 0
-double lcfit3_cons_r_nlopt(unsigned p, const double* x, double* grad, void* data)
+double lcfit3_cons_regime_2_lower_nlopt(unsigned p, const double* x, double* grad, void* data)
 {
     const double c = x[0];
     const double m = x[1];
@@ -139,6 +139,21 @@ double lcfit3_cons_r_nlopt(unsigned p, const double* x, double* grad, void* data
     }
 
     return -theta_b + (c + m)/(c - m);
+}
+
+double lcfit3_cons_regime_2_upper_nlopt(unsigned p, const double* x, double* grad, void* data)
+{
+    const double c = x[0];
+    const double m = x[1];
+    const double theta_b = x[2];
+
+    if (grad) {
+        grad[0] = pow(sqrt(c) + sqrt(m), 2)/pow(c - m, 2) - (sqrt(c) + sqrt(m))/(sqrt(c)*(c - m));
+        grad[1] = -pow(sqrt(c) + sqrt(m), 2)/pow(c - m, 2) - (sqrt(c) + sqrt(m))/(sqrt(m)*(c - m));
+        grad[2] = 1.0;
+    }
+
+    return theta_b - pow(sqrt(c) + sqrt(m), 2)/(c - m);
 }
 
 const char* nlopt_strerror(int status);
@@ -157,8 +172,15 @@ int lcfit3_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl
     nlopt_set_upper_bounds(opt, upper_bounds);
 
     nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
-    //nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_nlopt, &data, 0.0);
-    nlopt_add_inequality_constraint(opt, lcfit3_cons_r_nlopt, &data, 0.0);
+
+    if (model->d2 < 0.0) {
+        // regime 2 -- t0 is negative, inflection point is positive
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_lower_nlopt, &data, 0.0);
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_upper_nlopt, &data, 0.0);
+    } else {
+        // regime 3 -- t0 is negative, inflection point is negative
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_lower_nlopt, &data, 0.0);
+    }
 
     nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
     nlopt_set_maxeval(opt, MAX_ITERATIONS);
@@ -177,8 +199,15 @@ int lcfit3_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl
         nlopt_set_upper_bounds(opt, upper_bounds);
 
         nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
-        //nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_nlopt, &data, 0.0);
-        nlopt_add_inequality_constraint(opt, lcfit3_cons_r_nlopt, &data, 0.0);
+
+        if (model->d2 < 0.0) {
+            // regime 2 -- t0 is negative, inflection point is positive
+            nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_lower_nlopt, &data, 0.0);
+            nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_2_upper_nlopt, &data, 0.0);
+        } else {
+            // regime 3 -- t0 is negative, inflection point is negative
+            nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_lower_nlopt, &data, 0.0);
+        }
 
         nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
 
