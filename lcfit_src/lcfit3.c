@@ -151,18 +151,35 @@ int lcfit3_fit_weighted(const size_t n, const double* t, const double* lnl,
     return lcfit3_fit_weighted_nlopt(n, t, lnl, w, model);
 }
 
-void lcfit3_four_points(const lcfit3_bsm_t* model, const double min_t,
-                        const double max_t, double* t)
+void lcfit3_four_points_exp(const lcfit3_bsm_t* model, const double min_t,
+                            const double max_t, double* t)
 {
     t[0] = min_t;
 
-    // 1/2 derivative point of an exponential with the same slope at t = 0
-    const double f_1 = model->d1;
-    const double lambda = sqrt(-f_1);
-    t[2] = log(2)/lambda;
+    // mean of an exponential with the same slope at t = 0
+    const double lambda = -(model->d1);
+    t[2] = 1.0 / lambda;
     assert(t[2] > min_t && t[2] < max_t);
 
     t[1] = (t[0] + t[2]) / 2.0;
+
+    t[3] = max_t;
+}
+
+void lcfit3_four_points_taylor(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                               const lcfit3_bsm_t* model, const double min_t,
+                               const double max_t, double* t)
+{
+    t[0] = min_t;
+
+    const double a = model->d2 / 2.0;
+    const double b = model->d1;
+    const double c = lnl_fn(min_t, lnl_fn_args) - lnl_fn(max_t, lnl_fn_args);
+    t[1] = (-b - sqrt(b*b - 4*a*c)) / (2*a);
+    assert(t[1] > min_t && t[1] < max_t);
+
+    t[2] = 10.0 * t[1];
+    assert(t[2] < max_t);
 
     t[3] = max_t;
 }
@@ -183,7 +200,17 @@ int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
     // initialize sample points
 
-    lcfit3_four_points(model, min_t, max_t, t);
+    if (model->d2 > 0.0) {
+        // choose points based on an approximation of the empirical
+        // curve as an exponential distribution with the same first
+        // derivative at zero
+        lcfit3_four_points_exp(model, min_t, max_t, t);
+    } else {
+        // choose points based on a second-order Taylor series
+        // expansion of the empirical curve at zero and the empirical
+        // asymptote
+        lcfit3_four_points_taylor(lnl_fn, lnl_fn_args, model, min_t, max_t, t);
+    }
 
     // evaluate, compute weights, and fit
 
