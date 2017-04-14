@@ -169,23 +169,23 @@ int lcfit3_fit_weighted_nlopt(const size_t n, const double* t, const double* lnl
     int status = nlopt_optimize(opt, x, &sum_sq_err);
 
     if (status < 0 || sum_sq_err > 1.0) {
-        nlopt_opt opt2 = nlopt_create(NLOPT_LD_MMA, 3);
-        nlopt_set_min_objective(opt2, lcfit3_opt_fdf_nlopt, &data);
-        nlopt_set_lower_bounds(opt2, lower_bounds);
-        nlopt_set_upper_bounds(opt2, upper_bounds);
+        nlopt_destroy(opt);
 
-        nlopt_add_inequality_constraint(opt2, lcfit3_cons_cm_nlopt, &data, 0.0);
-        //nlopt_add_inequality_constraint(opt2, lcfit3_cons_regime_3_nlopt, &data, 0.0);
-        nlopt_add_inequality_constraint(opt2, lcfit3_cons_r_nlopt, &data, 0.0);
+        opt = nlopt_create(NLOPT_LD_MMA, 3);
+        nlopt_set_min_objective(opt, lcfit3_opt_fdf_nlopt, &data);
+        nlopt_set_lower_bounds(opt, lower_bounds);
+        nlopt_set_upper_bounds(opt, upper_bounds);
 
-        nlopt_set_xtol_rel(opt2, sqrt(DBL_EPSILON));
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_cm_nlopt, &data, 0.0);
+        //nlopt_add_inequality_constraint(opt, lcfit3_cons_regime_3_nlopt, &data, 0.0);
+        nlopt_add_inequality_constraint(opt, lcfit3_cons_r_nlopt, &data, 0.0);
+
+        nlopt_set_xtol_rel(opt, sqrt(DBL_EPSILON));
 
         // MMA converges more slowly than SLSQP, so allow more iterations
-        nlopt_set_maxeval(opt2, 10*MAX_ITERATIONS);
+        nlopt_set_maxeval(opt, 10*MAX_ITERATIONS);
 
-        status = nlopt_optimize(opt2, x, &sum_sq_err);
-
-        nlopt_destroy(opt2);
+        status = nlopt_optimize(opt, x, &sum_sq_err);
         fprintf(stderr, "secondary optimization complete\n");
     }
 
