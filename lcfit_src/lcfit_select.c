@@ -480,7 +480,7 @@ double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     } else {
         const double c = model->c;
         const double m = model->m;
-        const double theta_b = (c + m + 2.0*sqrt(c * m))/(c - m) + 1.0;
+        const double theta_b = (c + m)/(c - m) + 1.0;
 
         lcfit3_bsm_t lcfit3_model = {c, m, theta_b, d1, d2};
         const double alpha = 0.0;
