@@ -158,10 +158,11 @@ void lcfit3_four_points_exp(const lcfit3_bsm_t* model, const double min_t,
 
     // mean of an exponential with the same slope at t = 0
     const double lambda = -(model->d1);
-    t[2] = 1.0 / lambda;
-    assert(t[2] > min_t && t[2] < max_t);
+    t[1] = 1.0 / lambda;
+    assert(t[1] > min_t && t[1] < max_t);
 
-    t[1] = (t[0] + t[2]) / 2.0;
+    t[2] = 2.0 * t[1];
+    assert(t[2] < max_t);
 
     t[3] = max_t;
 }
@@ -178,7 +179,7 @@ void lcfit3_four_points_taylor(double (*lnl_fn)(double, void*), void* lnl_fn_arg
     t[1] = (-b - sqrt(b*b - 4*a*c)) / (2*a);
     assert(t[1] > min_t && t[1] < max_t);
 
-    t[2] = 10.0 * t[1];
+    t[2] = 2.0 * t[1];
     assert(t[2] < max_t);
 
     t[3] = max_t;
