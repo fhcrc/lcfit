@@ -200,7 +200,7 @@ int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
     // initialize sample points
 
-    if (model->d2 > 0.0) {
+    if (model->d2 >= 0.0) {
         // choose points based on an approximation of the empirical
         // curve as an exponential distribution with the same first
         // derivative at zero
