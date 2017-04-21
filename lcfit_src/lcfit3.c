@@ -76,7 +76,7 @@ void lcfit3_to_lcfit4(const lcfit3_bsm_t* model3, bsm_t* model4)
     assert(model4->b >= 0.0);
 }
 
-void lcfit3n_gradient(const double t, const lcfit3_bsm_t* model, double* grad)
+void lcfit3_gradient(const double t, const lcfit3_bsm_t* model, double* grad)
 {
     const double c = model->c;
     const double m = model->m;
@@ -87,14 +87,9 @@ void lcfit3n_gradient(const double t, const lcfit3_bsm_t* model, double* grad)
     const double q = lcfit3_var_q(model);
     const double theta = lcfit3_var_theta(t, model);
 
-    //
-    // This is the gradient of the normalized log-likelihood function
-    // f(t) - f(0).
-    //
-
-    grad[0] = c*r*t*(theta_b - 1)/(q*theta*(1 + 1.0/theta)) + m*r*t*(theta_b - 1)/(q*theta*(-1 + 1.0/theta)) + log(1 + 1.0/theta) - log(1 + 1.0/theta_b);
-    grad[1] = -c*r*t*(theta_b + 1)/(q*theta*(1 + 1.0/theta)) - m*r*t*(theta_b + 1)/(q*theta*(-1 + 1.0/theta)) + log(1 - 1/theta) - log(1 - 1/theta_b);
-    grad[2] = c*((2*f_1*t*theta_b/q + r*t*(c - m)/q)/theta - 1/(theta*theta_b))/(1 + 1.0/theta) + c/(pow(theta_b, 2)*(1 + 1.0/theta_b)) + m*((2*f_1*t*theta_b/q + r*t*(c - m)/q)/theta - 1/(theta*theta_b))/(-1 + 1.0/theta) + m/(pow(theta_b, 2)*(-1 + 1.0/theta_b));
+    grad[0] = c*r*t*(theta_b - 1)/(q*theta*(1 + 1.0/theta)) + m*r*t*(theta_b - 1)/(q*theta*(-1 + 1.0/theta)) + log(1 + 1.0/theta) - log(2);
+    grad[1] = -c*r*t*(theta_b + 1)/(q*theta*(1 + 1.0/theta)) - m*r*t*(theta_b + 1)/(q*theta*(-1 + 1.0/theta)) + log(1 - 1/theta) - log(2);
+    grad[2] = c*((2*f_1*t*theta_b/q + r*t*(c - m)/q)/theta - 1/(theta*theta_b))/(1 + 1.0/theta) + m*((2*f_1*t*theta_b/q + r*t*(c - m)/q)/theta - 1/(theta*theta_b))/(-1 + 1.0/theta);
 }
 
 double lcfit3_lnl(const double t, const lcfit3_bsm_t* model)
@@ -107,11 +102,6 @@ double lcfit3_lnl(const double t, const lcfit3_bsm_t* model)
     const double lnl = c * log(1 + 1/theta) + m * log(1 - 1/theta) - (c + m) * log(2);
 
     return lnl;
-}
-
-double lcfit3_norm_lnl(const double t, const lcfit3_bsm_t* model)
-{
-    return lcfit3_lnl(t, model) - lcfit3_lnl(0.0, model);
 }
 
 void lcfit3_evaluate_fn(double (*lnl_fn)(double, void*), void* lnl_fn_args,
@@ -140,48 +130,59 @@ double lcfit3_compute_weights(const size_t n, const double* lnl,
     return max_lnl;
 }
 
-int lcfit3n_fit(const size_t n, const double* t, const double* lnl,
-                lcfit3_bsm_t* model)
+int lcfit3_fit(const size_t n, const double* t, const double* lnl,
+               lcfit3_bsm_t* model)
 {
     double* w = malloc(n * sizeof(double));
     for (size_t i = 0; i < n; ++i) {
         w[i] = 1.0;
     }
 
-    int status = lcfit3n_fit_weighted(n, t, lnl, w, model);
+    int status = lcfit3_fit_weighted(n, t, lnl, w, model);
 
     free(w);
 
     return status;
 }
 
-int lcfit3n_fit_weighted(const size_t n, const double* t, const double* lnl,
-                         const double* w, lcfit3_bsm_t* model)
+int lcfit3_fit_weighted(const size_t n, const double* t, const double* lnl,
+                        const double* w, lcfit3_bsm_t* model)
 {
-    return lcfit3n_fit_weighted_nlopt(n, t, lnl, w, model);
+    return lcfit3_fit_weighted_nlopt(n, t, lnl, w, model);
 }
 
-void lcfit3_four_points(const lcfit3_bsm_t* model, const double min_t,
-                        const double max_t, double* t)
+void lcfit3_four_points_exp(const lcfit3_bsm_t* model, const double min_t,
+                            const double max_t, double* t)
 {
     t[0] = min_t;
 
-    // 1/2 derivative point of an exponential with the same slope at t = 0
-    const double f_1 = model->d1;
-    const double lambda = sqrt(-f_1);
-    t[2] = log(2)/lambda;
-    assert(t[2] > min_t && t[2] < max_t);
+    // mean of an exponential with the same slope at t = 0
+    const double lambda = -(model->d1);
+    t[1] = 1.0 / lambda;
+    assert(t[1] > min_t && t[1] < max_t);
 
-    t[1] = (t[0] + t[2]) / 2.0;
+    t[2] = 2.0 * t[1];
+    assert(t[2] < max_t);
 
     t[3] = max_t;
 }
 
-void lcfit3_normalize(const double max_lnl, const size_t n, double* lnl)
+void lcfit3_four_points_taylor(double (*lnl_fn)(double, void*), void* lnl_fn_args,
+                               const lcfit3_bsm_t* model, const double min_t,
+                               const double max_t, double* t)
 {
-    for (size_t i = 0; i < n; ++i) {
-        lnl[i] -= max_lnl;
-    }
+    t[0] = min_t;
+
+    const double a = model->d2 / 2.0;
+    const double b = model->d1;
+    const double c = lnl_fn(min_t, lnl_fn_args) - lnl_fn(max_t, lnl_fn_args);
+    t[1] = (-b - sqrt(b*b - 4*a*c)) / (2*a);
+    assert(t[1] > min_t && t[1] < max_t);
+
+    t[2] = 2.0 * t[1];
+    assert(t[2] < max_t);
+
+    t[3] = max_t;
 }
 
 int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
@@ -194,20 +195,27 @@ int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     double* lnl = malloc(n_points * sizeof(double));
     double* w = malloc(n_points * sizeof(double));
 
-    const double max_lnl = lnl_fn(min_t, lnl_fn_args);
-
     //
     // first pass
     //
 
     // initialize sample points
 
-    lcfit3_four_points(model, min_t, max_t, t);
+    if (model->d2 >= 0.0) {
+        // choose points based on an approximation of the empirical
+        // curve as an exponential distribution with the same first
+        // derivative at zero
+        lcfit3_four_points_exp(model, min_t, max_t, t);
+    } else {
+        // choose points based on a second-order Taylor series
+        // expansion of the empirical curve at zero and the empirical
+        // asymptote
+        lcfit3_four_points_taylor(lnl_fn, lnl_fn_args, model, min_t, max_t, t);
+    }
 
-    // evaluate, normalize, compute weights, and fit
+    // evaluate, compute weights, and fit
 
     lcfit3_evaluate_fn(lnl_fn, lnl_fn_args, n_points, t, lnl);
-    lcfit3_normalize(max_lnl, n_points, lnl);
     lcfit3_compute_weights(n_points, lnl, alpha, w);
 
 #ifdef LCFIT3_VERBOSE
@@ -215,7 +223,7 @@ int lcfit3_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     lcfit3_print_array("w", n_points, w);
 #endif /* LCFIT3_VERBOSE */
 
-    int status = lcfit3n_fit_weighted(n_points, t, lnl, w, model);
+    int status = lcfit3_fit_weighted(n_points, t, lnl, w, model);
 
     free(t);
     free(lnl);

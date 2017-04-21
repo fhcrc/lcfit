@@ -912,6 +912,11 @@ double lcfit_maximize(double (*lnl_fn)(double, void*), void* lnl_fn_args,
 
     if (is_bracketed) {
         guess = find_maximum(lnl_fn, lnl_fn_args, guess, min_t, max_t);
+    } else {
+        // Assume the curve is decreasing, and offset the sample point
+        // proportional to the central difference step size used for
+        // estimating derivatives.
+        guess = min_t * (1.0 + 10.0 * pow(DBL_EPSILON, 0.25));
     }
 
     if (d1 && d2) {

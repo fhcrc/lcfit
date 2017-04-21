@@ -480,7 +480,18 @@ double lcfit_fit_auto(double (*lnl_fn)(double, void*), void* lnl_fn_args,
     } else {
         const double c = model->c;
         const double m = model->m;
-        const double theta_b = (c + m + 2.0*sqrt(c * m))/(c - m) + 1.0;
+
+        double theta_b;
+        if (d2 < 0.0) {
+            // regime 2
+            const double lower_bound = (c + m)/(c - m);
+            const double upper_bound = pow(sqrt(c) + sqrt(m), 2)/(c - m);
+            theta_b = (lower_bound + upper_bound) / 2.0;
+        } else {
+            // regime 3
+            const double lower_bound = pow(sqrt(c) + sqrt(m), 2)/(c - m);
+            theta_b = lower_bound + 1.0;
+        }
 
         lcfit3_bsm_t lcfit3_model = {c, m, theta_b, d1, d2};
         const double alpha = 0.0;
