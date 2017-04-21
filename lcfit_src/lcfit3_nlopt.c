@@ -138,7 +138,9 @@ double lcfit3_cons_regime_2_lower_nlopt(unsigned p, const double* x, double* gra
         grad[2] = -1.0;
     }
 
-    return -theta_b + (c + m)/(c - m);
+    // a small epsilon is added here because NLopt uses constraints of
+    // the form fc(x) <= 0, but our inequality is strictly fc(x) < 0
+    return -theta_b + (c + m)/(c - m) + 1e-3;
 }
 
 double lcfit3_cons_regime_2_upper_nlopt(unsigned p, const double* x, double* grad, void* data)
