@@ -1,6 +1,9 @@
-likelihoods.pdf: likelihoods.csv
-	Rscript plot_fits.R likelihoods.csv likelihoods.maxima.csv likelihoods.fit.csv $@
+.PHONY: all
 
-likelihoods.csv:
-	../_build/release/lcfit_cpp_src/lcfit-compare \
-		param=test.params.bpp
+all: curves.pdf
+
+lnl.csv:
+	../_build/debug/lcfit_cpp_src/lcfit-compare param=test.params.bpp
+
+curves.pdf: lnl.csv
+	Rscript plot_example.R

@@ -1,7 +1,7 @@
 PackratFormat: 1.4
 PackratVersion: 0.4.7.1
 RVersion: 3.2.4
-Repos: CRAN=https://cran.fhcrc.org/
+Repos: CRAN=https://cran.rstudio.com/
 
 Package: BH
 Source: CRAN
@@ -142,3 +142,8 @@ Source: CRAN
 Version: 0.4.1
 Hash: f04fea3f45f0fd8246e22d3c38f0e98f
 Requires: Rcpp, dplyr, lazyeval, magrittr, stringi
+
+Package: xtable
+Source: CRAN
+Version: 1.8-2
+Hash: 7293235cfcc14cdff1ce7fd1a0212031

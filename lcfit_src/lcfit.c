@@ -36,9 +36,6 @@ const static double BSM_R_MIN = 1e-9;
 /** Maximum bound on mutation rate. */
 const static double BSM_R_MAX = 100.0;
 
-/** Minimum bound on branch length offset. */
-const static double BSM_B_MIN = 1e-12;
-
 const bsm_t DEFAULT_INIT = {1100.0, 800.0, 2.0, 0.5};
 
 /* calculate the sum of logs */
@@ -370,12 +367,19 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t, const double*, const double*, con
 
 int check_model(const bsm_t* m)
 {
-    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m || m->r <= 0.0 || m->b < 0.0) {
+    /* Check c and m. */
+    if (m->c < 1.0 || m->m < 1.0 || m->c < m->m) {
         return 1;
     }
 
-    if (m->r > BSM_R_MAX) {
+    /* Check r. */
+    if (m->r <= 0.0 || m->r < BSM_R_MIN || m->r > BSM_R_MAX) {
         return 2;
+    }
+
+    /* Check b. */
+    if (m->b < 0.0) {
+        return 3;
     }
 
     return 0;
@@ -575,7 +579,7 @@ int lcfit_fit_bsm_weighted_nlopt(const size_t n,
 {
     struct data_to_fit fit_data = { n, t, l, w, 0 };
 
-    const double lower_bounds[4] = { 1, 1, BSM_R_MIN, BSM_B_MIN };
+    const double lower_bounds[4] = { 1.0, 1.0, BSM_R_MIN, 0.0 };
     const double upper_bounds[4] = { INFINITY, INFINITY, BSM_R_MAX, INFINITY };
 
     nlopt_opt opt = nlopt_create(NLOPT_LD_SLSQP, 4);

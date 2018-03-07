@@ -1,1 +1,0 @@
-../../lcfit_cpp_src/lcfit_rejection_sampler.cc
