@@ -127,7 +127,7 @@ measure_plots <- measures %>%
   inner_join(upper_limits) %>%
   do(kl = p.measure %+% . +
        geom_boxplot(aes(y = kl)) +
-       coord_cartesian(ylim = 1.05 * c(0.0, .$top_kl[1])) +
+       scale_y_log10() +
        ylab("KL divergence (bits)"),
      hellinger = p.measure %+% . +
        geom_boxplot(aes(y = hellinger)) +
