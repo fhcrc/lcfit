@@ -14,12 +14,14 @@ for k in ('SLURM_NTASKS', 'SLURM_NPROCS', 'SLURM_NNODES',
 environ['SLURM_TIMELIMIT'] = '0-6'
 
 env = Environment(ENV=environ)
-#env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
-env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
+env.PrependENVPath('PATH', '../_build/debug/lcfit_cpp_src')
+#env.PrependENVPath('PATH', '../_build/release/lcfit_cpp_src')
 #env.PrependENVPath('PATH', '../example')
 #env.PrependENVPath('PATH', './bin')
 
-env['SRUN'] = 'srun'
+env.PrependENVPath('R_LIBS_USER', './venv/lib/R')
+
+env['SRUN'] = ''
 
 n = Nest(base_dict={'n_sites': 1000})
 w = SConsWrap(n, 'runs', alias_environment=env)
@@ -28,7 +30,7 @@ w = SConsWrap(n, 'runs', alias_environment=env)
 models = {
     # Nucleotide models
     'JC': {'name': 'JC69', 'alphabet': 'DNA'},
-    'Binary-0.25': {'name': 'Binary(kappa=0.25)', 'alphabet': 'Binary'},
+    #'Binary-0.25': {'name': 'Binary(kappa=0.25)', 'alphabet': 'Binary'},
     'Binary-1.0': {'name': 'Binary(kappa=1.0)', 'alphabet': 'Binary'},
     'Binary-4.0': {'name': 'Binary(kappa=4.0)', 'alphabet': 'Binary'},
     'HKY85-2.0': {'name': 'HKY85(kappa=2.0, theta=0.5, theta1=0.5, theta2=0.75)',
@@ -41,6 +43,7 @@ models = {
     # Codons
     #'MG94-10': {'name': 'MG94(rho=10)', 'alphabet': 'Codon(letter=DNA, type=Standard)'},
     'YN98-2-5': {'name': 'YN98(kappa=2, omega=5)', 'alphabet': 'Codon(letter=DNA)\ngenetic_code=Standard'},
+
     # Nonhomogenous
     'nonhom-dna': {
         'alphabet': 'DNA',
@@ -71,7 +74,7 @@ rdist = {
 }
 
 w.add('branch_length_rate', [10, 100])
-w.add('seed', range(1))
+w.add('seed', range(10))
 w.add('n_leaves', [10], create_dir=False)
 
 
@@ -202,8 +205,8 @@ def ml_tree(outdir, c):
 @w.add_target_with_env(env)
 def lcfit(env, outdir, c):
     targets = [os.path.join(outdir, i)
-               for i in ('lcfit_bls.csv', 'lcfit_maxima.csv', 'lcfit_fit.csv',
-                         'lcfit_tol.csv')]
+               for i in ('lnl.csv',
+                         'lcfit.csv')]
     env['ENV']['SLURM_JOB_NAME'] = 'lcfit-{seed}-{model_name}-{rdist_name}-{branch_length_rate}'.format(**c)
     command = ( '${SRUN} '
                'lcfit-compare '
@@ -212,25 +215,12 @@ def lcfit(env, outdir, c):
                'input.tree.format=Newick '
                'input.sequence.file=${SOURCES[0]} '
                'input.sequence.format=Fasta '
-               'lcfit.starting.values=$initial ' +
-               'lcfit.sample.branch.lengths=$sample ' +
-               'lcfit.tolerance.values=1e-6,1e-5,1e-4,1e-3,1e-2 '
-               'lcfit.output.likelihoods_file=${TARGETS[0]} '
-               'lcfit.output.maxima_file=${TARGETS[1]} '
-               'lcfit.output.fit_file=${TARGETS[2]} '
-               'lcfit.output.mltol_file=${TARGETS[3]}')
+               'lcfit.output.lnl_file=${TARGETS[0]} '
+               'lcfit.output.fit_file=${TARGETS[1]} ')
 
     return env.Command(targets,
                        [c['alignment'], c['ml_tree'], c['model_file']],
                        command)
-
-
-@w.add_target()
-def lcfit_plots(outdir, c):
-    return env.Command(os.path.join(outdir, 'lcfit_plots.pdf'),
-                       c['lcfit'][:3],
-                       'plot_fits.R $SOURCES $TARGET')
-
 
 w.add_controls(env)
 
@@ -238,53 +228,12 @@ w.add_controls(env)
 # aggregation
 #
 
-agg_bls = env.Command(os.path.join(w.dest_dir, 'agg_bls.csv'),
+agg_lnl = env.Command(os.path.join(w.dest_dir, 'lnl.agg.csv'),
                       [c['control'] for _, c in w],
-                      'nestagg delim lcfit_bls.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
-env.Depends(agg_bls, [c['lcfit'][0] for _, c in w])
+                      'nestagg delim lnl.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_lnl, [c['lcfit'][0] for _, c in w])
 
-agg_tol = env.Command(os.path.join(w.dest_dir, 'agg_tol.csv'),
+agg_fit = env.Command(os.path.join(w.dest_dir, 'lcfit.agg.csv'),
                       [c['control'] for _, c in w],
-                      'nestagg delim lcfit_tol.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
-env.Depends(agg_tol, [c['lcfit'][3] for _, c in w])
-
-agg_fit = env.Command(os.path.join(w.dest_dir, 'agg_fit.csv'),
-                      [c['control'] for _, c in w],
-                      'nestagg delim lcfit_fit.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
-env.Depends(agg_fit, [c['lcfit'][2] for _, c in w])
-
-agg_maxima = env.Command(os.path.join(w.dest_dir, 'agg_maxima.csv'),
-                      [c['control'] for _, c in w],
-                      'nestagg delim lcfit_maxima.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
-env.Depends(agg_maxima, [c['lcfit'][1] for _, c in w])
-
-#
-# reports
-#
-
-performance_report = env.Command(os.path.join(w.dest_dir, 'performance.html'),
-                                 ['performance.Rmd', agg_maxima, agg_tol],
-                                 "R -e \"rmarkdown::render('${SOURCES[0]}', output_file = '$TARGET')\"")
-
-distribution_report = env.Command(os.path.join(w.dest_dir, 'distributions.html'),
-                                  ['distributions.Rmd', agg_maxima, agg_tol, agg_bls],
-                                  "R -e \"rmarkdown::render('${SOURCES[0]}', output_file = '$TARGET')\"")
-
-#
-# disabled targets
-#
-
-# agg_results = env.Command(['agg.csv', 'ml_branch_length_vs_kl.png', 'ml_branch_length_vs_rel_err.svg', 't_vs_that.svg', 't_vs_that_iter.svg', 'hellinger.png', 'kl.svg', 'kl_hellinger.pdf'],
-#                           [i['control'] for _, i in w],
-#                           'aggregate.R $SOURCES')
-# # depends on all the lcfit_fit.csv files
-# env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
-
-# # aggregate error measurements from all the simulated data sets
-# agg_results = env.Command(['aggfit.csv'],
-#                           [i['control'] for _, i in w],
-#                           'aggfit.R $SOURCES >${TARGETS[0]}')
-# # depends on all the lcfit_fit.csv files
-
-# print([i['control'] for _, i in w][1])
-# env.Depends(agg_results, env.Flatten([c['lcfit'] for _, c in w]))
+                      'nestagg delim lcfit.csv $SOURCES -o $TARGET -k source_tree,n_sites,n_leaves,seed,model_name,rdist_name,branch_length_rate')
+env.Depends(agg_fit, [c['lcfit'][1] for _, c in w])

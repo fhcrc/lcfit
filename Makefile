@@ -1,83 +1,41 @@
-# To build lcfit-compare, you need a specific version of bpp in your path
-#
-#	module load bpp/master-201404114
-#
-# To build a debug version of lcfit,
-#
-#	make -C _build/debug/ lcfit-compare
-#
-# This will leave lcfit-compare in ./_build/debug/lcfit_cpp_src/lcfit-compare
+.PHONY: all cmake-debug debug cmake-release release lcfit-compare lcfit-test test example clean doc
 
+BUILD_DIR	:= _build
+RELEASE_DIR	:= $(BUILD_DIR)/release
+DEBUG_DIR 	:= $(BUILD_DIR)/debug
 
-
-.PHONY: all lcfit-compare lcfit-test setup-cmake clean run test doc release debug build-all example
-
-BUILD := _build
-CMAKE_BUILD_TYPE = Release
-BUILD_DIR = $(BUILD)/release
+CMAKE_FLAGS	:= -D CMAKE_C_COMPILER=$(CC) -D CMAKE_CXX_COMPILER=$(CXX)
 
 all: release
 
-release: CMAKE_BUILD_TYPE=Release
-release: BUILD_DIR=$(BUILD)/release
-release: build-all
+cmake-debug:
+	mkdir -p $(DEBUG_DIR)
+	cd $(DEBUG_DIR) && cmake $(CMAKE_FLAGS) -D CMAKE_BUILD_TYPE=Debug ../..
 
-debug: CMAKE_BUILD_TYPE=Debug
-debug: BUILD_DIR=$(BUILD)/debug
-debug: build-all
+debug: cmake-debug
+	$(MAKE) -C $(DEBUG_DIR)
 
-build-all: setup-cmake
-	$(MAKE) -C $(BUILD_DIR)
+cmake-release:
+	mkdir -p $(RELEASE_DIR)
+	cd $(RELEASE_DIR) && cmake $(CMAKE_FLAGS) -D CMAKE_BUILD_TYPE=Release ../..
 
-test: CMAKE_BUILD_TYPE=Debug
-test: BUILD_DIR=$(BUILD)/debug
+release: cmake-release
+	$(MAKE) -C $(RELEASE_DIR)
+
+lcfit-compare: debug
+	$(MAKE) -C $(DEBUG_DIR) $@
+
+lcfit-test: debug
+	$(MAKE) -C $(DEBUG_DIR) $@
+
 test: lcfit-test
-	$(BUILD_DIR)/lcfit_cpp_src/lcfit-test 2> lcfit-test.log
+	$(DEBUG_DIR)/test/lcfit-test 2> lcfit-test.log
 
-example: release lcfit-compare
-example:
+example: lcfit-compare
 	$(MAKE) -C example
 
-lcfit-r:
-	R -e "Rcpp::compileAttributes('lcfit_R')"
-	R CMD INSTALL --library=$(PWD)/sims/venv/lib/R lcfit_R
-
-lcfit-compare: setup-cmake
-	$(MAKE) -C$(BUILD_DIR) $@
-
-lcfit2-compare: CMAKE_BUILD_TYPE=Debug
-lcfit2-compare: BUILD_DIR=$(BUILD)/debug
-lcfit2-compare: setup-cmake
-	$(MAKE) -C$(BUILD_DIR) $@
-
-lcfit-bakeoff: CMAKE_BUILD_TYPE=Debug
-lcfit-bakeoff: BUILD_DIR=$(BUILD)/debug
-lcfit-bakeoff: setup-cmake
-	$(MAKE) -C$(BUILD_DIR) $@
-
-lcfit-test: CMAKE_BUILD_TYPE=Debug
-lcfit-test: BUILD_DIR=$(BUILD)/debug
-lcfit-test: setup-cmake
-	$(MAKE) -C$(BUILD_DIR) $@
-
-setup-cmake:
-	mkdir -p $(BUILD_DIR)
-	cd $(BUILD_DIR) && cmake -DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) ../..
-
 clean:
-	rm -rf $(BUILD)
+	rm -rf $(BUILD_DIR)
 
 doc:
 	doxygen
-
-style:
-	astyle  -A3 \
-	        --pad-oper \
-	        --unpad-paren \
-	        --keep-one-line-blocks \
-	        --keep-one-line-statements \
-	        --suffix=none \
-	        --formatted \
-	        --lineend=linux \
-					--align-pointer=type \
-	        `find src -regextype posix-extended -regex ".*\.(cc|h|hpp)$$"`

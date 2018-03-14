@@ -1,9 +1,6 @@
 cmake_minimum_required (VERSION 2.8.1)
 
-# Comparison
 project(liblcfit_cpp C CXX)
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pedantic")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -DVERBOSE")
 
 set(LCFIT_LIB_CPP_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/gsl.h
@@ -34,12 +31,6 @@ target_link_libraries(lcfit_cpp
 set(LCFIT_COMPARE_CPP
   ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_compare.cc)
 
-set(LCFIT_BAKEOFF_CPP
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit_bakeoff.cc)
-
-set(LCFIT2_COMPARE_CPP
-  ${CMAKE_CURRENT_SOURCE_DIR}/lcfit2_compare.cc)
-
 set(LCFIT_APP_LIBS
   bpp-core
   bpp-seq
@@ -48,19 +39,3 @@ set(LCFIT_APP_LIBS
 
 add_executable(lcfit-compare EXCLUDE_FROM_ALL ${LCFIT_COMPARE_CPP})
 target_link_libraries(lcfit-compare ${LCFIT_APP_LIBS})
-
-add_executable(lcfit-bakeoff EXCLUDE_FROM_ALL ${LCFIT_BAKEOFF_CPP})
-target_link_libraries(lcfit-bakeoff ${LCFIT_APP_LIBS})
-
-add_executable(lcfit2-compare EXCLUDE_FROM_ALL ${LCFIT2_COMPARE_CPP})
-target_link_libraries(lcfit2-compare ${LCFIT_APP_LIBS})
-
-# lcfit-test
-
-add_executable(lcfit-test EXCLUDE_FROM_ALL
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit_cpp.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_lcfit2.cc
-  ${CMAKE_CURRENT_SOURCE_DIR}/test_main.cc)
-target_link_libraries(lcfit-test
-  lcfit_cpp-static)

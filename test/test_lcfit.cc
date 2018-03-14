@@ -4,6 +4,7 @@
 #include "lcfit.h"
 #include "lcfit_priv.h"
 #include "lcfit_select.h"
+#include <gsl/gsl_version.h>
 
 std::ostream& operator<<(std::ostream& os, const bsm_t& model)
 {
@@ -516,7 +517,7 @@ TEST_CASE("lcfit_fit_auto converges to a good model", "[lcfit_fit_auto]") {
         //bsm_t fit_model = DEFAULT_INIT;
         bsm_t fit_model = {1100.0, 100.0, 2.0, 0.5};
 
-        double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, &true_model, &fit_model, MIN_BL, MAX_BL);
+		double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, NULL, &true_model, &fit_model, MIN_BL, MAX_BL);
         double fit_ml_ll = lcfit_bsm_log_like(fit_ml_t, &fit_model);
 
         CAPTURE(fit_model);
@@ -544,8 +545,7 @@ TEST_CASE("lcfit_fit_auto converges to a good model", "[lcfit_fit_auto]") {
 
         //bsm_t fit_model = DEFAULT_INIT;
         bsm_t fit_model = {1100.0, 100.0, 2.0, 0.5};
-
-        double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, &true_model, &fit_model, MIN_BL, MAX_BL);
+        double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, NULL, &true_model, &fit_model, MIN_BL, MAX_BL);
         double fit_ml_ll = lcfit_bsm_log_like(fit_ml_t, &fit_model);
 
         CAPTURE(fit_model);
@@ -571,8 +571,7 @@ TEST_CASE("lcfit_fit_auto converges to a good model", "[lcfit_fit_auto]") {
         double true_ml_t = lcfit_bsm_ml_t(&true_model);
 
         bsm_t fit_model = DEFAULT_INIT;
-
-        double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, &true_model, &fit_model, MIN_BL, MAX_BL);
+		double fit_ml_t = lcfit_fit_auto(lcfit_lnl_callback, NULL, &true_model, &fit_model, MIN_BL, MAX_BL);
 
         CAPTURE(fit_model);
         REQUIRE(fit_ml_t == Approx(true_ml_t));
@@ -675,7 +674,7 @@ fail_unless_fit_improves(const bsm_t* m, const double t[4], const double l[4])
     bsm_t fit = *m;
 
     int result = lcfit_fit_bsm(4, t, l, &fit, 500);
-    REQUIRE(!result);
+    REQUIRE(result == 0);
 
     /* Estimates must improve */
     int i;
